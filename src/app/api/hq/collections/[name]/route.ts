@@ -1,0 +1,61 @@
+import { NextResponse } from "next/server";
+import { apiUser } from "@/lib/hq/auth";
+import { apiError } from "@/lib/hq/api";
+import { getCollection } from "@/lib/hq/collections";
+import { deleteRecord, listRecords, upsertMany, upsertRecord } from "@/lib/hq/records";
+import { storeInfo } from "@/lib/store";
+
+type Ctx = { params: Promise<{ name: string }> };
+
+/** GET /api/hq/collections/:name → { records, store } */
+export async function GET(_req: Request, ctx: Ctx) {
+  const { name } = await ctx.params;
+  const def = getCollection(name);
+  if (!def) return NextResponse.json({ error: "Unknown collection" }, { status: 404 });
+  const { error } = await apiUser(def.read);
+  if (error) return error;
+  try {
+    const records = await listRecords(name);
+    return NextResponse.json({ records, store: storeInfo() });
+  } catch (e) {
+    return apiError(e);
+  }
+}
+
+/** POST { record } → upsert one · POST { records: [] } → bulk upsert in one commit */
+export async function POST(req: Request, ctx: Ctx) {
+  const { name } = await ctx.params;
+  const def = getCollection(name);
+  if (!def) return NextResponse.json({ error: "Unknown collection" }, { status: 404 });
+  const { user, error } = await apiUser(def.write);
+  if (error) return error;
+  try {
+    const body = await req.json();
+    if (Array.isArray(body.records)) {
+      const records = await upsertMany(name, body.records, user.name);
+      return NextResponse.json({ records });
+    }
+    if (!body.record || typeof body.record !== "object") return NextResponse.json({ error: "Missing record" }, { status: 400 });
+    const record = await upsertRecord(name, body.record, user.name);
+    return NextResponse.json({ record });
+  } catch (e) {
+    return apiError(e);
+  }
+}
+
+/** DELETE ?id=... */
+export async function DELETE(req: Request, ctx: Ctx) {
+  const { name } = await ctx.params;
+  const def = getCollection(name);
+  if (!def) return NextResponse.json({ error: "Unknown collection" }, { status: 404 });
+  const { user, error } = await apiUser(def.write);
+  if (error) return error;
+  const id = new URL(req.url).searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  try {
+    await deleteRecord(name, id, user.name);
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    return apiError(e);
+  }
+}

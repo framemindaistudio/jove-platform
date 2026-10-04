@@ -1,0 +1,98 @@
+"use client";
+
+import { useState } from "react";
+import { Loader2, Trash2 } from "lucide-react";
+import { getCollection } from "@/lib/hq/collections";
+import { can } from "@/lib/hq/roles";
+import { Button } from "@/components/ui/Button";
+import { Drawer } from "@/components/ui/Overlay";
+import { useCollection, useHq } from "@/components/hq/data";
+import { RecordForm } from "@/components/hq/fields";
+
+type Rec = Record<string, unknown>;
+
+function Inner({ name, initial, onClose, subtitle }: { name: string; initial: Rec; onClose: () => void; subtitle?: React.ReactNode }) {
+  const def = getCollection(name)!;
+  const { user } = useHq();
+  const { save, remove } = useCollection(name);
+  const canWrite = can(user, def.write);
+  const isNew = !initial.id;
+  const [draft, setDraft] = useState<Rec>(initial);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function onSave() {
+    setBusy(true);
+    setError("");
+    try {
+      await save(draft);
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not save");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onDelete() {
+    if (!draft.id || !window.confirm(`Delete this ${def.singular.toLowerCase()}? It stays in the repository history and can be restored.`)) return;
+    setBusy(true);
+    try {
+      await remove(String(draft.id));
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not delete");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Drawer
+      open
+      onClose={onClose}
+      title={isNew ? `New ${def.singular.toLowerCase()}` : String(draft[def.titleField] || def.singular)}
+      subtitle={subtitle ?? def.description}
+      footer={
+        <div className="flex items-center gap-2">
+          {!isNew && canWrite && (
+            <Button variant="ghost" size="sm" onClick={onDelete} disabled={busy} className="text-bad hover:bg-bad/10">
+              <Trash2 className="size-4" /> Delete
+            </Button>
+          )}
+          <div className="ml-auto flex items-center gap-2">
+            <Button variant="ghost" onClick={onClose} disabled={busy}>
+              Cancel
+            </Button>
+            {canWrite && (
+              <Button onClick={onSave} disabled={busy}>
+                {busy && <Loader2 className="size-4 animate-spin" aria-hidden />} {isNew ? "Create" : "Save changes"}
+              </Button>
+            )}
+          </div>
+        </div>
+      }
+    >
+      {error && (
+        <p role="alert" className="mb-4 rounded border border-bad/30 bg-bad/10 px-3 py-2 text-sm text-bad">
+          {error}
+        </p>
+      )}
+      {!canWrite && <p className="mb-4 rounded border border-graphite/15 bg-paper-200/50 px-3 py-2 text-sm text-charcoal">Your role can view this but not change it.</p>}
+      <RecordForm def={def} value={draft} onChange={setDraft} disabled={!canWrite || busy} />
+    </Drawer>
+  );
+}
+
+/** Generic create / edit drawer for any HQ collection. Pass `initial` (null = closed); remounts per record. */
+export function RecordDrawer({ name, initial, onClose, subtitle }: { name: string; initial: Rec | null; onClose: () => void; subtitle?: React.ReactNode }) {
+  if (!initial) return null;
+  return <Inner key={String(initial.id ?? `new-${String(initial.date ?? "")}-${String(initial.title ?? "")}`)} name={name} initial={initial} onClose={onClose} subtitle={subtitle} />;
+}
+
+/** Defaults for a brand-new record of a collection (field defaults + overrides). */
+export function blankRecord(name: string, overrides: Rec = {}): Rec {
+  const def = getCollection(name);
+  const base = Object.fromEntries((def?.fields ?? []).filter((f) => f.default !== undefined).map((f) => [f.key, f.default]));
+  return { ...base, ...overrides };
+}
