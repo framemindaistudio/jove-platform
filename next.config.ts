@@ -18,8 +18,14 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/hq/:path*",
-        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+        headers: [
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+          { key: "Referrer-Policy", value: "strict-origin" },
+        ],
       },
+      // Pages analytics never measures (src/lib/analytics.ts) also keep their address out of the Referer they send on.
+      { source: "/labs/:slug", headers: [{ key: "Referrer-Policy", value: "strict-origin" }] },
+      { source: "/verify/:code", headers: [{ key: "Referrer-Policy", value: "strict-origin" }] },
       {
         source: "/models/:path*",
         headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],

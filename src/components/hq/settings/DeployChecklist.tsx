@@ -76,7 +76,7 @@ export function DeployChecklist({ sys }: { sys: SystemInfo }) {
       items: [
         { id: "vercel", label: "Vercel project imported from the repository", detail: "Framework preset: Next.js. Production branch: main." },
         { id: "envs", label: "Environment variables added for Production and Preview", detail: "Redeploy after every change to a variable." },
-        { id: "siteurl", label: "NEXT_PUBLIC_SITE_URL points to the live domain", auto: env ? env.siteUrl : null },
+        { id: "siteurl", label: "Site address points to the live domain", detail: "Defaults to https://www.jove.website. Set NEXT_PUBLIC_SITE_URL if it changes.", auto: env ? env.siteUrl : null },
         { id: "domain", label: "Custom domain connected and HTTPS working" },
         { id: "contact", label: "Public contact email and phone set", detail: "Optional, but schools expect to see them.", auto: env ? env.contactEmail && env.contactPhone : null },
       ],

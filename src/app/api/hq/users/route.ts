@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { apiUser, configuredUsers } from "@/lib/hq/auth";
 import { LEADERSHIP } from "@/lib/hq/roles";
+import { site } from "@/lib/site";
 
 /**
  * GET → the HQ logins configured in the HQ_USERS env var (founder / admin only).
@@ -25,7 +26,8 @@ export async function GET() {
     hqUsers: users.length > 0,
     githubToken: set(process.env.GITHUB_TOKEN),
     githubRepo: set(process.env.GITHUB_REPO),
-    siteUrl: set(process.env.NEXT_PUBLIC_SITE_URL),
+    // true once the public address is a real domain (the env var, or the built-in production default)
+    siteUrl: !/localhost|127\.0\.0\.1/.test(site.url),
     contactEmail: set(process.env.NEXT_PUBLIC_CONTACT_EMAIL),
     contactPhone: set(process.env.NEXT_PUBLIC_CONTACT_PHONE),
     whatsapp: set(process.env.NEXT_PUBLIC_WHATSAPP),

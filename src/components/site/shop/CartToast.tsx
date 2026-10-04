@@ -71,7 +71,7 @@ export function CartToast() {
             onMouseLeave={() => setPaused(false)}
             onFocus={() => setPaused(true)}
             onBlur={() => setPaused(false)}
-            className="fixed inset-x-3 bottom-3 z-[70] sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-[380px]"
+            className="fixed inset-x-3 bottom-[calc(0.75rem+var(--consent-offset,0px))] z-[70] sm:inset-x-auto sm:bottom-[calc(1.5rem+var(--consent-offset,0px))] sm:right-6 sm:w-[380px]"
           >
             <div className="relative overflow-hidden rounded-[var(--radius-md)] border border-paper/10 bg-graphite text-paper shadow-[var(--shadow-lift)]">
               <div className="bp-grid-dark pointer-events-none absolute inset-0 opacity-70" aria-hidden />

@@ -7,6 +7,7 @@ import { addOns, gradeBands, joveDayRules, packages, type GradeBandId, type Pack
 import { Button } from "@/components/ui/Button";
 import { Field, Input, Select } from "@/components/ui/form";
 import { CornerMarks } from "@/components/brand/Blueprint";
+import { track } from "@/lib/analytics";
 import { cn, formatINR, formatNumber, pad2 } from "@/lib/utils";
 import { BAND_IDS, CLUB_MIN_STUDENTS, ESTIMATE_EVENT, SESSIONS, YEAR_SMM_DISCOUNT, bandPrice, priceLabel, unitLabel } from "./data";
 import { FILM_IDS, KITS_MIN, MAX_MONTHS, MAX_STUDENTS_PER_BAND, SMM_IDS, TEACHER_MIN, computeQuote, defaultInput, quoteMessage, type FilmId, type QuoteInput, type SmmId } from "./quote";
@@ -288,6 +289,7 @@ export function QuoteEstimator({ whatsappBase }: { whatsappBase: string | null }
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) throw new Error(data.error || "Something went wrong. Please try again.");
+      track("generate_lead", { lead_type: "workshop", form: "quote-estimator", package: quote.pkg, value: quote.total, currency: "INR" });
       setSent({ name: form.name.trim(), pkg: quote.packageName, students: quote.totalStudents, total: quote.total });
       setStatus("idle");
     } catch (err) {
@@ -738,7 +740,7 @@ export function QuoteEstimator({ whatsappBase }: { whatsappBase: string | null }
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 80, opacity: 0 }}
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-x-3 bottom-3 z-40 flex items-center justify-between gap-3 rounded-[var(--radius-md)] bg-graphite px-4 py-3 text-paper shadow-[var(--shadow-lift)] lg:hidden"
+            className="fixed inset-x-3 bottom-[calc(0.75rem+var(--consent-offset,0px))] z-40 flex items-center justify-between gap-3 rounded-[var(--radius-md)] bg-graphite px-4 py-3 text-paper shadow-[var(--shadow-lift)] lg:hidden"
           >
             <div className="min-w-0">
               <p className="annot truncate text-[10px] text-paper/55">

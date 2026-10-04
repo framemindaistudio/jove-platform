@@ -28,31 +28,38 @@ There is no database server and no storage service. HQ reads and writes the **pr
 
 1. **Import** this repository in Vercel → *Add New → Project* → framework **Next.js** (defaults are fine).
 2. **Create a GitHub token** for the data repo: GitHub → Settings → Developer settings → *Fine-grained personal access tokens* → **Repository access: only `jove-hq-data`** → Permissions → **Contents: Read and write** → Generate.
-3. **Generate your environment block** on your own computer (passwords are hidden while you type; only their hashes are printed):
+3. **Generate your environment file** on your own computer. It writes `.env.vercel` (gitignored); only password hashes go into it:
 
    ```bash
    node scripts/make-hq-env.mjs
    ```
 
-4. **Paste** the printed lines into Vercel → Project → Settings → **Environment Variables** (Production + Preview), and add the token from step 2:
+   You choose each password (hidden while you type in PowerShell or Windows Terminal; Git Bash cannot hide input and says so). Or let it create strong ones for both founders, saved to `.env.hq-logins`:
+
+   ```bash
+   node scripts/make-hq-env.mjs --generate
+   ```
+
+4. **Import** it: Vercel → Project → Settings → **Environment Variables** → *Import .env* → choose `.env.vercel` (Production + Preview). Paste the token from step 2 after `GITHUB_TOKEN=` first.
 
    | Variable | Value |
    |---|---|
-   | `HQ_SESSION_SECRET` | printed by the script (64 random hex characters) |
-   | `HQ_USERS` | printed by the script (JSON list of logins with hashed passwords) |
+   | `HQ_SESSION_SECRET` | written by the script (64 random hex characters) |
+   | `HQ_USERS` | written by the script (JSON list of logins with hashed passwords) |
    | `GITHUB_REPO` | `your-account/jove-hq-data` — the **private** data repo |
    | `GITHUB_BRANCH` | `main` |
    | `GITHUB_TOKEN` | the fine-grained token from step 2 |
-   | `NEXT_PUBLIC_SITE_URL` | `https://your-domain.com` (used in QR codes, links, metadata) |
+   | `NEXT_PUBLIC_SITE_URL` | optional — defaults to `https://www.jove.website` (used in QR codes, links, share previews) |
    | `NEXT_PUBLIC_CONTACT_EMAIL` / `NEXT_PUBLIC_CONTACT_PHONE` / `NEXT_PUBLIC_WHATSAPP` | optional — shown on the site when set (WhatsApp: digits with country code, e.g. `919876543210`) |
    | `NEXT_PUBLIC_LOCATION` / `NEXT_PUBLIC_INSTAGRAM` / `NEXT_PUBLIC_YOUTUBE` / `NEXT_PUBLIC_LINKEDIN` | optional |
+   | `NEXT_PUBLIC_GA_ID` / `NEXT_PUBLIC_ANALYTICS_CONSENT` | optional — see *Analytics* below |
 
-5. **Deploy** (or redeploy after adding variables). Open `/hq`, sign in, and fill **HQ → Settings** (legal name, address, GSTIN, bank/UPI for invoices, numbering).
+5. **Deploy** (or redeploy after adding variables). Delete `.env.vercel` and `.env.hq-logins` once the variables are saved. Open `/hq`, sign in, and fill **HQ → Settings** (legal name, address, GSTIN, bank/UPI for invoices, numbering).
 6. *(Optional)* add `hq.your-domain.com` as a second domain in Vercel — it opens the portal directly.
 
 Roles: **founder / admin** (everything) · **ops** (everything except payroll & settings) · **trainer** (workshops, curriculum, printables, kits) · **media** (media studio, content, testimonials, docs).
 
-To add or change a login later, run the script again (or `node scripts/hash-password.mjs "new-password"`), update `HQ_USERS` in Vercel and redeploy.
+To change one password later, run `node scripts/hash-password.mjs "new-password"`, put the printed value in place of that person's `"password"` inside `HQ_USERS` in Vercel, and redeploy. Running `make-hq-env.mjs` again builds the whole list afresh (every login gets a new password), which is the way to add or remove people.
 
 ---
 
@@ -92,10 +99,20 @@ src/lib/hq/            collections (schema), auth, records engine, settings, rol
 src/lib/store/         the GitHub-as-database layer (with the private-repo safety lock)
 src/components/        brand/ ui/ site/ hq/ labs/ three/ print/
 public/brand/          logo system  ·  public/models/  the hero's 3D sketch arm
-scripts/               make-hq-env.mjs, hash-password.mjs, process-assets.py, typecheck-paths.mjs, check-routes.mjs
+scripts/               make-hq-env.mjs (Vercel env + logins), hash-password.mjs, process-assets.py, typecheck-paths.mjs, check-routes.mjs
 ```
 
 Change a price, kit component or cost in **`src/lib/content/business.ts`** and the website, quote estimator, proposals, invoice prefill and the business planner all update together.
+
+### Analytics
+
+Google Analytics 4 runs on the public site only (`src/lib/analytics.ts`, `src/components/site/Analytics.tsx`).
+
+- **Asked first.** Nothing is sent to Google Analytics until a visitor chooses *Allow*; they can change it any time on `/privacy`. Set `NEXT_PUBLIC_ANALYTICS_CONSENT=always` to measure without asking (visitors can still opt out).
+- **Never measured:** `/hq`, the Virtual Lab journeys (`/labs/<lab>` — the pages built for children) and certificate pages (`/verify/<id>`). Once the tag is running, opening one of these is a full page load into a document without it, because the tag reports the previous address with every in-site page view.
+- **No advertising features**, and only the site's own address (`NEXT_PUBLIC_SITE_URL`, by default `www.jove.website`) sends data — local builds, tunnels and `*.vercel.app` previews never do.
+- **Events:** page views, `generate_lead` (enquiry, quote estimator, labs waitlist) and `purchase` (a kit order placed — kits and value only, never the order number). Mark `generate_lead` as a key event in GA → Admin → Events.
+- Another property: `NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX`. No analytics: `NEXT_PUBLIC_GA_ID=off`.
 
 ---
 

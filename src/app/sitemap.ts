@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { labs } from "@/lib/content/labs";
 import { getPublicProducts } from "@/lib/public-data";
 import { site } from "@/lib/site";
+import { LEGAL_UPDATED_ISO } from "@/components/site/legal/LegalLayout";
 
 type Entry = MetadataRoute.Sitemap[number];
 
@@ -21,7 +22,7 @@ const STATIC_ROUTES: { path: string; priority: number; changeFrequency: Entry["c
 ];
 
 const LEGAL_ROUTES = ["/privacy", "/terms", "/refund-policy", "/shipping-policy"];
-const LEGAL_UPDATED = new Date("2026-10-02");
+const LEGAL_UPDATED = new Date(LEGAL_UPDATED_ISO);
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = site.url.replace(/\/+$/, "");

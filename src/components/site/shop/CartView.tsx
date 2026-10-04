@@ -27,6 +27,7 @@ import { Button, buttonClass } from "@/components/ui/Button";
 import { Input, Label, Textarea } from "@/components/ui/form";
 import { useCart, type CartLine } from "@/components/site/CartProvider";
 import { FREE_SHIPPING_ABOVE, SHIPPING_FLAT, shippingFor } from "@/lib/shop";
+import { throwawayId, track } from "@/lib/analytics";
 import { whatsappLink } from "@/lib/site";
 import type { KitId } from "@/lib/content/business";
 import type { LabMeta } from "@/lib/content/labs";
@@ -210,6 +211,14 @@ export function CartView({ catalog }: { catalog: ShopProduct[] }) {
       });
       clear();
       setForm(EMPTY_FORM);
+      // An order placed, not yet a payment received (payment is confirmed in HQ). The HQ order number is never sent.
+      track("purchase", {
+        transaction_id: throwawayId(),
+        value: typeof data.total === "number" ? data.total : snapshot.total,
+        shipping: snapshot.shipping,
+        currency: "INR",
+        items: snapshot.items.map((l) => ({ item_id: l.slug, item_name: l.name, price: l.price, quantity: l.qty })),
+      });
     } catch {
       setApiError("We couldn’t reach our server. Check your internet connection and try again — your cart is saved.");
     } finally {

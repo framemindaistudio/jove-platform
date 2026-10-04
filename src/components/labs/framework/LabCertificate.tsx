@@ -15,11 +15,22 @@ export function LabCertificate({ open, onClose, lab, score, total, completedAt }
     const origin = window.location.origin;
     const date = new Date(completedAt || Date.now()).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" });
     const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+    // Reuse the site's own self-hosted Montserrat in the new window, so a lab page never asks a third party for fonts.
+    const fontFaces = [...document.styleSheets]
+      .flatMap((sheet) => {
+        try {
+          return [...sheet.cssRules].filter((rule) => rule instanceof CSSFontFaceRule).map((rule) => rule.cssText.replace(/url\((["']?)([^"')]+)\1\)/g, (_, _q, u) => `url("${new URL(u, sheet.href || window.location.href).href}")`));
+        } catch {
+          return []; // a stylesheet we may not read
+        }
+      })
+      .join("");
+    const family = getComputedStyle(document.documentElement).getPropertyValue("--font-montserrat").trim() || "Montserrat";
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>JOVE Certificate — ${esc(name)}</title>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+${fontFaces}
 @page{size:A4 landscape;margin:0}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-body{margin:0;font-family:Montserrat,Arial,sans-serif;color:#2B2B2B;background:#fff}
+body{margin:0;font-family:${family},Arial,sans-serif;color:#2B2B2B;background:#fff}
 .page{width:297mm;height:210mm;position:relative;overflow:hidden;background:#F5F1E8;
 background-image:linear-gradient(rgba(43,43,43,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(43,43,43,.07) 1px,transparent 1px),linear-gradient(rgba(43,43,43,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(43,43,43,.035) 1px,transparent 1px);
 background-size:30mm 30mm,30mm 30mm,6mm 6mm,6mm 6mm}

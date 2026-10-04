@@ -111,7 +111,7 @@ export function PurchasePanel({ product }: { product: ShopProduct }) {
             animate={reduce ? { opacity: 1 } : { y: 0 }}
             exit={reduce ? { opacity: 0 } : { y: "100%" }}
             transition={{ duration: reduce ? 0.01 : 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-x-0 bottom-0 z-40 border-t border-graphite/15 bg-paper/95 shadow-[0_-8px_30px_rgb(22_22_22/0.08)] backdrop-blur-md lg:hidden"
+            className="fixed inset-x-0 bottom-[var(--consent-offset,0px)] z-40 border-t border-graphite/15 bg-paper/95 shadow-[0_-8px_30px_rgb(22_22_22/0.08)] backdrop-blur-md lg:hidden"
           >
             <div className="container-bp flex items-center gap-3 py-3">
               <div className="min-w-0 flex-1">

@@ -173,7 +173,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           </button>
           <div className="ml-auto flex items-center gap-2">
             <StoreBadge store={store} />
-            <Link href="/" target="_blank" className="hidden items-center gap-1.5 rounded-[var(--radius-sm)] px-2.5 py-1.5 text-xs font-medium text-charcoal hover:bg-graphite/5 sm:inline-flex">
+            <Link href="/" target="_blank" rel="noreferrer" className="hidden items-center gap-1.5 rounded-[var(--radius-sm)] px-2.5 py-1.5 text-xs font-medium text-charcoal hover:bg-graphite/5 sm:inline-flex">
               Public site <ExternalLink className="size-3.5" />
             </Link>
           </div>

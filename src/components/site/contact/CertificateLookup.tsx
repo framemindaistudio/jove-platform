@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Label } from "@/components/ui/form";
+import { analyticsRunning } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 
 /** Same rule the server applies in findCertificate(). */
@@ -23,7 +24,9 @@ export function CertificateLookup({ initial = "", className, dark, stacked }: { 
   const uid = useId();
   const [value, setValue] = useState(initial);
   const [error, setError] = useState("");
-  const [pending, startTransition] = useTransition();
+  const [transitioning, startTransition] = useTransition();
+  const [loading, setLoading] = useState(false);
+  const pending = transitioning || loading;
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -32,7 +35,13 @@ export function CertificateLookup({ initial = "", className, dark, stacked }: { 
     if (!CODE_RE.test(code)) return setError("That does not look like a certificate ID. IDs use letters, numbers and hyphens, for example JOVE-26-7KQ2M.");
     setError("");
     setValue(code);
-    startTransition(() => router.push(`/verify/${encodeURIComponent(code)}`));
+    const target = `/verify/${encodeURIComponent(code)}`;
+    // with analytics running, a certificate page has to open as a fresh document (see components/site/Analytics)
+    if (analyticsRunning()) {
+      setLoading(true);
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- a full page load is the point
+      window.location.assign(target);
+    } else startTransition(() => router.push(target));
   }
 
   const inputId = `${uid}-code`;

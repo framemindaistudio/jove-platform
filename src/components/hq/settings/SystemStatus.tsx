@@ -16,6 +16,8 @@ interface Check {
   what: string;
   /** shown when the variable is missing */
   fix: string;
+  /** status wording when the check is about the value rather than presence: [ok, not ok] */
+  labels?: [string, string];
 }
 
 const CHECKS: Check[] = [
@@ -23,7 +25,7 @@ const CHECKS: Check[] = [
   { key: "hqUsers", name: "HQ_USERS", required: true, what: "The team's logins.", fix: "Nobody can sign in until at least one account exists." },
   { key: "githubToken", name: "GITHUB_TOKEN", required: true, what: "Lets HQ commit changes to the private repository.", fix: "Without it HQ cannot save in production." },
   { key: "githubRepo", name: "GITHUB_REPO", required: true, what: "owner/repository of the PRIVATE data repo (never the public code repo).", fix: "Set together with GITHUB_TOKEN." },
-  { key: "siteUrl", name: "NEXT_PUBLIC_SITE_URL", required: true, what: "Public address used in links, QR codes and sharing previews.", fix: "Falls back to localhost, so shared links would be wrong." },
+  { key: "siteUrl", name: "NEXT_PUBLIC_SITE_URL", required: true, labels: ["Live domain", "Local address"], what: "Public address used in links, QR codes and sharing previews. Defaults to https://www.jove.website.", fix: "It is set to a local address. Remove it, or set it to the live domain." },
   { key: "contactEmail", name: "NEXT_PUBLIC_CONTACT_EMAIL", required: false, what: "Shown on the public site and footer.", fix: "Hidden on the site until set." },
   { key: "contactPhone", name: "NEXT_PUBLIC_CONTACT_PHONE", required: false, what: "Shown on the public site and footer.", fix: "Hidden on the site until set." },
   { key: "whatsapp", name: "NEXT_PUBLIC_WHATSAPP", required: false, what: "Powers the WhatsApp buttons (digits with country code).", fix: "WhatsApp buttons stay hidden until set." },
@@ -116,7 +118,7 @@ export function SystemStatus({ sys }: { sys: SystemInfo }) {
                         {c.name}
                         {!c.required && <Badge tone="outline" className="ml-2 px-1.5 py-0 text-[9px]">optional</Badge>}
                       </td>
-                      <td className="px-4 py-3">{ok ? <StatusPill tone="ok">Set</StatusPill> : <StatusPill tone={c.required ? "bad" : "neutral"}>Missing</StatusPill>}</td>
+                      <td className="px-4 py-3">{ok ? <StatusPill tone="ok">{c.labels?.[0] ?? "Set"}</StatusPill> : <StatusPill tone={c.required ? "bad" : "neutral"}>{c.labels?.[1] ?? "Missing"}</StatusPill>}</td>
                       <td className="px-4 py-3 text-charcoal">
                         {c.what}
                         {!ok && <span className="mt-0.5 block text-xs text-blueprint">{c.fix}</span>}
@@ -128,7 +130,7 @@ export function SystemStatus({ sys }: { sys: SystemInfo }) {
             </table>
           </div>
         )}
-        <p className="mt-3 text-xs text-blueprint">Only whether each variable is set is shown. Values are never sent to the browser.</p>
+        <p className="mt-3 text-xs text-blueprint">Only whether each variable is set (or, for the site address, whether it is a live domain) is shown. Values are never sent to the browser.</p>
       </div>
     </SettingsSection>
   );

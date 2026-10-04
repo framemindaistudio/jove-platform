@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { CalendarCheck, Clapperboard, Handshake, MessageSquare, Package, type LucideIcon } from "lucide-react";
 import { CornerMarks, SpecIndex } from "@/components/brand/Blueprint";
 import { LeadForm } from "@/components/site/LeadForm";
+import { analyticsRunning } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 import type { ContactTabData, ContactTabId } from "./tabs";
 
@@ -26,12 +27,15 @@ export function ContactForms({ tabs, initial }: { tabs: ContactTabData[]; initia
 
   function select(id: ContactTabId, focus = false) {
     setActive(id);
-    try {
-      const url = new URL(window.location.href);
-      url.searchParams.set("type", id);
-      window.history.replaceState(null, "", url.toString());
-    } catch {
-      /* URL sync is a nicety only */
+    // The shareable ?type= is a nicety only — and with analytics running, the Google tag would count each change as a page view.
+    if (!analyticsRunning()) {
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set("type", id);
+        window.history.replaceState(null, "", url.toString());
+      } catch {
+        /* ignore */
+      }
     }
     if (focus) refs.current[id]?.focus();
   }

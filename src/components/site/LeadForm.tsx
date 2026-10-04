@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { CheckCircle2, Loader2, Send } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/form";
+import { track } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 
 type Kind = "workshop" | "trainer" | "contact" | "kits" | "studio" | "partner";
@@ -40,6 +41,7 @@ export function LeadForm({ kind = "workshop", className, submitLabel, dark }: { 
       const res = await fetch("/api/public/submit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || "Could not send. Please try again.");
+      track("generate_lead", { lead_type: kind, form: "enquiry" });
       setState("done");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not send.");

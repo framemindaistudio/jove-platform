@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
 import { site } from "@/lib/site";
+import { AnalyticsPreference } from "@/components/site/legal/AnalyticsPreference";
 import { LegalLayout, type LegalSection } from "@/components/site/legal/LegalLayout";
-import { A, DataTable, Note, P, ReachUs, UL } from "@/components/site/legal/prose";
+import { A, DataTable, H3, Note, P, ReachUs, UL } from "@/components/site/legal/prose";
+import { ANALYTICS_MODE, GA_ID } from "@/lib/analytics";
+
+/** Analytics wording follows the configuration: off, asked first ("ask") or on unless turned off ("always"). */
+const analyticsOn = !!GA_ID;
+const askFirst = ANALYTICS_MODE === "ask";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
@@ -25,7 +31,7 @@ const sections: LegalSection[] = [
           shares its students’ details with us to run a workshop, the school and JOVE each have responsibilities, set out in section 3.
         </P>
         <P>
-          <strong>Grievance contact:</strong> {site.founders[0].name}, {site.founders[0].role}. See section 12 for how to reach him.
+          <strong>Grievance contact:</strong> {site.founders[0].name}, {site.founders[0].role}. See section 13 for contact details.
         </P>
       </>
     ),
@@ -75,6 +81,15 @@ const sections: LegalSection[] = [
               "Basic technical data such as browser type and pages requested, in standard server logs",
               "To keep the site secure and working",
             ],
+            ...(analyticsOn
+              ? [
+                  [
+                    askFirst ? "You allow analytics" : "You browse the website (analytics)",
+                    "Pages viewed, how you reached us, scrolling and clicks on outside links, device and browser type, and an approximate location (city or region) — through Google Analytics, using a random ID kept in a cookie",
+                    "To see which pages are useful and improve the site. Never on the Virtual Lab journeys, certificate pages or our internal portal (section 10)",
+                  ],
+                ]
+              : []),
           ]}
         />
         <P>
@@ -103,6 +118,7 @@ const sections: LegalSection[] = [
             </span>,
             <span key="3">
               <strong>No tracking or targeting.</strong> We do not track or behaviourally monitor children, and we do not show them targeted advertising. We never use a child’s data for marketing to that child.
+              {analyticsOn ? " Website analytics never runs on the Virtual Lab journeys, the pages built for students." : ""}
             </span>,
             <span key="4">
               <strong>No consent, no processing.</strong> If a parent does not consent, the student can still take part in the workshop; we simply do not photograph or film them, and we leave their details off any list we keep.
@@ -136,7 +152,7 @@ const sections: LegalSection[] = [
             "Students without consent are kept out of identifiable shots, or their faces are blurred, and we tell the crew before filming starts.",
             "The school may use the delivered media for its own marketing and admissions. JOVE may use the media in its portfolio; students’ faces are blurred on request.",
             "We do not sell media of children to third parties, and we do not use it in paid advertising for products other than JOVE’s own services without fresh consent.",
-            "To withdraw media consent, contact us (section 12). We will stop using the images and remove them from channels we control within 7 working days of a verified request. We cannot recall copies that a school or a third party has already downloaded or shared.",
+            "To withdraw media consent, contact us (section 13). We will stop using the images and remove them from channels we control within 7 working days of a verified request. We cannot recall copies that a school or a third party has already downloaded or shared.",
           ]}
         />
       </>
@@ -170,7 +186,8 @@ const sections: LegalSection[] = [
               <strong>The school</strong> concerned — for example, the certificates and Media Pack for its own students.
             </span>,
             <span key="2">
-              <strong>Service providers</strong> who work for us under confidentiality: website hosting and storage, payment providers, courier and logistics partners, and communication tools (SMS, WhatsApp, email).
+              <strong>Service providers</strong> who work for us under confidentiality: website hosting and storage, payment providers, courier and logistics partners, and communication tools (SMS, WhatsApp, email)
+              {analyticsOn ? `, and Google Analytics for website statistics (${askFirst ? "only if you allow it" : "unless you turn it off"}; section 10)` : ""}.
             </span>,
             <span key="3">
               <strong>Professional advisers</strong> such as our chartered accountant and legal counsel, where needed.
@@ -217,6 +234,7 @@ const sections: LegalSection[] = [
             ["Raw photo and video footage", "Up to 24 months after delivery to the school, then deleted"],
             ["Final films and reels in our portfolio", "While consent covers them, until you or a parent withdraws it"],
             ["Orders, invoices and accounting records", "For the period required by tax and company law (typically 6 to 8 years)"],
+            ...(analyticsOn ? [["Website analytics", "Visitor-level data for up to 14 months in Google Analytics; totals that identify no one are kept longer"]] : []),
           ]}
         />
         <P>
@@ -241,7 +259,7 @@ const sections: LegalSection[] = [
           ]}
         />
         <P>
-          A parent or lawful guardian can exercise all of these rights for a child. To make a request, use the contact options in section 12 and tell us who you are, who the data is about and (for a school) which school and workshop
+          A parent or lawful guardian can exercise all of these rights for a child. To make a request, use the contact options in section 13 and tell us who you are, who the data is about and (for a school) which school and workshop
           date. We may ask for proof of identity or of guardianship before acting. We aim to acknowledge requests within 3 working days and resolve them within 30 days.
         </P>
       </>
@@ -256,10 +274,34 @@ const sections: LegalSection[] = [
           This website uses a small number of essential items stored in your browser: your shopping cart, your Virtual Lab progress, and (for staff) a sign-in session for our internal portal. These stay on your device and are used
           only to make the site work.
         </P>
-        <P>
-          We do not use advertising cookies or sell data to advertisers. If we add analytics later, we will describe it here and, where required, ask for your consent first. You can clear local storage at any time from your
-          browser settings; doing so resets your cart and lab progress.
-        </P>
+        {analyticsOn ? (
+          <>
+            <P>We do not use advertising cookies or sell data to advertisers.</P>
+            <H3>Analytics</H3>
+            <P>
+              {askFirst
+                ? "If you choose “Allow” when we ask, we use Google Analytics to count visits and see which pages are useful. Until you allow it, nothing is sent to Google Analytics and no analytics cookie is set."
+                : "We use Google Analytics to count visits and see which pages are useful. You can turn it off below at any time."}{" "}
+              When it is on, Google sets first-party cookies (<code>_ga</code> and <code>_ga_…</code>) holding a random ID that expires 13 months after it is created, and receives the pages you view, how you arrived, your device and browser
+              type, and an approximate location that it works out from your IP address without storing the address.
+            </P>
+            <P>
+              Advertising features are switched off: no Google signals, no ad personalisation, no remarketing. We never send Google your name, phone number, email, address or message. When you send an enquiry or place an
+              order, we record only that it happened — the type of enquiry, or the kits and value of the order — and never your order number or who you are.
+            </P>
+            <P>
+              Analytics never runs on the Virtual Lab journeys (the pages built for students), on individual certificate pages or in our internal portal. Google processes this data on its own servers, which may be outside
+              India, under its <A href="https://policies.google.com/privacy">privacy policy</A>.
+            </P>
+            <AnalyticsPreference />
+            <P>You can also clear cookies and local storage from your browser settings at any time; doing so resets your cart, lab progress and analytics choice.</P>
+          </>
+        ) : (
+          <P>
+            We do not use advertising cookies or sell data to advertisers. If we add analytics later, we will describe it here and, where required, ask for your consent first. You can clear local storage at any time from your
+            browser settings; doing so resets your cart and lab progress.
+          </P>
+        )}
       </>
     ),
   },

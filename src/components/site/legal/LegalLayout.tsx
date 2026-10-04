@@ -4,7 +4,9 @@ import { Crosshair, CornerMarks, GridBackdrop, SectionLabel, SketchDivider, Spec
 import { Reveal, RevealLines } from "@/components/site/Reveal";
 import { LegalToc } from "./LegalToc";
 
-export const LEGAL_UPDATED = "2 October 2026";
+/** One date for all four policies: shown on the page, in <time> and in the sitemap. */
+export const LEGAL_UPDATED_ISO = "2026-10-04";
+export const LEGAL_UPDATED = "4 October 2026";
 
 export const legalPages = [
   { href: "/privacy", label: "Privacy Policy", blurb: "How we handle data — especially children's data" },
@@ -66,7 +68,7 @@ export function LegalLayout({
                   <dt className="sr-only">Last updated</dt>
                   <dd>
                     <span className="annot mr-2 text-blueprint">Last updated</span>
-                    <time dateTime="2026-10-02" className="font-mono text-[13px] text-graphite">
+                    <time dateTime={LEGAL_UPDATED_ISO} className="font-mono text-[13px] text-graphite">
                       {LEGAL_UPDATED}
                     </time>
                   </dd>

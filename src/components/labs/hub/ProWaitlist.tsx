@@ -5,6 +5,7 @@ import { Check, Loader2, Send } from "lucide-react";
 import { proLabs } from "@/lib/content/labs";
 import { Button } from "@/components/ui/Button";
 import { Field, Input, Select } from "@/components/ui/form";
+import { track } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 
 const ROLES = ["Student", "Parent", "Teacher", "School leader", "Other"];
@@ -47,6 +48,7 @@ export function ProWaitlist() {
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) throw new Error(data.error || "Something went wrong. Please try again.");
+      track("generate_lead", { lead_type: "pro-labs-waitlist", form: "labs-waitlist" });
       setState("done");
     } catch (err) {
       setState("idle");
