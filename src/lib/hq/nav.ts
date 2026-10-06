@@ -1,4 +1,4 @@
-import { ALL, LEADERSHIP, OPS, OPS_MEDIA, OPS_TRAINER, type Role } from "./roles";
+import { ALL, DELIVERY_SIDE, LEADERSHIP, MEDIA_SIDE, OPS, OPS_MEDIA, OPS_TRAINER, STAFF, type Role } from "./roles";
 
 export interface HqNavItem {
   label: string;
@@ -20,7 +20,7 @@ export const hqNav: HqNavGroup[] = [
     items: [
       { label: "Command Center", href: "/hq", icon: "LayoutDashboard", roles: ALL, description: "Targets, pipeline, cash and what's next" },
       { label: "Tasks", href: "/hq/tasks", icon: "ListChecks", roles: ALL, description: "Shared to-do board" },
-      { label: "Activity Log", href: "/hq/activity", icon: "History", roles: ALL, description: "Every change, who made it, when" },
+      { label: "Activity Log", href: "/hq/activity", icon: "History", roles: LEADERSHIP, description: "Every change, who made it, when" },
     ],
   },
   {
@@ -36,9 +36,9 @@ export const hqNav: HqNavGroup[] = [
     items: [
       { label: "Workshops", href: "/hq/workshops", icon: "CalendarRange", roles: ALL, description: "Calendar, run sheets, checklists" },
       { label: "Travel & Transport", href: "/hq/travel", icon: "Truck", roles: OPS_TRAINER, description: "Trips, vehicles, travel costs" },
-      { label: "Media Studio", href: "/hq/media", icon: "Clapperboard", roles: OPS_MEDIA, description: "Reels, films, drone & content calendar" },
-      { label: "Certificates", href: "/hq/certificates", icon: "Award", roles: OPS_TRAINER, description: "Bulk-issue & verify certificates" },
-      { label: "Feedback & Testimonials", href: "/hq/reputation", icon: "MessageSquareHeart", roles: OPS_MEDIA, description: "Feedback, testimonials, case studies" },
+      { label: "Media Studio", href: "/hq/media", icon: "Clapperboard", roles: MEDIA_SIDE, description: "Reels, films, drone & content calendar" },
+      { label: "Certificates", href: "/hq/certificates", icon: "Award", roles: DELIVERY_SIDE, description: "Bulk-issue & verify certificates" },
+      { label: "Feedback & Testimonials", href: "/hq/reputation", icon: "MessageSquareHeart", roles: MEDIA_SIDE, description: "Feedback, testimonials, case studies" },
     ],
   },
   {
@@ -63,7 +63,7 @@ export const hqNav: HqNavGroup[] = [
       { label: "Curriculum", href: "/hq/curriculum", icon: "GraduationCap", roles: ALL, description: "Lesson plans by grade — print & download" },
       { label: "Operations Library", href: "/hq/docs", icon: "FolderOpen", roles: ALL, description: "SOPs, manuals, policies — versioned" },
       { label: "Printables", href: "/hq/printables", icon: "Printer", roles: ALL, description: "Certificates, badges, forms, letterhead" },
-      { label: "File Vault", href: "/hq/files", icon: "Archive", roles: ALL, description: "Receipts, signed forms, assets" },
+      { label: "File Vault", href: "/hq/files", icon: "Archive", roles: STAFF, description: "Receipts, signed forms, assets" },
     ],
   },
   {

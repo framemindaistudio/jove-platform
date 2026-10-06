@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { BaseRecord } from "@/lib/hq/collections";
-import type { SessionUser } from "@/lib/hq/roles";
+import { can, OPS, type SessionUser } from "@/lib/hq/roles";
 import type { CompanySettings } from "@/lib/hq/settings";
 import { defaultSettings } from "@/lib/hq/settings";
 
@@ -15,6 +15,8 @@ export interface StoreInfo {
   writable: boolean;
   /** true when GITHUB_REPO points at a public repository — HQ then refuses to save. */
   publicRepo?: boolean;
+  /** true for accounts that may look and print but never save (writable is then false too). */
+  viewOnly?: boolean;
 }
 
 interface HqCtx {
@@ -32,6 +34,11 @@ export function useHq() {
   const c = useContext(HqContext);
   if (!c) throw new Error("useHq must be used inside <HqProvider>");
   return c;
+}
+
+/** Amounts of money are shown only to the roles that see Finance (the server leaves them out for everyone else too). */
+export function useShowMoney() {
+  return can(useHq().user, OPS);
 }
 
 /* ─────────────────────────── API helpers ─────────────────────────── */

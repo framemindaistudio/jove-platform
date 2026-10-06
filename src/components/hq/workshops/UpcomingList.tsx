@@ -6,6 +6,7 @@ import { AlertTriangle, ArrowUpRight, ClipboardList, Plus, Printer } from "lucid
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { cn, formatINR, formatNumber } from "@/lib/utils";
+import { useShowMoney } from "@/components/hq/data";
 import { EmptyState } from "@/components/hq/ui";
 import {
   addDays,
@@ -103,6 +104,7 @@ export function UpcomingList({ workshops, today, canWrite, onNew, schoolLabel }:
 function UpcomingCard({ w, today, schoolLabel }: { w: Rec; today: string; schoolLabel: (w: Rec) => string }) {
   const ready = readiness(w);
   const checks = checklistOf(w);
+  const showMoney = useShowMoney();
   const m = money(w);
   const next = nextPending(w);
   const overdue = overduePhases(w, today);
@@ -136,10 +138,12 @@ function UpcomingCard({ w, today, schoolLabel }: { w: Rec; today: string; school
               <dt className="annot text-[9px] text-blueprint">Bands</dt>
               <dd className="font-medium">{bookedBands(w).map((b) => b.grades.replace("Grades ", "Gr ")).join(" · ") || "—"}</dd>
             </div>
-            <div>
-              <dt className="annot text-[9px] text-blueprint">{m.estimated ? "Value (est.)" : "Agreed"}</dt>
-              <dd className="tabular font-mono font-semibold">{formatINR(m.basis)}</dd>
-            </div>
+            {showMoney && (
+              <div>
+                <dt className="annot text-[9px] text-blueprint">{m.estimated ? "Value (est.)" : "Agreed"}</dt>
+                <dd className="tabular font-mono font-semibold">{formatINR(m.basis)}</dd>
+              </div>
+            )}
             <div>
               <dt className="annot text-[9px] text-blueprint">Report</dt>
               <dd className="tabular font-mono font-semibold">{str(w.startTime) || "—"}</dd>

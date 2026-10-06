@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Field, Input, Select } from "@/components/ui/form";
 import { hqNav } from "@/lib/hq/nav";
-import { ALL, LEADERSHIP, roleLabels, type Role } from "@/lib/hq/roles";
+import { ALL, EDITORS, roleLabels, type Role } from "@/lib/hq/roles";
 import { CodeBlock, SettingsSection, StatusPill, Subhead } from "./shared";
 import type { SystemInfo } from "./useSystemInfo";
 
@@ -12,7 +12,7 @@ const HASH_RE = /^sha256:[0-9a-f]{64}$/i;
 export function TeamAccounts({ sys }: { sys: SystemInfo }) {
   const [username, setUsername] = useState("");
   const [name, setName] = useState("");
-  const [role, setRole] = useState<Role>("ops");
+  const [role, setRole] = useState<Role>("viewer");
   const [hash, setHash] = useState("");
 
   const roleModules = useMemo(() => {
@@ -70,6 +70,11 @@ export function TeamAccounts({ sys }: { sys: SystemInfo }) {
       <div className="mt-8 grid gap-8 lg:grid-cols-2">
         <div>
           <Subhead>Add or change a login</Subhead>
+          <p className="mb-2 text-sm text-charcoal">
+            <strong className="text-graphite">Quickest:</strong> run this in the project folder. It creates a view-only login with a strong password and writes the new HQ_USERS value to <span className="font-mono text-xs">.env.hq-users</span>, leaving everyone else as they are.
+          </p>
+          <CodeBlock className="mb-5" code={'node scripts/hq-user.mjs add username "Full Name"'} />
+          <p className="mb-3 text-xs text-blueprint">The same by hand:</p>
           <ol className="space-y-5 text-sm text-charcoal">
             <li>
               <p className="flex gap-2">
@@ -134,7 +139,7 @@ export function TeamAccounts({ sys }: { sys: SystemInfo }) {
           {roleModules.map(({ role: r, labels }) => (
             <div key={r} className="rounded-[var(--radius-sm)] border border-graphite/12 bg-paper px-4 py-3">
               <dt className="text-sm font-semibold text-graphite">{roleLabels[r]}</dt>
-              <dd className="mt-1 text-xs leading-relaxed text-charcoal">{LEADERSHIP.includes(r) ? `Every module (${labels.length}), including Settings, Finance and Team.` : labels.join(", ")}</dd>
+              <dd className="mt-1 text-xs leading-relaxed text-charcoal">{EDITORS.includes(r) ? `Every module (${labels.length}), including Settings, Finance and Team — and the only role that can add or change anything.` : `View and print only: ${labels.join(", ")}.`}</dd>
             </div>
           ))}
         </dl>

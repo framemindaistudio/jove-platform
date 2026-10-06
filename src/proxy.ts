@@ -1,12 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySession } from "@/lib/hq/session";
+import { EDITORS, VIEW_ONLY_MESSAGE } from "@/lib/hq/roles";
+import { liveUser } from "@/lib/hq/users";
 
 /**
  * Two websites, one deployment:
  *   • public site  → everything except /hq
  *   • JOVE HQ      → /hq/*  (and hq.<your-domain> if you add that domain in Vercel)
- * Every HQ page and API call requires a valid signed session cookie.
- * (Pages and APIs re-check the session server-side as well.)
+ * Every HQ page and API call requires a valid signed session cookie for an account that still exists.
+ * Only editors (founders) may call an HQ API with anything but a read; everyone else can view and print.
+ * (Pages and APIs re-check both server-side as well.)
  */
 const PUBLIC_HQ_PATHS = ["/hq/login", "/api/hq/auth/login", "/api/hq/auth/logout"];
 
@@ -26,8 +29,11 @@ export async function proxy(req: NextRequest) {
   if (!isHq && !isHqApi) return NextResponse.next();
   if (PUBLIC_HQ_PATHS.some((p) => pathname === p)) return NextResponse.next();
 
-  const user = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
+  const user = await liveUser(await verifySession(req.cookies.get(SESSION_COOKIE)?.value));
   if (user) {
+    if (isHqApi && !["GET", "HEAD", "OPTIONS"].includes(req.method) && !EDITORS.includes(user.role)) {
+      return NextResponse.json({ error: VIEW_ONLY_MESSAGE, viewOnly: true }, { status: 403 });
+    }
     const res = NextResponse.next();
     res.headers.set("X-Robots-Tag", "noindex, nofollow");
     res.headers.set("Cache-Control", "private, no-store");

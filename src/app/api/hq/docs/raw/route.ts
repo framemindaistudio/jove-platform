@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiUser } from "@/lib/hq/auth";
+import { canReadPath } from "@/lib/hq/access";
 import { apiError } from "@/lib/hq/api";
 import { store } from "@/lib/store";
 import { ALL } from "@/lib/hq/roles";
@@ -25,11 +26,12 @@ const TYPES: Record<string, string> = {
 
 /** GET ?path=OPERATIONS/01_BRAND/logo/x.png[&download=1] → file bytes */
 export async function GET(req: Request) {
-  const { error } = await apiUser(ALL);
+  const { user, error } = await apiUser(ALL);
   if (error) return error;
   const url = new URL(req.url);
   const path = url.searchParams.get("path");
   if (!path) return NextResponse.json({ error: "Missing path" }, { status: 400 });
+  if (!canReadPath(user.role, path)) return NextResponse.json({ error: "You don't have access to this" }, { status: 403 });
   try {
     const buf = await store.readBinary(path);
     if (!buf) return NextResponse.json({ error: "Not found" }, { status: 404 });

@@ -26,7 +26,7 @@ export function DocsApp() {
 
   const canWrite = store.writable && can(user, OPS_MEDIA);
   const canDelete = store.writable && can(user, LEADERSHIP);
-  const writeNote = !store.writable ? "HQ is in read-only mode, so editing is switched off." : !can(user, OPS_MEDIA) ? "Your role can read the library but not edit it." : undefined;
+  const writeNote = store.viewOnly ? "Your account can read and print the library, but not edit it." : !store.writable ? "HQ is in read-only mode, so editing is switched off." : !can(user, OPS_MEDIA) ? "Your role can read the library but not edit it." : undefined;
 
   const [query, setQuery] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);

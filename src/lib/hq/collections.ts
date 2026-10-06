@@ -12,7 +12,7 @@
  *  unknown keys are preserved.
  * ─────────────────────────────────────────────────────────────────────────────
  */
-import { ALL, LEADERSHIP, OPS, OPS_MEDIA, OPS_TRAINER, type Role } from "./roles";
+import { ALL, LEADERSHIP, MEDIA_SIDE, OPS, OPS_MEDIA, OPS_TRAINER, type Role } from "./roles";
 
 export type FieldType =
   | "text"
@@ -54,6 +54,12 @@ export interface FieldDef {
   table?: boolean;
   /** hide in the generic form (module manages it) */
   hidden?: boolean;
+  /** pay and payout details: only founders / admins ever receive this field */
+  leadershipOnly?: boolean;
+  /** amounts of money: only the roles that see Finance (founder, admin, ops) receive this field */
+  opsOnly?: boolean;
+  /** contact numbers and internal notes: every role receives this field except the shared interns login */
+  staffOnly?: boolean;
   default?: unknown;
 }
 
@@ -71,6 +77,8 @@ export interface CollectionDef {
   read: Role[];
   write: Role[];
   fields: FieldDef[];
+  /** the shared interns login receives only the records where this tick-box field is on */
+  internsOnlyIf?: string;
   /** id prefix, e.g. "sch" → sch_k3z9x1a7f2 */
   idPrefix: string;
 }
@@ -287,8 +295,8 @@ export const collections: CollectionDef[] = [
       { key: "studentsG35", label: "Students Gr 3–5", type: "number", width: "third" },
       { key: "studentsG68", label: "Students Gr 6–8", type: "number", width: "third" },
       { key: "studentsG910", label: "Students Gr 9–10", type: "number", width: "third" },
-      { key: "agreedAmount", label: "Agreed amount (ex-GST)", type: "currency", table: true, width: "third" },
-      { key: "advanceReceived", label: "Advance received", type: "currency", width: "third" },
+      { key: "agreedAmount", label: "Agreed amount (ex-GST)", type: "currency", opsOnly: true, table: true, width: "third" },
+      { key: "advanceReceived", label: "Advance received", type: "currency", opsOnly: true, width: "third" },
       { key: "leadTrainer", label: "Lead", type: "text", width: "third" },
       { key: "team", label: "Team on site", type: "tags", width: "full", help: "Names of everyone travelling" },
       { key: "venue", label: "Venue notes (halls, power, projector)", type: "textarea", width: "full" },
@@ -296,13 +304,13 @@ export const collections: CollectionDef[] = [
       { key: "vehicle", label: "Vehicle", type: "text", width: "third" },
       { key: "departTime", label: "Depart base at", type: "time", width: "third" },
       { key: "schoolContact", label: "On-day school contact", type: "text", width: "half" },
-      { key: "schoolContactPhone", label: "Contact phone", type: "phone", width: "half" },
+      { key: "schoolContactPhone", label: "Contact phone", type: "phone", staffOnly: true, width: "half" },
       { key: "mediaPack", label: "Media Pack included", type: "boolean", default: true, width: "third" },
       { key: "droneAllowed", label: "Drone permission", type: "select", options: opts("Pending", "Granted", "Not allowed"), default: "Pending", width: "third" },
       { key: "consentCollected", label: "Photo consent collected", type: "boolean", width: "third" },
       { key: "feedbackScore", label: "Avg feedback (1–5)", type: "number", width: "third" },
       { key: "report", label: "Post-workshop report", type: "textarea", width: "full" },
-      { key: "notes", label: "Internal notes", type: "textarea", width: "full" },
+      { key: "notes", label: "Internal notes", type: "textarea", staffOnly: true, width: "full" },
     ],
   },
   {
@@ -339,7 +347,7 @@ export const collections: CollectionDef[] = [
     sortField: "date",
     sortDir: "asc",
     idPrefix: "post",
-    read: OPS_MEDIA,
+    read: MEDIA_SIDE,
     write: OPS_MEDIA,
     fields: [
       { key: "date", label: "Publish date", type: "date", table: true, width: "third" },
@@ -399,6 +407,7 @@ export const collections: CollectionDef[] = [
     idPrefix: "tsk",
     read: ALL,
     write: ALL,
+    internsOnlyIf: "forInterns",
     fields: [
       { key: "title", label: "Task", type: "text", required: true, table: true, width: "full" },
       { key: "status", label: "Status", type: "select", options: opts(["todo", "To do"], ["doing", "Doing"], ["blocked", "Blocked"], ["done", "Done"]), default: "todo", table: true, width: "third" },
@@ -407,6 +416,7 @@ export const collections: CollectionDef[] = [
       { key: "assignee", label: "Assignee", type: "text", table: true, width: "half" },
       { key: "dueDate", label: "Due", type: "date", table: true, width: "half" },
       { key: "description", label: "Details", type: "textarea", width: "full" },
+      { key: "forInterns", label: "Show this task to interns", type: "boolean", default: false, width: "full", help: "The interns login sees only the tasks ticked here. Leave it off for anything about money, people or a school deal." },
     ],
   },
 
@@ -517,9 +527,9 @@ export const collections: CollectionDef[] = [
       { key: "phone", label: "Phone", type: "phone", table: true, width: "third" },
       { key: "email", label: "Email", type: "email", width: "third" },
       { key: "city", label: "City", type: "text", width: "third" },
-      { key: "monthlyPay", label: "Monthly salary / stipend", type: "currency", width: "third" },
-      { key: "perWorkshopRate", label: "Per-workshop rate", type: "currency", width: "third" },
-      { key: "payoutDetails", label: "Payout (UPI ID / bank last 4)", type: "text", width: "third", help: "Avoid storing full account numbers" },
+      { key: "monthlyPay", label: "Monthly salary / stipend", type: "currency", width: "third", leadershipOnly: true },
+      { key: "perWorkshopRate", label: "Per-workshop rate", type: "currency", width: "third", leadershipOnly: true },
+      { key: "payoutDetails", label: "Payout (UPI ID / bank last 4)", type: "text", width: "third", help: "Avoid storing full account numbers", leadershipOnly: true },
       { key: "skills", label: "Skills", type: "tags", width: "full" },
       { key: "backgroundVerified", label: "Background verified", type: "boolean", width: "third" },
       { key: "safetyTrained", label: "Safety & child-protection trained", type: "boolean", width: "third" },
@@ -582,7 +592,7 @@ export const collections: CollectionDef[] = [
       { key: "unit", label: "Unit", type: "select", options: opts("pcs", "sets", "packs", "metres", "boxes", "kits"), default: "pcs", width: "third" },
       { key: "stockQty", label: "In stock", type: "number", table: true, width: "third" },
       { key: "reorderLevel", label: "Reorder at", type: "number", table: true, width: "third" },
-      { key: "unitCost", label: "Unit cost", type: "currency", table: true, width: "third" },
+      { key: "unitCost", label: "Unit cost", type: "currency", opsOnly: true, table: true, width: "third" },
       { key: "vendorId", label: "Preferred vendor", type: "ref", ref: "vendors", width: "half" },
       { key: "usedIn", label: "Used in kits", type: "multiselect", options: KIT_OPTS, width: "full" },
       { key: "notes", label: "Notes", type: "textarea", width: "full" },
@@ -744,7 +754,7 @@ export const collections: CollectionDef[] = [
     sortField: "date",
     sortDir: "desc",
     idPrefix: "tst",
-    read: OPS_MEDIA,
+    read: MEDIA_SIDE,
     write: OPS_MEDIA,
     fields: [
       { key: "name", label: "Name", type: "text", required: true, table: true, width: "half" },
@@ -795,7 +805,7 @@ export const collections: CollectionDef[] = [
     sortField: "date",
     sortDir: "desc",
     idPrefix: "cs",
-    read: OPS_MEDIA,
+    read: MEDIA_SIDE,
     write: OPS_MEDIA,
     fields: [
       { key: "title", label: "Title", type: "text", required: true, table: true, width: "full" },
@@ -839,7 +849,8 @@ export const collections: CollectionDef[] = [
 export const collectionMap: Record<string, CollectionDef> = Object.fromEntries(collections.map((c) => [c.name, c]));
 
 export function getCollection(name: string): CollectionDef | undefined {
-  return collectionMap[name];
+  // own keys only: "constructor" or "__proto__" must not resolve to a built-in
+  return Object.hasOwn(collectionMap, name) ? collectionMap[name] : undefined;
 }
 
 export function collectionPath(name: string) {

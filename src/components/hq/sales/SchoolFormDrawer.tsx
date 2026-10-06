@@ -86,7 +86,7 @@ export function SchoolFormDrawer({
     >
       {value && (
         <>
-          {!canWrite && <Notice className="mb-4">{store.writable ? "You have view-only access to schools." : "HQ is in read-only mode."}</Notice>}
+          {!canWrite && <Notice className="mb-4">{store.writable || store.viewOnly ? "You have view-only access to schools." : "HQ is in read-only mode."}</Notice>}
           <RecordForm def={schoolsDef} value={value} onChange={onChange} disabled={!canWrite} />
           {error && <Notice tone="bad" className="mt-4">{error}</Notice>}
         </>

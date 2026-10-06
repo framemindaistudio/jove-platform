@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { motion, MotionConfig } from "motion/react";
 import { CalendarCheck, Clapperboard, IndianRupee, Inbox, ListChecks, Target, TrendingUp, Wallet, X } from "lucide-react";
-import { can, roleLabels, OPS, OPS_MEDIA, OPS_TRAINER, type Role } from "@/lib/hq/roles";
+import { can, roleLabels, OPS, type Role } from "@/lib/hq/roles";
 import { getCollection } from "@/lib/hq/collections";
 import { StatCard } from "@/components/hq/ui";
 import { cn, formatINR, formatINRCompact, formatNumber } from "@/lib/utils";
@@ -41,8 +41,8 @@ export function CommandCenter({ denied }: { denied?: boolean }) {
 
   const sees = {
     sales: can(user, OPS),
-    leads: can(user, OPS_MEDIA) && canRead(role, "leads"),
-    stock: can(user, OPS_TRAINER) && canRead(role, "inventory"),
+    leads: canRead(role, "leads"),
+    stock: canRead(role, "inventory"),
     tasksWrite: store.writable && !!getCollection("tasks")?.write.includes(role),
   };
 

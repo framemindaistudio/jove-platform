@@ -9,7 +9,7 @@ import { api } from "@/components/hq/data";
 import { cn } from "@/lib/utils";
 import { KindIcon } from "./DocTree";
 import { useRemote } from "./hooks";
-import { extOf, fileKind, formatBytes, nodeTitle, OPS_ROOT, printPackHref, type TreeNode } from "./lib";
+import { extOf, fileKind, formatBytes, nodeTitle, OPS_ROOT, printPackHref, resolveDocLink, type TreeNode } from "./lib";
 
 function Card({ node, onOpen }: { node: TreeNode; onOpen: (path: string) => void }) {
   const dir = node.type === "dir";
@@ -99,7 +99,15 @@ export function FolderView({
             <Loading label="Loading overview…" className="py-6" />
           ) : readmeDoc.data ? (
             <>
-              <Markdown content={readmeDoc.data.content} />
+              <Markdown
+                content={readmeDoc.data.content}
+                onLink={(href) => {
+                  const link = resolveDocLink(readme.path, href);
+                  if (link?.type !== "doc") return false;
+                  onOpen(link.path);
+                  return true;
+                }}
+              />
               <div className="mt-4 flex justify-end">
                 <Button size="sm" variant="ghost" onClick={() => onOpen(readme.path)}>
                   <Pencil className="size-3.5" /> Open overview document

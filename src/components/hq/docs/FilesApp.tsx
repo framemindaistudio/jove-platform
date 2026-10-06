@@ -245,7 +245,7 @@ export function FilesApp() {
                 </p>
                 <input ref={inputRef} type="file" multiple className="sr-only" tabIndex={-1} onChange={onPick} disabled={!canUpload} aria-label="Choose files to upload" onClick={(e) => e.stopPropagation()} />
               </div>
-              {!canUpload && <p className="text-xs text-charcoal">{!store.writable ? "HQ is in read-only mode, so uploads are switched off." : "Your role can browse the vault but not upload."}</p>}
+              {!canUpload && <p className="text-xs text-charcoal">{!store.writable && !store.viewOnly ? "HQ is in read-only mode, so uploads are switched off." : "Your account can browse the vault but not upload."}</p>}
 
               {uploads.length > 0 && (
                 <ul className="space-y-2" aria-live="polite" aria-label="Uploads">

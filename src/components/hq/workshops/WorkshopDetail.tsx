@@ -160,16 +160,16 @@ export function WorkshopDetail({ id, initialTab }: { id: string; initialTab?: st
         </Notice>
       )}
       {!canWrite && (
-        <Notice className="mb-4">{store.writable ? "You have view-only access to workshops." : "HQ is in read-only mode — changes cannot be saved."}</Notice>
+        <Notice className="mb-4">{store.writable || store.viewOnly ? "You have view-only access to workshops." : "HQ is in read-only mode — changes cannot be saved."}</Notice>
       )}
 
       <Tabs className="mb-6" value={tab} onChange={changeTab} tabs={TAB_IDS.map((t) => ({ value: t, label: TAB_LABELS[t] }))} />
 
       <div role="tabpanel" aria-label={TAB_LABELS[tab]}>
-        {tab === "overview" && <OverviewTab w={w} patch={patch} canWrite={canWrite} school={school} canSchools={canSchools} />}
+        {tab === "overview" && <OverviewTab w={w} patch={patch} canWrite={canWrite} school={school} canSchools={canSchools} showMoney={can(user, OPS)} />}
         {tab === "runsheet" && <RunSheetTab w={w} patch={patch} canWrite={canWrite} />}
         {tab === "checklist" && <ChecklistTab w={w} patch={patch} canWrite={canWrite} today={today} />}
-        {tab === "kits" && <KitsTab w={w} />}
+        {tab === "kits" && <KitsTab w={w} showMoney={can(user, OPS)} />}
         {tab === "travel" && <TravelTab w={w} schoolName={schoolName} />}
         {tab === "media" && <MediaTab w={w} schoolName={schoolName} today={today} />}
         {tab === "wrapup" && <WrapUpTab w={w} patch={patch} canWrite={canWrite} />}

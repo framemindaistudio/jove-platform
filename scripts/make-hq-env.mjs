@@ -17,6 +17,9 @@
  *   --force                     replace existing .env.vercel / .env.hq-logins (this changes the passwords)
  *
  * Nothing is sent anywhere, except that a GitHub token you type is checked once against api.github.com.
+ *
+ * This is for the first set-up. Afterwards, add or remove one person with  node scripts/hq-user.mjs  — it leaves
+ * everyone else's password alone. Only founder / admin accounts can change anything in HQ; the rest view and print.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -29,7 +32,7 @@ const ENV_FILE = path.join(ROOT, ".env.vercel");
 const LOGINS_FILE = path.join(ROOT, ".env.hq-logins");
 const LOCAL_FILE = path.join(ROOT, ".env.local");
 
-const ROLES = ["founder", "admin", "ops", "trainer", "media"];
+const ROLES = ["founder", "admin", "ops", "trainer", "media", "viewer"];
 const FOUNDERS = [
   { username: "shiva", name: "Shivaprasad Reddy S S", role: "founder" },
   { username: "chinmay", name: "Chinmay R M", role: "founder" },
@@ -206,7 +209,7 @@ async function checkToken(token, repo) {
 function finish({ users, logins, site, token, notes = [] }) {
   const line = "─".repeat(72);
   console.log(`\n${line}`);
-  console.log(`Saved  .env.vercel${logins ? "  and  .env.hq-logins" : ""}${args.local ? "  (and updated .env.local)" : ""}`);
+  console.log(`Saved  .env.vercel${logins ? "  and  .env.hq-logins" : ""}${args.local || fs.existsSync(LOCAL_FILE) ? "  (and updated .env.local)" : ""}`);
   console.log(`Logins: ${users.map((u) => `${u.username} (${u.role})`).join(", ")}`);
   if (logins) console.log("Passwords are in .env.hq-logins — they were not printed here.");
   for (const note of notes) console.log(note);
@@ -225,7 +228,7 @@ if (args.generate) {
   const site = fromFlag("site", DEFAULT_SITE);
   const repo = fromFlag("repo", DEFAULT_REPO);
   const email = fromFlag("email", "");
-  const local = args.local ? readLocal() : null;
+  const local = args.local || fs.existsSync(LOCAL_FILE) ? readLocal() : null; // an existing .env.local is always kept in step: hq-user.mjs reads the logins from it later
   const logins = FOUNDERS.map((f) => ({ ...f, password: strongPassword() }));
   const users = logins.map((l) => ({ ...l, password: hash(l.password) }));
   fs.writeFileSync(ENV_FILE, envBlock({ users, repo, site, email, token: "" }));
@@ -290,14 +293,14 @@ async function askPassword(label) {
 }
 
 refuseOverwrite([ENV_FILE]);
-const local = args.local ? readLocal() : null;
+const local = args.local || fs.existsSync(LOCAL_FILE) ? readLocal() : null; // an existing .env.local is always kept in step: hq-user.mjs reads the logins from it later
 console.log("\nJOVE HQ — environment generator\nPress Enter to accept a [default].");
 if (!tty) console.log("\n! This window cannot hide what you type. Passwords and the token will be visible on screen.\n  For hidden input use PowerShell or Windows Terminal — or run with --generate instead.");
 console.log("");
 
 const users = [];
 for (let i = 0; ; i++) {
-  const d = FOUNDERS[i] || { username: "", name: "", role: "trainer" };
+  const d = FOUNDERS[i] || { username: "", name: "", role: "viewer" };
   console.log(`User ${i + 1}`);
   let username = "";
   while (!username) {

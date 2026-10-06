@@ -57,9 +57,18 @@ There is no database server and no storage service. HQ reads and writes the **pr
 5. **Deploy** (or redeploy after adding variables). Delete `.env.vercel` and `.env.hq-logins` once the variables are saved. Open `/hq`, sign in, and fill **HQ → Settings** (legal name, address, GSTIN, bank/UPI for invoices, numbering).
 6. *(Optional)* add `hq.your-domain.com` as a second domain in Vercel — it opens the portal directly.
 
-Roles: **founder / admin** (everything) · **ops** (everything except payroll & settings) · **trainer** (workshops, curriculum, printables, kits) · **media** (media studio, content, testimonials, docs).
+**Roles.** Only **founder / admin** accounts can add, change or delete anything. Every other role can open, read and print, and nothing more — the server refuses every save from them (`EDITORS` in `src/lib/hq/roles.ts`). **viewer** is the shared interns login: workshops without amounts, media, certificates, feedback, curriculum, printables, the teaching and delivery folders of the library, and only the tasks a founder ticks "Show this task to interns" — no finance, proposals, CRM or leads, school contact numbers, pay, kits and inventory, shop, file vault, activity log or settings (`src/lib/hq/access.ts`). **ops** sees everything except payroll, the activity log and settings; **trainer** and **media** see the modules for their work, without amounts. A session is checked against today's `HQ_USERS` on every request, including a stamp of the password it signed in with, so removing a login or changing its password signs those users out as soon as the redeploy finishes.
 
-To change one password later, run `node scripts/hash-password.mjs "new-password"`, put the printed value in place of that person's `"password"` inside `HQ_USERS` in Vercel, and redeploy. Running `make-hq-env.mjs` again builds the whole list afresh (every login gets a new password), which is the way to add or remove people.
+**Add, re-key or remove one person** without touching anyone else's password:
+
+```bash
+node scripts/hq-user.mjs password intern                        # new shared password for the interns login
+node scripts/hq-user.mjs add ravi "Ravi Kumar" --role trainer   # a personal login; no --role = viewer, --role founder = full access
+node scripts/hq-user.mjs remove ravi
+node scripts/hq-user.mjs list
+```
+
+It writes the new `HQ_USERS` value to `.env.hq-users` (paste it over `HQ_USERS` in Vercel → Environment Variables, then redeploy) and the new password to `.env.hq-logins`; both are gitignored. Running `make-hq-env.mjs` again builds the whole list afresh, so every login gets a new password.
 
 ---
 
@@ -99,7 +108,7 @@ src/lib/hq/            collections (schema), auth, records engine, settings, rol
 src/lib/store/         the GitHub-as-database layer (with the private-repo safety lock)
 src/components/        brand/ ui/ site/ hq/ labs/ three/ print/
 public/brand/          logo system  ·  public/models/  the hero's 3D sketch arm
-scripts/               make-hq-env.mjs (Vercel env + logins), hash-password.mjs, process-assets.py, typecheck-paths.mjs, check-routes.mjs
+scripts/               make-hq-env.mjs (first set-up: Vercel env + logins), hq-user.mjs (add / remove one login), hash-password.mjs, process-assets.py, typecheck-paths.mjs, check-routes.mjs
 ```
 
 Change a price, kit component or cost in **`src/lib/content/business.ts`** and the website, quote estimator, proposals, invoice prefill and the business planner all update together.

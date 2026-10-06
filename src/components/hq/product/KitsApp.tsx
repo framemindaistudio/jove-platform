@@ -314,7 +314,7 @@ function PlanBuilder({ initialKit }: { initialKit: KitId }) {
       {canWrite ? (
         <PlanActions kit={kit} qty={qty} shortage={shortage} />
       ) : (
-        <p className="text-xs text-blueprint">Creating purchase orders and assembly batches needs an Ops, Admin or Founder login (and HQ must not be in read-only mode).</p>
+        <p className="text-xs text-blueprint">Creating purchase orders and assembly batches needs a Founder or Admin login (and HQ must not be in read-only mode).</p>
       )}
     </div>
   );

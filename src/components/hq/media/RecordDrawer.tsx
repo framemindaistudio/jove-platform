@@ -13,9 +13,9 @@ type Rec = Record<string, unknown>;
 
 function Inner({ name, initial, onClose, subtitle }: { name: string; initial: Rec; onClose: () => void; subtitle?: React.ReactNode }) {
   const def = getCollection(name)!;
-  const { user } = useHq();
+  const { user, store } = useHq();
   const { save, remove } = useCollection(name);
-  const canWrite = can(user, def.write);
+  const canWrite = can(user, def.write) && store.writable;
   const isNew = !initial.id;
   const [draft, setDraft] = useState<Rec>(initial);
   const [busy, setBusy] = useState(false);
@@ -78,7 +78,7 @@ function Inner({ name, initial, onClose, subtitle }: { name: string; initial: Re
           {error}
         </p>
       )}
-      {!canWrite && <p className="mb-4 rounded border border-graphite/15 bg-paper-200/50 px-3 py-2 text-sm text-charcoal">Your role can view this but not change it.</p>}
+      {!canWrite && <p className="mb-4 rounded border border-graphite/15 bg-paper-200/50 px-3 py-2 text-sm text-charcoal">You can view this but not change it.</p>}
       <RecordForm def={def} value={draft} onChange={setDraft} disabled={!canWrite || busy} />
     </Drawer>
   );

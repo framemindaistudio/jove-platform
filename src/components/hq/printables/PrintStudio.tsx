@@ -9,7 +9,7 @@ import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/form";
 import { Modal } from "@/components/ui/Overlay";
 import { Tabs } from "@/components/ui/Tabs";
 import { CornerMarks } from "@/components/brand/Blueprint";
-import { useCollection, useLookup } from "@/components/hq/data";
+import { useCollection, useHq, useLookup } from "@/components/hq/data";
 import { PageHeader } from "@/components/hq/ui";
 import { gradeBands } from "@/lib/content/business";
 import { clampInt, csv, isIso, qs, textLines } from "./util";
@@ -382,6 +382,7 @@ function GeneratorForm({ gen, values, set, shared }: { gen: Gen; values: Values;
 /* ───────────────────────────── studio ───────────────────────────── */
 
 export function PrintStudio() {
+  const { store } = useHq();
   const [group, setGroup] = useState<"all" | Group>("all");
   const [search, setSearch] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
@@ -472,7 +473,7 @@ export function PrintStudio() {
                 <p className="max-w-md text-sm leading-relaxed text-paper/75">Paste names, generate unique IDs and print one premium certificate per page. Every QR code opens a public page that confirms the certificate is genuine, or shows it as revoked.</p>
                 <div className="flex flex-wrap gap-2">
                   <Button href="/hq/certificates" variant="light">
-                    <Award className="size-4" /> Issue certificates
+                    <Award className="size-4" /> {store.writable ? "Issue certificates" : "Open certificates"}
                   </Button>
                   <Button href="/hq/print/certificates?sample=1" external variant="outline-light">
                     <ExternalLink className="size-4" /> Preview design

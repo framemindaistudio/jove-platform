@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ExternalLink, LogOut, Menu, Search, X, CloudOff, GitBranch, HardDrive, ChevronsLeft } from "lucide-react";
+import { ExternalLink, Eye, LogOut, Menu, Search, X, CloudOff, GitBranch, HardDrive, ChevronsLeft } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { navForRole } from "@/lib/hq/nav";
 import { roleLabels } from "@/lib/hq/roles";
@@ -184,6 +184,10 @@ function ShellInner({ children }: { children: React.ReactNode }) {
             <strong>Saving is blocked: the HQ data repository is PUBLIC.</strong> GITHUB_REPO ({store.repo}) can be read by anyone, so HQ will not write company data to it. Point GITHUB_REPO at your private data
             repository in Vercel → Project → Settings → Environment Variables, then redeploy.
           </div>
+        ) : store.viewOnly ? (
+          <div className="no-print border-b border-graphite/10 bg-graphite/[0.04] px-6 py-2 text-xs text-charcoal">
+            <strong>View-only account.</strong> You can open, read and print. Only the founders can add or change anything.
+          </div>
         ) : (
           !store.writable && (
             <div className="no-print border-b border-warn/30 bg-warn/10 px-6 py-2 text-xs text-warn">
@@ -206,7 +210,7 @@ function StoreBadge({ store }: { store: StoreInfo }) {
     local: { Icon: HardDrive, label: "Local files (dev)", cls: "text-info" },
     readonly: { Icon: CloudOff, label: "Read-only", cls: "text-warn" },
   } as const;
-  const m = map[store.mode];
+  const m = store.viewOnly ? { Icon: Eye, label: "View only", cls: "text-charcoal" } : map[store.mode];
   return (
     <span className={cn("hidden items-center gap-1.5 rounded-full border border-current/20 px-2.5 py-1 text-[11px] font-semibold md:inline-flex", m.cls)} title={store.repo ? `${store.repo}@${store.branch}` : undefined}>
       <m.Icon className="size-3.5" /> {m.label}

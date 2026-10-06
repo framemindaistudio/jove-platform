@@ -7,6 +7,7 @@ import { statusTone, type Tone } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { cn, formatINRCompact, formatNumber } from "@/lib/utils";
 import { addDays, isCancelled, longDate, money, num, parseIso, str, studentsOf, WORKSHOP_STATUS, type Rec } from "./logic";
+import { useShowMoney } from "@/components/hq/data";
 import { StatusBadge } from "./bits";
 
 const CHIP: Record<Tone, string> = {
@@ -60,6 +61,7 @@ export function WorkshopCalendar({
   onNew: (date: string) => void;
   schoolLabel: (w: Rec) => string;
 }) {
+  const showMoney = useShowMoney();
   const [month, setMonth] = useState(today.slice(0, 7));
   const [selected, setSelected] = useState(today);
 
@@ -132,7 +134,11 @@ export function WorkshopCalendar({
         </div>
         <p className="annot text-[10px] text-blueprint">
           <span className="tabular font-mono text-graphite">{monthStats.count}</span> workshops · <span className="tabular font-mono text-graphite">{formatNumber(monthStats.students)}</span> students ·{" "}
-          <span className="tabular font-mono text-graphite">{formatINRCompact(monthStats.value)}</span> value
+          {showMoney && (
+            <>
+              <span className="tabular font-mono text-graphite">{formatINRCompact(monthStats.value)}</span> value
+            </>
+          )}
         </p>
       </div>
 

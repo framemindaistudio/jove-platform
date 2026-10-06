@@ -10,7 +10,7 @@ import { CERTIFICATE_COST, CONSUMABLES_PER_STUDENT, kitPlan, packingList, SPARE_
 const th = "annot px-4 py-2.5 text-[10px] text-blueprint";
 const tdNum = "tabular px-4 py-3 text-right font-mono";
 
-export function KitsTab({ w }: { w: Rec }) {
+export function KitsTab({ w, showMoney }: { w: Rec; showMoney: boolean }) {
   const plan = kitPlan(w);
   const t = plan.totals;
   const packing = packingList(w);
@@ -85,7 +85,7 @@ export function KitsTab({ w }: { w: Rec }) {
       </Panel>
 
       <div className="grid gap-5 lg:grid-cols-5">
-        <Panel title="Consumables, worksheets & certificates" subtitle="Unit costs from the JOVE Day cost model" className="lg:col-span-3" bodyClassName="p-0">
+        <Panel title="Consumables, worksheets & certificates" subtitle={showMoney ? "Unit costs from the JOVE Day cost model" : "Quantities to pack"} className="lg:col-span-3" bodyClassName="p-0">
           <div className="hq-scroll overflow-x-auto" data-lenis-prevent>
             <table className="w-full min-w-[480px] text-sm">
               <thead>
@@ -93,7 +93,7 @@ export function KitsTab({ w }: { w: Rec }) {
                   <th scope="col" className={th}>
                     Item
                   </th>
-                  {["Quantity", "Unit cost", "Cost"].map((h) => (
+                  {["Quantity", ...(showMoney ? ["Unit cost", "Cost"] : [])].map((h) => (
                     <th key={h} scope="col" className={`${th} text-right`}>
                       {h}
                     </th>
@@ -109,19 +109,21 @@ export function KitsTab({ w }: { w: Rec }) {
                   <tr key={r.label} className="border-b border-dashed border-graphite/10">
                     <td className="px-4 py-3">{r.label}</td>
                     <td className={tdNum}>{formatNumber(r.qty)}</td>
-                    <td className={tdNum}>{formatINR(r.unit)}</td>
-                    <td className={`${tdNum} font-semibold`}>{formatINR(r.cost)}</td>
+                    {showMoney && <td className={tdNum}>{formatINR(r.unit)}</td>}
+                    {showMoney && <td className={`${tdNum} font-semibold`}>{formatINR(r.cost)}</td>}
                   </tr>
                 ))}
               </tbody>
-              <tfoot>
-                <tr className="bg-graphite/[0.035]">
-                  <th scope="row" colSpan={3} className="px-4 py-3 text-left font-semibold">
-                    Materials cost
-                  </th>
-                  <td className={`${tdNum} font-bold`}>{formatINR(t.materialsCost)}</td>
-                </tr>
-              </tfoot>
+              {showMoney && (
+                <tfoot>
+                  <tr className="bg-graphite/[0.035]">
+                    <th scope="row" colSpan={3} className="px-4 py-3 text-left font-semibold">
+                      Materials cost
+                    </th>
+                    <td className={`${tdNum} font-bold`}>{formatINR(t.materialsCost)}</td>
+                  </tr>
+                </tfoot>
+              )}
             </table>
           </div>
         </Panel>

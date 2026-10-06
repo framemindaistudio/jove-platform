@@ -60,7 +60,7 @@ export function PeopleTab() {
         <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label="Team directory">
           {members.map((m) => (
             <li key={m.id}>
-              <MemberCard member={m} workshops={workshops} year={year} today={today} onEdit={() => setOpenId(m.id)} onChecklist={() => setChecklistId(m.id)} />
+              <MemberCard member={m} workshops={workshops} year={year} today={today} canEdit={canEdit} onEdit={() => setOpenId(m.id)} onChecklist={() => setChecklistId(m.id)} />
             </li>
           ))}
         </ul>
@@ -98,7 +98,7 @@ export function PeopleTab() {
 
 /* ───────────────────────── member card ───────────────────────── */
 
-function MemberCard({ member, workshops, year, today, onEdit, onChecklist }: { member: Rec; workshops: Rec[]; year: string; today: string | null; onEdit: () => void; onChecklist: () => void }) {
+function MemberCard({ member, workshops, year, today, canEdit, onEdit, onChecklist }: { member: Rec; workshops: Rec[]; year: string; today: string | null; canEdit: boolean; onEdit: () => void; onChecklist: () => void }) {
   const name = str(member.name);
   const mine = useMemo(() => memberWorkshops(member, workshops), [member, workshops]);
   const done = year ? mine.filter((w) => str(w.status) === "completed" && str(w.date).startsWith(year)).length : 0;
@@ -208,9 +208,11 @@ function MemberCard({ member, workshops, year, today, onEdit, onChecklist }: { m
           <Button variant="secondary" size="sm" className="flex-1" onClick={onChecklist}>
             <ClipboardCheck className="size-3.5" aria-hidden /> Checklist
           </Button>
-          <Button variant="ghost" size="sm" onClick={onEdit} aria-label={`Edit ${name}`}>
-            <Pencil className="size-3.5" aria-hidden /> Edit
-          </Button>
+          {canEdit && (
+            <Button variant="ghost" size="sm" onClick={onEdit} aria-label={`Edit ${name}`}>
+              <Pencil className="size-3.5" aria-hidden /> Edit
+            </Button>
+          )}
         </div>
       </div>
     </article>

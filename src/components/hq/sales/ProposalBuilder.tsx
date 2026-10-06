@@ -340,7 +340,7 @@ function BuilderForm({ initial, presetSchool, created }: { initial: BaseRecord |
         }
       />
 
-      {!canWrite && <Notice className="mb-4">{store.writable ? "You have view-only access to proposals." : "HQ is in read-only mode — changes cannot be saved."}</Notice>}
+      {!canWrite && <Notice className="mb-4">{store.writable || store.viewOnly ? "You have view-only access to proposals." : "HQ is in read-only mode — changes cannot be saved."}</Notice>}
       {error && <Notice tone="bad" className="mb-4">{error}</Notice>}
       {notice && <Notice tone="ok" className="mb-4">{notice}</Notice>}
 

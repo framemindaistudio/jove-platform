@@ -6,7 +6,7 @@ import { CornerMarks, GridBackdrop } from "@/components/brand/Blueprint";
 import { Badge, statusTone } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { A4Page, Letterhead, PrintFooter, PrintShell } from "@/components/print/PrintShell";
-import { useCollection, useSettings } from "@/components/hq/data";
+import { useCollection, useHq, useSettings } from "@/components/hq/data";
 import type { BaseRecord } from "@/lib/hq/collections";
 import type { CompanySettings } from "@/lib/hq/settings";
 import { gradeBands, joveDayRules, joveDaySchedule, kits, mediaPack, packages, type GradeBand } from "@/lib/content/business";
@@ -872,6 +872,7 @@ export function ProposalPrint({ id }: { id: string }) {
   const proposals = useCollection("proposals");
   const schools = useCollection("schools");
   const { settings, loading: settingsLoading } = useSettings();
+  const { store } = useHq();
 
   const proposal = proposals.records.find((r) => r.id === id);
   const school = proposal ? schools.records.find((s) => s.id === proposal.schoolId) : undefined;
@@ -930,7 +931,7 @@ export function ProposalPrint({ id }: { id: string }) {
             {str(proposal.status) || "draft"}
           </Badge>
           <Button size="sm" variant="secondary" href={`/hq/proposals/${proposal.id}`}>
-            Edit proposal
+            {store.writable ? "Edit proposal" : "Open proposal"}
           </Button>
         </>
       }

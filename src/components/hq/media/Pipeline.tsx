@@ -42,8 +42,8 @@ export function daysBetween(a: string, b: string) {
 export function Pipeline({ workshopId }: { workshopId: string }) {
   const { records, loading, error, save, saveMany } = useCollection<Job>("mediaJobs");
   const workshops = useLookup("workshops");
-  const { user } = useHq();
-  const canWrite = can(user, OPS_MEDIA);
+  const { user, store } = useHq();
+  const canWrite = can(user, OPS_MEDIA) && store.writable;
   const today = useToday();
   const [editing, setEditing] = useState<Record<string, unknown> | null>(null);
   const [busy, setBusy] = useState(false);

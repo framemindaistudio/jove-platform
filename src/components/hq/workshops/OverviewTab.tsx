@@ -12,7 +12,7 @@ import { Notice } from "./bits";
 import { bandPlan, dayWarnings, DRONE_OPTIONS, list, money, num, optionLabel, PACKAGE_OPTIONS, shortDate, str, workshopValue, type Rec } from "./logic";
 import type { PatchFn } from "./useWorkshopDoc";
 
-export function OverviewTab({ w, patch, canWrite, school, canSchools }: { w: Rec; patch: PatchFn; canWrite: boolean; school?: Rec; canSchools: boolean }) {
+export function OverviewTab({ w, patch, canWrite, school, canSchools, showMoney }: { w: Rec; patch: PatchFn; canWrite: boolean; school?: Rec; canSchools: boolean; showMoney: boolean }) {
   const value = workshopValue(w);
   const m = money(w);
   const warnings = dayWarnings(w);
@@ -29,13 +29,13 @@ export function OverviewTab({ w, patch, canWrite, school, canSchools }: { w: Rec
       ))}
 
       <div className="grid gap-5 lg:grid-cols-3">
-        <Panel title="Students by grade band" subtitle={optionLabel(PACKAGE_OPTIONS, value.pkg)} className="lg:col-span-2" bodyClassName="p-0">
+        <Panel title="Students by grade band" subtitle={optionLabel(PACKAGE_OPTIONS, value.pkg)} className={showMoney ? "lg:col-span-2" : "lg:col-span-3"} bodyClassName="p-0">
           {value.lines.length ? (
             <div className="hq-scroll overflow-x-auto" data-lenis-prevent>
               <table className="w-full min-w-[520px] text-sm">
                 <thead>
                   <tr className="border-b border-graphite/10 text-left">
-                    {["Band", "Students", "Sessions", "Rate / student", "Amount"].map((h, i) => (
+                    {["Band", "Students", "Sessions", ...(showMoney ? ["Rate / student", "Amount"] : [])].map((h, i) => (
                       <th key={h} scope="col" className={`annot px-5 py-2.5 text-[10px] text-blueprint ${i > 0 ? "text-right" : ""}`}>
                         {h}
                       </th>
@@ -56,8 +56,8 @@ export function OverviewTab({ w, patch, canWrite, school, canSchools }: { w: Rec
                           {plan.sessions}
                           <span className="text-blueprint"> × {plan.perSession}</span>
                         </td>
-                        <td className="tabular px-5 py-3 text-right font-mono">{formatINR(l.rate)}</td>
-                        <td className="tabular px-5 py-3 text-right font-mono font-semibold">{formatINR(l.amount)}</td>
+                        {showMoney && <td className="tabular px-5 py-3 text-right font-mono">{formatINR(l.rate)}</td>}
+                        {showMoney && <td className="tabular px-5 py-3 text-right font-mono font-semibold">{formatINR(l.amount)}</td>}
                       </tr>
                     );
                   })}
@@ -69,8 +69,8 @@ export function OverviewTab({ w, patch, canWrite, school, canSchools }: { w: Rec
                     </th>
                     <td className="tabular px-5 py-3 text-right font-mono font-bold">{formatNumber(value.students)}</td>
                     <td />
-                    <td className="px-5 py-3 text-right text-xs text-blueprint">{value.minimumApplies ? `Minimum billing ${formatINR(joveDayRules.minimumBilling)} applies` : "Subtotal"}</td>
-                    <td className="tabular px-5 py-3 text-right font-mono font-bold">{formatINR(value.value)}</td>
+                    {showMoney && <td className="px-5 py-3 text-right text-xs text-blueprint">{value.minimumApplies ? `Minimum billing ${formatINR(joveDayRules.minimumBilling)} applies` : "Subtotal"}</td>}
+                    {showMoney && <td className="tabular px-5 py-3 text-right font-mono font-bold">{formatINR(value.value)}</td>}
                   </tr>
                 </tfoot>
               </table>
@@ -80,6 +80,7 @@ export function OverviewTab({ w, patch, canWrite, school, canSchools }: { w: Rec
           )}
         </Panel>
 
+        {showMoney && (
         <Panel title="Commercials" subtitle="All amounts ex-GST unless stated">
           <div>
             <KV k="Computed from counts" v={<span className="tabular font-mono">{formatINR(m.computed)}</span>} />
@@ -116,6 +117,7 @@ export function OverviewTab({ w, patch, canWrite, school, canSchools }: { w: Rec
             </button>
           )}
         </Panel>
+        )}
       </div>
 
       <div className="grid gap-5 lg:grid-cols-3">

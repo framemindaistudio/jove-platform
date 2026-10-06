@@ -375,7 +375,7 @@ function Inner<T extends BaseRecord>({
       >
         {editing && (
           <>
-            {!canWrite && <p className="mb-4 rounded border border-graphite/15 bg-graphite/5 px-3 py-2 text-xs text-charcoal">{store.writable ? "You have view-only access to this module." : "HQ is in read-only mode."}</p>}
+            {!canWrite && <p className="mb-4 rounded border border-graphite/15 bg-graphite/5 px-3 py-2 text-xs text-charcoal">{store.writable || store.viewOnly ? "You have view-only access to this module." : "HQ is in read-only mode."}</p>}
             <RecordForm def={def} value={editing} onChange={setEditing} disabled={!canWrite} />
             {drawerExtra?.(editing)}
             {formError && <p className="mt-4 rounded border border-bad/30 bg-bad/10 px-3 py-2 text-sm text-bad">{formError}</p>}

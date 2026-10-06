@@ -348,8 +348,8 @@ function RowActions({ r, canWrite }: { r: CertRecord & Record<string, unknown>; 
 }
 
 function Registry() {
-  const { user } = useHq();
-  const canWrite = can(user, OPS_TRAINER);
+  const { user, store } = useHq();
+  const canWrite = can(user, OPS_TRAINER) && store.writable;
   const { records } = useCollection<CertRecord & Record<string, unknown>>("certificates");
   const lookup = useLookup("workshops");
 
@@ -406,7 +406,9 @@ function Registry() {
 /* ───────────────────────────── Shell ───────────────────────────── */
 
 export function CertificatesApp({ initialTab, initialWorkshop }: { initialTab?: string; initialWorkshop?: string }) {
-  const [tab, setTab] = useState<Tab>(initialTab === "registry" ? "registry" : "issue");
+  const { user, store } = useHq();
+  const canIssue = can(user, OPS_TRAINER) && store.writable;
+  const [tab, setTab] = useState<Tab>(initialTab === "registry" || !canIssue ? "registry" : "issue");
   const { records } = useCollection("certificates");
   const [showTip, setShowTip] = useState(true);
 
@@ -429,12 +431,12 @@ export function CertificatesApp({ initialTab, initialWorkshop }: { initialTab?: 
         value={tab}
         onChange={setTab}
         tabs={[
-          { value: "issue", label: "Issue certificates" },
-          { value: "registry", label: "Registry", count: records.length },
+          ...(canIssue ? [{ value: "issue" as const, label: "Issue certificates" }] : []),
+          { value: "registry" as const, label: "Registry", count: records.length },
         ]}
       />
 
-      {tab === "issue" ? (
+      {tab === "issue" && canIssue ? (
         <>
           {showTip && (
             <div className="mb-5 flex items-start justify-between gap-4 rounded-[var(--radius-md)] border border-graphite/12 bg-paper-200/40 px-4 py-3 text-sm text-charcoal">
@@ -450,7 +452,7 @@ export function CertificatesApp({ initialTab, initialWorkshop }: { initialTab?: 
           <IssueFlow initialWorkshop={initialWorkshop} />
         </>
       ) : records.length === 0 ? (
-        <EmptyState icon="Award" title="No certificates issued yet" description="Issue your first batch and it will appear here, searchable by ID or name." action={<Button size="sm" onClick={() => setTab("issue")}>Issue certificates</Button>} />
+        <EmptyState icon="Award" title="No certificates issued yet" description={canIssue ? "Issue your first batch and it will appear here, searchable by ID or name." : "Certificates issued after a workshop appear here, searchable by ID or name."} action={canIssue ? <Button size="sm" onClick={() => setTab("issue")}>Issue certificates</Button> : undefined} />
       ) : (
         <Registry />
       )}

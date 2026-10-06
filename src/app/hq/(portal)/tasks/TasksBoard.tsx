@@ -126,7 +126,7 @@ export function TasksBoard({ initialView = "board" }: { initialView?: "board" | 
     [today],
   );
 
-  const readOnlyReason = store.writable ? "You have view-only access to tasks." : "HQ is in read-only mode.";
+  const readOnlyReason = store.writable || store.viewOnly ? "You have view-only access to tasks." : "HQ is in read-only mode.";
 
   const statCells: { label: string; value: number; tone?: "bad" }[] = [
     { label: "Open", value: stats.open },
@@ -164,7 +164,7 @@ export function TasksBoard({ initialView = "board" }: { initialView?: "board" | 
         }
       />
 
-      {!store.writable && <p className="mb-4 rounded-[var(--radius-sm)] border border-warn/30 bg-warn/10 px-3 py-2 text-sm text-warn">HQ is in read-only mode, so tasks can be viewed but not changed. See Settings → System status.</p>}
+      {!store.writable && !store.viewOnly && <p className="mb-4 rounded-[var(--radius-sm)] border border-warn/30 bg-warn/10 px-3 py-2 text-sm text-warn">HQ is in read-only mode, so tasks can be viewed but not changed. See Settings → System status.</p>}
 
       {/* ledger strip */}
       <div className="mb-4 overflow-hidden rounded-[var(--radius-md)] border border-graphite/12 bg-paper-50">
@@ -256,7 +256,11 @@ export function TasksBoard({ initialView = "board" }: { initialView?: "board" | 
       ) : view === "list" ? (
         <CollectionManager<Task> name="tasks" filter={listFilter} extraColumns={listColumns} defaults={{ status: "todo", assignee: mine }} newLabel="New task" emptyText="Nothing matches these filters, or no tasks have been added yet." />
       ) : !records.length ? (
-        <EmptyState icon="ListChecks" title="No tasks yet" description="Add the first one above. Tasks are shared with the whole team and every change is recorded in the activity log." />
+        <EmptyState
+          icon="ListChecks"
+          title="No tasks yet"
+          description={canWrite ? "Add the first one above. Every change is recorded in the activity log. Interns see a task only when “Show this task to interns” is ticked on it." : "Tasks a founder shares with you will appear here."}
+        />
       ) : !filtered.length ? (
         <EmptyState
           icon="ListChecks"
@@ -339,6 +343,11 @@ function TaskCard({ task, today, canWrite, busy, onOpen, onMove }: { task: Task;
           </Badge>
         )}
         {str(task.area) && <span className="rounded-full border border-graphite/15 px-2 text-[10px] font-medium text-charcoal">{str(task.area)}</span>}
+        {canWrite && task.forInterns === true && (
+          <span className="rounded-full border border-info/30 bg-info/10 px-2 text-[10px] font-medium text-info" title="The interns login can see this task">
+            Interns
+          </span>
+        )}
         {due ? (
           <span className={cn("rounded-full px-2 py-px text-[10px] font-semibold", dueToneClass[due.tone])}>{due.text}</span>
         ) : isIsoDate(task.dueDate) ? (

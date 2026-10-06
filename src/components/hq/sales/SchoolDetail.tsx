@@ -187,20 +187,22 @@ export function SchoolDetail({ id }: { id: string }) {
               whatsappText={introMessage({ kind: "school", name: school.contactName, organisation: school.name, sender })}
               emailSubject={introSubject("school", school.name)}
             />
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" className="h-10" href={`/hq/proposals/new?school=${school.id}`}>
-                <FileSignature className="size-4" aria-hidden /> Create proposal
-              </Button>
-              <Button variant="secondary" size="sm" className="h-10" href={`/hq/workshops?new=1&school=${school.id}`}>
-                <CalendarPlus className="size-4" aria-hidden /> Schedule workshop
-              </Button>
-            </div>
+            {canWrite && (
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" className="h-10" href={`/hq/proposals/new?school=${school.id}`}>
+                  <FileSignature className="size-4" aria-hidden /> Create proposal
+                </Button>
+                <Button variant="secondary" size="sm" className="h-10" href={`/hq/workshops?new=1&school=${school.id}`}>
+                  <CalendarPlus className="size-4" aria-hidden /> Schedule workshop
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </section>
 
       {error && <Notice tone="bad" className="mt-4">{error}</Notice>}
-      {!canWrite && <Notice className="mt-4">{store.writable ? "You have view-only access to the CRM." : "HQ is in read-only mode — changes cannot be saved."}</Notice>}
+      {!canWrite && <Notice className="mt-4">{store.writable || store.viewOnly ? "You have view-only access to the CRM." : "HQ is in read-only mode — changes cannot be saved."}</Notice>}
 
       {/* ── KPI row ── */}
       <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">

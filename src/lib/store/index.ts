@@ -77,7 +77,8 @@ const ALLOWED_ROOTS = ["data", "OPERATIONS", "vault"];
 
 export function safePath(p: string): string {
   const clean = p.replace(/\\/g, "/").replace(/^\/+/, "").replace(/\/+$/, "");
-  if (!clean || clean.split("/").some((seg) => seg === ".." || seg === "." || seg === "")) throw new StorePathError();
+  // no "..", and nothing a Windows disk would read as another name for the same folder (streams ":", trailing dot or space, wildcards)
+  if (!clean || clean.split("/").some((seg) => seg === ".." || seg === "." || seg === "" || /[:*?"<>|\u0000-\u001f]/.test(seg) || /[. ]$/.test(seg))) throw new StorePathError();
   const root = clean.split("/")[0];
   if (!ALLOWED_ROOTS.includes(root)) throw new StorePathError(`Path must start with ${ALLOWED_ROOTS.join(", ")}`);
   return clean;

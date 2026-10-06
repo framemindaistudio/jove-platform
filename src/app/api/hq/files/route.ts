@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { apiUser } from "@/lib/hq/auth";
+import { apiEditor, apiUser } from "@/lib/hq/auth";
 import { apiError } from "@/lib/hq/api";
 import { store } from "@/lib/store";
-import { ALL, OPS_MEDIA } from "@/lib/hq/roles";
+import { OPS, OPS_MEDIA, STAFF } from "@/lib/hq/roles";
 
 /**
  * File vault — small files (receipts, signed forms, photos, PDFs) committed to vault/ in the repo.
@@ -13,9 +13,10 @@ import { ALL, OPS_MEDIA } from "@/lib/hq/roles";
 const MAX = 4 * 1024 * 1024;
 
 export async function GET(req: Request) {
-  const { error } = await apiUser(ALL);
+  const { error } = await apiUser(STAFF);
   if (error) return error;
   const dir = new URL(req.url).searchParams.get("dir") || "vault";
+  if (dir !== "vault" && !dir.startsWith("vault/")) return NextResponse.json({ error: "Only the file vault can be listed here" }, { status: 400 });
   try {
     const entries = await store.tree(dir);
     return NextResponse.json({ entries: entries.filter((e) => e.type === "file") });
@@ -25,7 +26,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const { user, error } = await apiUser(OPS_MEDIA);
+  const { user, error } = await apiEditor(OPS_MEDIA);
   if (error) return error;
   try {
     const form = await req.formData();
@@ -49,7 +50,7 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  const { user, error } = await apiUser(["founder", "admin", "ops"]);
+  const { user, error } = await apiEditor(OPS);
   if (error) return error;
   const path = new URL(req.url).searchParams.get("path");
   if (!path || !path.startsWith("vault/")) return NextResponse.json({ error: "Only vault files can be deleted here" }, { status: 400 });

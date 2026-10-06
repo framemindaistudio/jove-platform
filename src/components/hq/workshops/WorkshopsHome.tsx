@@ -130,7 +130,7 @@ export function WorkshopsHome({ initialNew, initialSchool }: { initialNew?: bool
             <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
               <StatCard label="This month" value={stats.monthCount} sub={`${formatNumber(stats.monthStudents)} students`} />
               <StatCard label="Next 60 days" value={stats.aheadCount} sub={`${formatNumber(stats.aheadStudents)} students booked`} />
-              <StatCard label="Value ahead" value={formatINRCompact(stats.aheadValue)} sub="Agreed or computed, ex-GST" tone="dark" />
+              {can(user, OPS) && <StatCard label="Value ahead" value={formatINRCompact(stats.aheadValue)} sub="Agreed or computed, ex-GST" tone="dark" />}
               <StatCard
                 label="Readiness · next 14 days"
                 value={nextReadyAvg === null ? "—" : `${Math.round(nextReadyAvg * 100)}%`}
@@ -158,7 +158,7 @@ export function WorkshopsHome({ initialNew, initialSchool }: { initialNew?: bool
               <CollectionManager<Rec>
                 name="workshops"
                 columns={["title", "schoolId", "date", "status"]}
-                extraColumns={EXTRA_COLUMNS}
+                extraColumns={can(user, OPS) ? EXTRA_COLUMNS : EXTRA_COLUMNS.filter((c) => c.key !== "value")}
                 hideNew
                 onOpen={(r) => router.push(`/hq/workshops/${r.id}`)}
                 emptyText="Add a workshop to start planning — pick the school and the counts and amount fill in for you."

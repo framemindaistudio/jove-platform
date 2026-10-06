@@ -1,5 +1,6 @@
 import { requireUser } from "@/lib/hq/auth";
 import { storeInfoChecked } from "@/lib/store";
+import { storeForUser } from "@/lib/hq/access";
 import { HqShell } from "@/components/hq/HqShell";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
   return (
-    <HqShell user={user} store={await storeInfoChecked()}>
+    <HqShell user={user} store={storeForUser(await storeInfoChecked(), user)}>
       {children}
     </HqShell>
   );

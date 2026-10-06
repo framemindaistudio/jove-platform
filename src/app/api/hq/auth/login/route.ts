@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { authenticate, configuredUsers } from "@/lib/hq/auth";
-import { SESSION_COOKIE, SESSION_TTL_SECONDS, signSession } from "@/lib/hq/session";
+import { SESSION_COOKIE, SESSION_TTL_SECONDS, passwordStamp, signSession } from "@/lib/hq/session";
 import { clientIp, rateLimit } from "@/lib/hq/api";
 
 export async function POST(req: Request) {
@@ -22,7 +22,8 @@ export async function POST(req: Request) {
 
   let token: string;
   try {
-    token = await signSession(user);
+    const stored = configuredUsers().find((u) => u.username === user.username)?.password ?? "";
+    token = await signSession(user, await passwordStamp(stored));
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Session error" }, { status: 500 });
   }

@@ -64,8 +64,8 @@ function Chip({ post, onOpen }: { post: Post; onOpen: () => void }) {
 
 export function ContentCalendar() {
   const { records, loading, error } = useCollection<Post>("contentCalendar");
-  const { user } = useHq();
-  const canWrite = can(user, OPS_MEDIA);
+  const { user, store } = useHq();
+  const canWrite = can(user, OPS_MEDIA) && store.writable;
   const nowMonth = useThisMonth();
   const today = useToday();
   const [picked, setMonth] = useState<string | null>(null);

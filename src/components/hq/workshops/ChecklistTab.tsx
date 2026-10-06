@@ -4,6 +4,7 @@ import { useId } from "react";
 import { AlertTriangle, CheckCheck, RotateCcw } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { cn, formatINR, formatNumber } from "@/lib/utils";
+import { useShowMoney } from "@/components/hq/data";
 import { Countdown, ProgressBar, ReadinessRing } from "./bits";
 import {
   CHECKLIST,
@@ -28,9 +29,10 @@ import {
 import type { PatchFn } from "./useWorkshopDoc";
 
 /** Small live hints taken from the workshop record, so the checklist and the data agree. */
-function hintFor(id: string, w: Rec): string | null {
+function hintFor(id: string, w: Rec, showMoney: boolean): string | null {
   switch (id) {
     case "t14-advance": {
+      if (!showMoney) return null;
       const m = money(w);
       return m.basis ? `${formatINR(m.advanceReceived)} of ${formatINR(m.advanceDue)} recorded` : "Set the amount in Edit first";
     }
@@ -122,6 +124,7 @@ export function ChecklistTab({ w, patch, canWrite, today }: { w: Rec; patch: Pat
 }
 
 function PhaseCard({ phase, w, checks, today, canWrite, onToggle, onAll }: { phase: ChecklistPhase; w: Rec; checks: Record<string, boolean>; today: string; canWrite: boolean; onToggle: (id: string, on: boolean) => void; onAll: (on: boolean) => void }) {
+  const showMoney = useShowMoney();
   const pr = phaseProgress(checks, phase);
   const due = phaseDue(w, phase);
   const days = due ? daysBetween(today, due) : null;
@@ -161,7 +164,7 @@ function PhaseCard({ phase, w, checks, today, canWrite, onToggle, onAll }: { pha
       </header>
       <ul className="divide-y divide-dashed divide-graphite/10">
         {phase.items.map((item) => (
-          <ItemRow key={item.id} item={item} checked={!!checks[item.id]} hint={hintFor(item.id, w)} disabled={!canWrite} onChange={(on) => onToggle(item.id, on)} />
+          <ItemRow key={item.id} item={item} checked={!!checks[item.id]} hint={hintFor(item.id, w, showMoney)} disabled={!canWrite} onChange={(on) => onToggle(item.id, on)} />
         ))}
       </ul>
     </section>

@@ -24,7 +24,12 @@ const ACTIONS: Action[] = [
   { label: "Testimonials", hint: "Feedback & case studies", href: "/hq/reputation", Icon: MessageSquareHeart, roles: ["media"] },
   { label: "Lesson plans", hint: "Curriculum by grade", href: "/hq/curriculum", Icon: BookOpenCheck, roles: ["trainer"] },
   { label: "Printables", hint: "Badges, forms, letterhead", href: "/hq/printables", Icon: Printer, roles: ["trainer"] },
-  { label: "Operations library", hint: "SOPs & manuals", href: "/hq/docs", Icon: FolderOpen, roles: ["trainer", "media"] },
+  { label: "Operations library", hint: "SOPs & manuals", href: "/hq/docs", Icon: FolderOpen, roles: ["trainer", "media", "viewer"] },
+  { label: "Workshops", hint: "Calendar & run sheets", href: "/hq/workshops", Icon: CalendarPlus, roles: ["viewer"] },
+  { label: "Media Studio", hint: "Reels, film, drone", href: "/hq/media", Icon: Clapperboard, roles: ["viewer"] },
+  { label: "Lesson plans", hint: "Curriculum by grade", href: "/hq/curriculum", Icon: BookOpenCheck, roles: ["viewer"] },
+  { label: "Printables", hint: "Badges, forms, letterhead", href: "/hq/printables", Icon: Printer, roles: ["viewer"] },
+  { label: "Certificates", hint: "Registry & reprints", href: "/hq/certificates", Icon: Award, roles: ["viewer"] },
 ];
 
 export function QuickActions({ index, role }: { index: string; role: Role }) {

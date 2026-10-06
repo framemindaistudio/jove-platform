@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { apiUser } from "@/lib/hq/auth";
+import { apiEditor, apiUser } from "@/lib/hq/auth";
+import { canReadPath } from "@/lib/hq/access";
 import { apiError } from "@/lib/hq/api";
 import { store } from "@/lib/store";
-import { ALL, OPS_MEDIA } from "@/lib/hq/roles";
+import { ALL, LEADERSHIP, OPS_MEDIA } from "@/lib/hq/roles";
 
 const TEXT_EXT = /\.(md|markdown|txt|csv|json)$/i;
 
@@ -13,17 +14,21 @@ const TEXT_EXT = /\.(md|markdown|txt|csv|json)$/i;
  * DELETE ?path=...              → delete file
  */
 export async function GET(req: Request) {
-  const { error } = await apiUser(ALL);
+  const { user, error } = await apiUser(ALL);
   if (error) return error;
   const url = new URL(req.url);
+  const denied = () => NextResponse.json({ error: "You don't have access to this" }, { status: 403 });
   try {
     const tree = url.searchParams.get("tree");
     if (tree) {
+      if (!canReadPath(user.role, tree)) return denied();
       const entries = await store.tree(tree);
-      return NextResponse.json({ entries });
+      // folders this role may not open are left out of the listing altogether
+      return NextResponse.json({ entries: entries.filter((e) => canReadPath(user.role, e.path)) });
     }
     const path = url.searchParams.get("path");
     if (!path) return NextResponse.json({ error: "Missing path" }, { status: 400 });
+    if (!canReadPath(user.role, path)) return denied();
     if (!TEXT_EXT.test(path)) return NextResponse.json({ error: "Not a text document — use /api/hq/docs/raw" }, { status: 400 });
     const file = await store.read(path);
     if (!file) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -34,11 +39,12 @@ export async function GET(req: Request) {
 }
 
 export async function PUT(req: Request) {
-  const { user, error } = await apiUser(OPS_MEDIA);
+  const { user, error } = await apiEditor(OPS_MEDIA);
   if (error) return error;
   try {
     const body = await req.json();
     const path = String(body.path || "");
+    if (!canReadPath(user.role, path)) return NextResponse.json({ error: "You don't have access to this" }, { status: 403 });
     if (!TEXT_EXT.test(path)) return NextResponse.json({ error: "Only .md, .txt, .csv and .json files can be edited here" }, { status: 400 });
     if (typeof body.content !== "string") return NextResponse.json({ error: "Missing content" }, { status: 400 });
     if (body.content.length > 900_000) return NextResponse.json({ error: "Document too large" }, { status: 400 });
@@ -51,7 +57,7 @@ export async function PUT(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  const { user, error } = await apiUser(["founder", "admin"]);
+  const { user, error } = await apiEditor(LEADERSHIP);
   if (error) return error;
   const path = new URL(req.url).searchParams.get("path");
   if (!path) return NextResponse.json({ error: "Missing path" }, { status: 400 });

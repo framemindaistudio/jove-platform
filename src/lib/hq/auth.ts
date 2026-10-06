@@ -4,30 +4,10 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { NextResponse } from "next/server";
 import { SESSION_COOKIE, verifySession } from "./session";
-import type { Role, SessionUser } from "./roles";
+import { EDITORS, VIEW_ONLY_MESSAGE, type Role, type SessionUser } from "./roles";
+import { configuredUsers, liveUser } from "./users";
 
-interface ConfiguredUser extends SessionUser {
-  password: string; // plain or "sha256:<hex>"
-}
-
-/**
- * Users come from the HQ_USERS environment variable (JSON array):
- * [{"username":"shiva","name":"Shivaprasad Reddy S S","role":"founder","password":"sha256:..."}]
- * Generate a hash with:  node scripts/hash-password.mjs "your-password"
- */
-export function configuredUsers(): ConfiguredUser[] {
-  const raw = process.env.HQ_USERS;
-  if (!raw) return [];
-  try {
-    const arr = JSON.parse(raw);
-    if (!Array.isArray(arr)) return [];
-    return arr
-      .filter((u) => u && u.username && u.password && u.role)
-      .map((u) => ({ username: String(u.username).toLowerCase(), name: String(u.name || u.username), role: u.role as Role, password: String(u.password) }));
-  } catch {
-    return [];
-  }
-}
+export { configuredUsers };
 
 function safeEqual(a: string, b: string) {
   const ab = Buffer.from(a);
@@ -59,7 +39,7 @@ export function authenticate(username: string, password: string): SessionUser | 
 
 export async function getSession(): Promise<SessionUser | null> {
   const jar = await cookies();
-  return verifySession(jar.get(SESSION_COOKIE)?.value);
+  return await liveUser(await verifySession(jar.get(SESSION_COOKIE)?.value));
 }
 
 /** For server components/pages: redirect to login (or HQ home) if not allowed. */
@@ -76,4 +56,16 @@ export async function apiUser(roles?: Role[]): Promise<{ user: SessionUser; erro
   if (!user) return { error: NextResponse.json({ error: "Not signed in" }, { status: 401 }) };
   if (roles && !roles.includes(user.role)) return { error: NextResponse.json({ error: "You don't have access to this" }, { status: 403 }) };
   return { user };
+}
+
+/**
+ * For route handlers that change something: the role must be allowed for this record type AND be an editor.
+ * View-only accounts get a 403 that says so. (proxy.ts applies the same rule to every HQ API call that is not a read.)
+ */
+export async function apiEditor(roles?: Role[]): Promise<{ user: SessionUser; error?: undefined } | { user?: undefined; error: NextResponse }> {
+  const res = await apiUser();
+  if (res.error) return res;
+  if (!EDITORS.includes(res.user.role)) return { error: NextResponse.json({ error: VIEW_ONLY_MESSAGE, viewOnly: true }, { status: 403 }) };
+  if (roles && !roles.includes(res.user.role)) return { error: NextResponse.json({ error: "You don't have access to this" }, { status: 403 }) };
+  return res;
 }

@@ -88,12 +88,16 @@ export function WrapUpTab({ w, patch, canWrite }: { w: Rec; patch: PatchFn; canW
         <Panel title="Close-out actions" subtitle={`Post-workshop checklist ${post.done}/${post.total}`} className="lg:col-span-1">
           <ProgressBar value={post.pct} className="mb-4" label="Post-workshop checklist" />
           <div className="flex flex-col gap-2.5">
-            <Button href={`/hq/finance?tab=invoices&new=1&workshop=${w.id}`} variant="secondary" size="md" className="justify-start">
-              <FileText className="size-4" aria-hidden /> Create invoice
-            </Button>
-            <Button href={`/hq/certificates?workshop=${w.id}`} variant="secondary" size="md" className="justify-start">
-              <Award className="size-4" aria-hidden /> Issue certificates
-            </Button>
+            {canWrite && canMoney && (
+              <Button href={`/hq/finance?tab=invoices&new=1&workshop=${w.id}`} variant="secondary" size="md" className="justify-start">
+                <FileText className="size-4" aria-hidden /> Create invoice
+              </Button>
+            )}
+            {canWrite && (
+              <Button href={`/hq/certificates?workshop=${w.id}`} variant="secondary" size="md" className="justify-start">
+                <Award className="size-4" aria-hidden /> Issue certificates
+              </Button>
+            )}
             <a href={`/hq/print/attendance/${w.id}`} target="_blank" rel="noopener noreferrer" className="inline-flex h-11 items-center gap-2 rounded-[var(--radius-sm)] border border-graphite px-5 text-sm font-semibold hover:bg-graphite hover:text-paper">
               <Printer className="size-4" aria-hidden /> Attendance sheets
             </a>
@@ -147,6 +151,7 @@ export function WrapUpTab({ w, patch, canWrite }: { w: Rec; patch: PatchFn; canW
           )}
         </Panel>
 
+        {canMoney && (
         <Panel title="Economics" subtitle="Plan from the JOVE Day cost model vs expenses logged" className="lg:col-span-1">
           {econ ? (
             <>
@@ -165,6 +170,7 @@ export function WrapUpTab({ w, patch, canWrite }: { w: Rec; patch: PatchFn; canW
             <p className="text-sm text-blueprint">Add student counts to see the plan.</p>
           )}
         </Panel>
+        )}
       </div>
 
       <Panel

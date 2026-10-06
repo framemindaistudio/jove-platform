@@ -114,7 +114,7 @@ export function WorkshopFormDrawer({
     >
       {value && (
         <>
-          {!canWrite && <Notice className="mb-4">{store.writable ? "You have view-only access to workshops." : "HQ is in read-only mode."}</Notice>}
+          {!canWrite && <Notice className="mb-4">{store.writable || store.viewOnly ? "You have view-only access to workshops." : "HQ is in read-only mode."}</Notice>}
 
           {school && isNew && (
             <div className="mb-5 flex items-start gap-3 rounded-[var(--radius-sm)] border border-graphite/12 bg-paper-50 px-4 py-3">

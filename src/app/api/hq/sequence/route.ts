@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { apiUser } from "@/lib/hq/auth";
+import { apiEditor } from "@/lib/hq/auth";
 import { apiError } from "@/lib/hq/api";
 import { nextSequence, readSettings, certificateCode } from "@/lib/hq/records";
 import { OPS, OPS_TRAINER } from "@/lib/hq/roles";
@@ -9,7 +9,7 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const kind = body.kind as string;
   if (kind === "certificate") {
-    const { error } = await apiUser(OPS_TRAINER);
+    const { error } = await apiEditor(OPS_TRAINER);
     if (error) return error;
     const { settings } = await readSettings();
     const count = Math.min(2000, Math.max(1, Number(body.count) || 1));
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ values: [...set], value: [...set][0] });
   }
   if (!["invoice", "proposal", "po", "order"].includes(kind)) return NextResponse.json({ error: "Unknown sequence" }, { status: 400 });
-  const { user, error } = await apiUser(OPS);
+  const { user, error } = await apiEditor(OPS);
   if (error) return error;
   try {
     const value = await nextSequence(kind as "invoice" | "proposal" | "po" | "order", user.name);

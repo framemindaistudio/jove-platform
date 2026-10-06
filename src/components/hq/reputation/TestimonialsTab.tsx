@@ -21,8 +21,8 @@ const CONSENT_ERROR = "Written consent is required before this can be published.
 
 export function TestimonialsTab() {
   const { records, save } = useCollection<Tst>("testimonials");
-  const { user } = useHq();
-  const canWrite = can(user, OPS_MEDIA);
+  const { user, store } = useHq();
+  const canWrite = can(user, OPS_MEDIA) && store.writable;
   const [notice, setNotice] = useState<{ tone: "error" | "ok"; text: string } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
