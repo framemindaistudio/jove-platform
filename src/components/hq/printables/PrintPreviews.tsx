@@ -33,7 +33,79 @@ const Face = ({ cx, cy, mood }: { cx: number; cy: number; mood: -1 | 0 | 1 }) =>
   </g>
 );
 
+/** An A3 landscape sheet with its fold line: back cover on the left half, front cover on the right. */
+const Spread = () => (
+  <>
+    <rect x="12" y="8" width="136" height="96" rx="1.5" fill="var(--color-paper-50, #fbf9f4)" />
+    <path d="M80 4v104" strokeDasharray="2.5 2" strokeWidth="0.7" opacity="0.5" />
+  </>
+);
+const PAPER = "var(--color-paper, #f5f1e8)";
+
 const previews: Record<string, () => React.ReactNode> = {
+  "brochure-intro": () => (
+    <Frame label="Brochure sketch: light A3 sheet that folds to A4, with a drawn cover on the right">
+      <Spread />
+      <circle cx="25" cy="24" r="4.5" />
+      <circle cx="37" cy="24" r="4.5" />
+      <Lines x={20} y={36} w={48} n={5} gap={4} />
+      <rect x="20" y="78" width="15" height="15" fill="url(#pv-hatch)" />
+      <rect x="20" y="78" width="15" height="15" strokeWidth="0.8" />
+      <path d="M41 82h27M41 87h19" strokeWidth="0.8" opacity="0.7" />
+      <path d="M90 19h16" strokeWidth="2" />
+      <circle cx="124" cy="40" r="13" strokeDasharray="1.5 2.5" opacity="0.5" />
+      <path d="M117 46l6-12 7 5 4-7" strokeWidth="1.2" />
+      <path d="M90 66h46M90 74h38" strokeWidth="2.4" />
+      <path d="M90 84h30" strokeWidth="0.9" opacity="0.7" />
+      <path d="M90 95h48" strokeWidth="0.8" />
+    </Frame>
+  ),
+  "brochure-pricing": () => (
+    <Frame label="Brochure sketch: dark A3 sheet with a price table and a large price on the cover">
+      <Spread />
+      <rect x="12" y="8" width="136" height="96" rx="1.5" fill="currentColor" opacity="0.9" stroke="none" />
+      <g stroke={PAPER}>
+        <path d="M80 4v104" strokeDasharray="2.5 2" strokeWidth="0.7" opacity="0.5" />
+        <path d="M20 20h22" strokeWidth="1.6" />
+        {[0, 1, 2, 3].map((i) => (
+          <g key={i} strokeWidth="0.8">
+            <path d={`M20 ${34 + i * 11}h26`} opacity="0.75" />
+            <path d={`M56 ${34 + i * 11}h14`} strokeWidth="1.6" />
+            <path d={`M20 ${39 + i * 11}h50`} opacity="0.3" />
+          </g>
+        ))}
+        <rect x="20" y="82" width="50" height="12" strokeWidth="0.8" opacity="0.7" />
+        <path d="M90 20h16" strokeWidth="2" />
+        <path d="M90 84h40M90 90h28" strokeWidth="0.9" opacity="0.7" />
+      </g>
+      <text x="90" y="68" fontSize="30" fontWeight="700" fontFamily="monospace" fill={PAPER} stroke="none">
+        ₹
+      </text>
+      <path d="M112 50h26M112 60h20" stroke={PAPER} strokeWidth="2.6" />
+    </Frame>
+  ),
+  "brochure-studio": () => (
+    <Frame label="Brochure sketch: A3 sheet with a full-picture film cover on the right and a film strip">
+      <Spread />
+      <rect x="80" y="8" width="68" height="96" fill="currentColor" opacity="0.9" stroke="none" />
+      <rect x="80" y="8" width="68" height="96" fill="url(#pv-hatch)" stroke="none" opacity="0.25" />
+      <g stroke={PAPER}>
+        <path d="M88 19h16" strokeWidth="2" />
+        <path d="M88 66h44M88 74h34" strokeWidth="2.4" />
+        <path d="M88 84h28" strokeWidth="0.9" opacity="0.7" />
+        {Array.from({ length: 9 }, (_, i) => (
+          <rect key={i} x={84 + i * 7.2} y="95" width="3.6" height="4" strokeWidth="0.7" opacity="0.8" />
+        ))}
+        <path d="M121 34v14l11-7z" strokeWidth="1.1" />
+      </g>
+      <rect x="20" y="18" width="50" height="28" fill="url(#pv-hatch)" />
+      <rect x="20" y="18" width="50" height="28" strokeWidth="0.8" />
+      <rect x="20" y="54" width="14" height="25" strokeWidth="0.8" />
+      <Lines x={40} y={58} w={30} n={5} gap={4} />
+      <rect x="20" y="86" width="12" height="12" fill="url(#pv-hatch)" />
+      <path d="M38 90h30M38 95h20" strokeWidth="0.8" opacity="0.7" />
+    </Frame>
+  ),
   consent: () => (
     <Frame label="Consent form sketch: two slips on one sheet">
       <Page />

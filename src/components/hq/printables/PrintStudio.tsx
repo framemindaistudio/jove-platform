@@ -26,7 +26,7 @@ type F =
   | { k: string; label: string; t: "bands"; help?: string };
 
 type Values = Record<string, string>;
-type Group = "forms" | "badges" | "stationery";
+type Group = "brochures" | "forms" | "badges" | "stationery";
 
 interface Gen {
   id: string;
@@ -46,7 +46,58 @@ const school: F = { k: "school", label: "School", t: "text", ph: "e.g. Sri Vidya
 const date: F = { k: "date", label: "Workshop date", t: "date", half: true };
 const pages = (label: string, max = 40, help?: string): F => ({ k: "pages", label, t: "number", min: 1, max, help, half: true });
 
+/* Brochures are for schools we have not worked with yet, so they take a typed name instead of a workshop. */
+const preparedFor: F = { k: "for", label: "Prepared for (optional)", t: "text", ph: "e.g. Sri Vidya High School", help: "Printed on the cover. Leave empty for copies you can hand to any school." };
+const contactPerson: F = { k: "contact", label: "Who the school should call (optional)", t: "text", ph: "e.g. Shivaprasad Reddy S S", half: true };
+const contactPhone: F = { k: "phone", label: "Phone to print (optional)", t: "text", ph: "Empty = the phone in Settings", half: true };
+const sheets: F = {
+  k: "sides",
+  label: "Sheets",
+  t: "select",
+  options: [
+    ["both", "Both sides: outside and inside (fold to A4)"],
+    ["outside", "Outside sheet only (the two covers)"],
+    ["inside", "Inside sheet only (a flat A3 handout)"],
+  ],
+  help: "Both sides: print double-sided on A3, flip on the short edge, then fold in half.",
+};
+const brochureSummary = (v: Values) => (v.sides === "outside" || v.sides === "inside" ? `A3 landscape · ${v.sides} sheet only` : "A3 landscape · 2 sides · folds to A4");
+const brochureSheet = "A3 · 2 sides · folds to A4";
+
 const GENERATORS: Gen[] = [
+  {
+    id: "brochure-intro",
+    group: "brochures",
+    title: "Brochure: Meet JOVE",
+    blurb: "The introduction to hand over at a first meeting: who we are, what a JOVE Day is, and how it helps the school and its students. Blueprint design on a light ground.",
+    route: "/hq/print/brochures/intro",
+    sheet: brochureSheet,
+    fields: [preparedFor, contactPerson, contactPhone, sheets],
+    defaults: { sides: "both" },
+    summary: brochureSummary,
+  },
+  {
+    id: "brochure-pricing",
+    group: "brochures",
+    title: "Brochure: Packages & pricing",
+    blurb: "The price sheet for the management meeting: per-student prices by grade, JOVE Day, Quarter, Year and Club, add-ons and payment terms. Prices come from the live price list. Dark graphite design.",
+    route: "/hq/print/brochures/pricing",
+    sheet: brochureSheet,
+    fields: [preparedFor, { k: "valid", label: "Prices valid until (optional)", t: "text", ph: "e.g. 31 March 2027", help: "Printed on the front cover." }, contactPerson, contactPhone, sheets],
+    defaults: { sides: "both" },
+    summary: brochureSummary,
+  },
+  {
+    id: "brochure-studio",
+    group: "brochures",
+    title: "Brochure: The free Media Pack",
+    blurb: "Your school, on film: the reels, full-day film, drone shots and photos our in-house studio delivers free with every JOVE Day. Picture-led cinema design.",
+    route: "/hq/print/brochures/studio",
+    sheet: brochureSheet,
+    fields: [preparedFor, contactPerson, contactPhone, sheets],
+    defaults: { sides: "both" },
+    summary: brochureSummary,
+  },
   {
     id: "consent",
     group: "forms",
@@ -221,6 +272,7 @@ const GENERATORS: Gen[] = [
 ];
 
 const GROUPS: { value: Group; label: string; blurb: string }[] = [
+  { value: "brochures", label: "Brochures", blurb: "A3 brochures to hand over when you meet a school." },
   { value: "forms", label: "Forms & feedback", blurb: "Consent, feedback and attendance for the day." },
   { value: "badges", label: "Badges & IDs", blurb: "Name tags and team identity cards." },
   { value: "stationery", label: "Stationery & posters", blurb: "Letterhead, cards, posters and station signs." },
@@ -432,7 +484,7 @@ export function PrintStudio() {
         icon="Printer"
         eyebrow="Print Studio"
         title="Printables"
-        description="Everything printed for a JOVE Day, in one place. Pick a template, fill in a few details, and print or save as PDF. All sheets are laid out in millimetres, so they come out as they preview."
+        description="Everything JOVE prints, in one place: brochures for school meetings and every sheet for a JOVE Day. Pick a template, fill in a few details, and print or save as PDF. All sheets are laid out in millimetres, so they come out as they preview."
         actions={
           <Button href="/hq/settings" variant="secondary" size="sm">
             Company details &amp; letterhead data
@@ -440,14 +492,14 @@ export function PrintStudio() {
         }
       />
 
-      <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="mb-6 flex flex-col gap-3 2xl:flex-row 2xl:items-center 2xl:justify-between">
         <Tabs
-          className="lg:border-0"
+          className="2xl:border-0"
           value={group}
           onChange={setGroup}
           tabs={[{ value: "all", label: "All printables", count: GENERATORS.length + 1 }, ...GROUPS.map((g) => ({ value: g.value, label: g.label, count: GENERATORS.filter((x) => x.group === g.value).length }))]}
         />
-        <div className="relative w-full lg:w-72">
+        <div className="relative w-full sm:w-72">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-blueprint" aria-hidden />
           <input
             value={search}
@@ -498,7 +550,7 @@ export function PrintStudio() {
       )}
 
       <p className="mt-8 text-xs text-blueprint">
-        Tip: in the print dialog set <strong>Margins: None</strong> and tick <strong>Background graphics</strong>. Looking for invoices, proposals or packing slips? Those open from their own modules.{" "}
+        Tip: in the print dialog set <strong>Margins: None</strong> and tick <strong>Background graphics</strong>. Brochures are A3: choose <strong>Save as PDF</strong> and take the file to a print shop, or pick an A3 printer and print on both sides (flip on short edge). Looking for invoices, proposals or packing slips? Those open from their own modules.{" "}
         <Link href="/hq/docs" className="underline underline-offset-2">
           Document templates live in the Operations Library
         </Link>

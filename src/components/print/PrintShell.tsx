@@ -1,5 +1,6 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Printer } from "lucide-react";
@@ -7,14 +8,35 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import type { CompanySettings } from "@/lib/hq/settings";
 
+/** Paper sizes a print page can ask for. Without one the sheet is A4 portrait (the default in globals.css). */
+export type Paper = "A4 landscape" | "A3" | "A3 landscape";
+const PAPER_WIDTH_MM: Record<Paper, number> = { "A4 landscape": 297, A3: 297, "A3 landscape": 420 };
+
+const onResize = (cb: () => void) => {
+  window.addEventListener("resize", cb);
+  return () => window.removeEventListener("resize", cb);
+};
+
+/** How much a sheet of this width must shrink to fit the window (1 = fits). Screen only; print always uses true size. */
+function usePaperFit(widthMm: number) {
+  return useSyncExternalStore(
+    onResize,
+    () => (widthMm ? Math.min(1, Math.floor(((window.innerWidth - 24) / ((widthMm * 96) / 25.4)) * 200) / 200) : 1),
+    () => 1,
+  );
+}
+
 /**
- * Wraps one or more A4 pages with an on-screen toolbar (Back · Print / Save as PDF).
- * Children should be <A4Page> elements. Use the browser's "Save as PDF" to download.
+ * Wraps one or more pages with an on-screen toolbar (Back · Print / Save as PDF).
+ * Children should be <A4Page> elements (or sheets of the size named in `paper`). Use the browser's "Save as PDF" to download.
+ * `paper` sets the printed page size and scales big sheets down on screen so the whole sheet is visible.
  */
-export function PrintShell({ title, back, children, toolbar, landscape }: { title: string; back?: string; children: React.ReactNode; toolbar?: React.ReactNode; landscape?: boolean }) {
+export function PrintShell({ title, back, children, toolbar, landscape, paper }: { title: string; back?: string; children: React.ReactNode; toolbar?: React.ReactNode; landscape?: boolean; paper?: Paper }) {
+  const size = paper ?? (landscape ? "A4 landscape" : undefined);
+  const fit = usePaperFit(paper ? PAPER_WIDTH_MM[paper] : 0);
   return (
     <div className="min-h-dvh bg-paper-300/60 print:bg-white">
-      {landscape && <style>{`@page { size: A4 landscape; margin: 0; }`}</style>}
+      {size && <style>{`@page { size: ${size}; margin: 0; }`}</style>}
       <div className="no-print sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-graphite/15 bg-paper/95 px-4 py-3 backdrop-blur sm:px-6">
         {back && (
           <Link href={back} className="inline-flex items-center gap-1.5 rounded px-2 py-1.5 text-sm font-medium hover:bg-graphite/5">
@@ -29,7 +51,9 @@ export function PrintShell({ title, back, children, toolbar, landscape }: { titl
           </Button>
         </div>
       </div>
-      <div className="flex flex-col items-center gap-6 px-2 py-8 print:block print:p-0">{children}</div>
+      <div className={cn("flex flex-col items-center gap-6 px-2 py-8 print:block print:p-0", paper && "paper-fit")} style={fit < 1 ? ({ "--paper-fit": fit } as React.CSSProperties) : undefined}>
+        {children}
+      </div>
     </div>
   );
 }

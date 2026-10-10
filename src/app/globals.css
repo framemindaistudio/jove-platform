@@ -220,6 +220,10 @@ html.lenis, html.lenis body { height: auto; }
   margin: 0;
 }
 .print-only { display: none; }
+/* big sheets (A3 brochures) shrink on screen so the whole sheet shows; print keeps the true size */
+@media screen {
+  .paper-fit { zoom: var(--paper-fit, 1); }
+}
 @media print {
   html, body { background: #fff !important; }
   .no-print, nav, header.site-header, footer.site-footer { display: none !important; }
