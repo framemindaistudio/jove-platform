@@ -31,6 +31,7 @@ export async function GET() {
     contactEmail: set(process.env.NEXT_PUBLIC_CONTACT_EMAIL),
     contactPhone: set(process.env.NEXT_PUBLIC_CONTACT_PHONE),
     whatsapp: set(process.env.NEXT_PUBLIC_WHATSAPP),
+    deployHook: set(process.env.VERCEL_DEPLOY_HOOK_URL),
   };
 
   return NextResponse.json({ users, env });

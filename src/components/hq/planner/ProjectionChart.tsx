@@ -36,7 +36,11 @@ export default function ProjectionChart({ rows, spend, paybackLabel }: { rows: P
     <div
       className="h-[300px] w-full"
       role="img"
-      aria-label={`Twelve month projection. Cash position after ${formatINR(spend)} of launch capex ends at ${formatINR(data[data.length - 1]?.cash ?? 0)}. ${paybackLabel ? `Capex is paid back in ${paybackLabel}.` : "Capex is not paid back within twelve months."} Exact figures are in the table above.`}
+      aria-label={
+        spend > 0
+          ? `Twelve month projection. Cash position after ${formatINR(spend)} of launch capex ends at ${formatINR(data[data.length - 1]?.cash ?? 0)}. ${paybackLabel ? `Capex is paid back in ${paybackLabel}.` : "Capex is not paid back within twelve months."} Exact figures are in the table above.`
+          : `Twelve month projection. The cash position ends at ${formatINR(data[data.length - 1]?.cash ?? 0)}. Exact figures are in the table above.`
+      }
     >
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={data} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>

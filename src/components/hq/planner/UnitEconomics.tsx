@@ -4,8 +4,9 @@ import { useMemo } from "react";
 import { Plus, X } from "lucide-react";
 import { gradeBands, joveDayRules } from "@/lib/content/business";
 import { Panel } from "@/components/hq/ui";
+import type { PriceBook } from "@/lib/pricebook/types";
 import { cn, formatINR, formatNumber } from "@/lib/utils";
-import { Metric, NumField, Section, TABLE_WRAP, TH, TextButton } from "./controls";
+import { Metric, NumField, PricesLink, Section, TABLE_WRAP, TH, TextButton } from "./controls";
 import { dayEconomics, waterfall, type CostType, type Scenario } from "./model";
 import type { Update } from "./PlannerApp";
 
@@ -13,17 +14,23 @@ const TYPE_LABEL: Record<CostType, string> = { fixed: "Fixed per day", perStuden
 const short = (label: string) => label.replace(/\s*[(—–].*$/, "").trim() || label;
 const inr = (v: number) => formatINR(Math.round(v));
 
-export function UnitEconomics({ s, update }: { s: Scenario; update: Update }) {
+export function UnitEconomics({ s, update, book }: { s: Scenario; update: Update; book: PriceBook }) {
   const e = useMemo(() => dayEconomics(s.day), [s.day]);
   const wf = useMemo(() => waterfall(e), [e]);
   const negative = e.contribution < 0;
+  /** without cost lines there is no cost to show: a dash, not a day that costs nothing */
+  const noLines = s.day.lines.length === 0;
 
   return (
     <Section
       id="unit-economics"
       index="01"
       title="JOVE Day unit economics"
-      intro={`One full-day workshop. Defaults mirror the company cost model: a ${joveDayRules.targetStudentsPerDay}-student mix at about ₹${joveDayRules.targetAvgPricePerStudent} per student, minimum billing ₹${formatNumber(joveDayRules.minimumBilling)} (ex-GST).`}
+      intro={
+        <>
+          One full-day workshop. Defaults come from <PricesLink />: a {formatNumber(book.planner.students)}-student mix at about {inr(book.planner.avgPricePerStudent)} per student, minimum billing {inr(book.rules.minimumBilling)} (ex-GST).
+        </>
+      }
     >
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
         {/* ── inputs ── */}
@@ -78,9 +85,14 @@ export function UnitEconomics({ s, update }: { s: Scenario; update: Update }) {
 
           <Panel
             title="Cost lines"
-            subtitle="Per-day costs of delivering one JOVE Day."
+            subtitle={
+              <>
+                Per-day costs of delivering one JOVE Day. They start as the cost lines in <PricesLink />.
+              </>
+            }
             action={
               <TextButton
+                className="shrink-0 whitespace-nowrap"
                 onClick={() =>
                   update((d) => {
                     d.day.lines.push({ id: `custom-${Date.now().toString(36)}`, label: "New cost line", type: "fixed", amount: 0 });
@@ -92,7 +104,12 @@ export function UnitEconomics({ s, update }: { s: Scenario; update: Update }) {
               </TextButton>
             }
           >
-            <div className={TABLE_WRAP}>
+            {noLines && (
+              <p className="mb-3 rounded-[var(--radius-sm)] border border-dashed border-graphite/25 px-3 py-2 text-xs text-charcoal">
+                No cost lines yet, so this day has no cost to show. Add what a JOVE Day costs to run in <PricesLink /> (every HQ screen then uses it), or use Add line to try a number here only.
+              </p>
+            )}
+            <div className={cn(TABLE_WRAP, noLines && "hidden")}>
               <table className="w-full min-w-[640px] text-sm">
                 <thead>
                   <tr className="border-b border-graphite/12 bg-graphite/[0.035]">
@@ -173,11 +190,11 @@ export function UnitEconomics({ s, update }: { s: Scenario; update: Update }) {
             <div className="bp-grid-dark pointer-events-none absolute inset-0 opacity-50" aria-hidden />
             <div className="relative grid grid-cols-2 gap-x-6 gap-y-5">
               <Metric className="[&_p:first-child]:text-paper/55" label="Revenue (ex-GST)" value={inr(e.revenue)} sub={<span className="text-paper/60">{formatNumber(e.students)} students · {inr(e.revenuePerStudent)} each</span>} strong />
-              <Metric className="[&_p:first-child]:text-paper/55" label="Contribution" value={<span className={negative ? "text-bad" : undefined}>{inr(e.contribution)}</span>} sub={<span className="text-paper/60">{e.marginPct.toFixed(1)}% margin</span>} strong />
-              <Metric className="[&_p:first-child]:text-paper/55" label="Variable cost" value={inr(e.variable)} sub={<span className="text-paper/60">{e.costs.length} cost lines</span>} />
-              <Metric className="[&_p:first-child]:text-paper/55" label="Cost per student" value={inr(e.costPerStudent)} sub={<span className="text-paper/60">vs {inr(e.avgPrice)} avg price</span>} />
+              <Metric className="[&_p:first-child]:text-paper/55" label="Contribution" value={noLines ? "—" : <span className={negative ? "text-bad" : undefined}>{inr(e.contribution)}</span>} sub={<span className="text-paper/60">{noLines ? "Needs cost lines" : `${e.marginPct.toFixed(1)}% margin`}</span>} strong />
+              <Metric className="[&_p:first-child]:text-paper/55" label="Variable cost" value={noLines ? "—" : inr(e.variable)} sub={<span className="text-paper/60">{e.costs.length} cost lines</span>} />
+              <Metric className="[&_p:first-child]:text-paper/55" label="Cost per student" value={noLines ? "—" : inr(e.costPerStudent)} sub={<span className="text-paper/60">vs {inr(e.avgPrice)} avg price</span>} />
             </div>
-            <div className="relative mt-5 border-t border-paper/15 pt-4 text-sm">
+            <div className={cn("relative mt-5 border-t border-paper/15 pt-4 text-sm", noLines && "hidden")}>
               {e.breakEvenStudents ? (
                 <p>
                   <span className="annot mr-2 text-paper/55">Break-even</span>
@@ -192,9 +209,11 @@ export function UnitEconomics({ s, update }: { s: Scenario; update: Update }) {
             </div>
           </div>
 
-          <Panel title="Where the money goes" subtitle="Revenue minus each cost line leaves the contribution.">
-            <Waterfall e={e} wf={wf} />
-          </Panel>
+          {!noLines && (
+            <Panel title="Where the money goes" subtitle="Revenue minus each cost line leaves the contribution.">
+              <Waterfall e={e} wf={wf} />
+            </Panel>
+          )}
         </div>
       </div>
     </Section>

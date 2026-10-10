@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, u
 import type { BaseRecord } from "@/lib/hq/collections";
 import { can, OPS, type SessionUser } from "@/lib/hq/roles";
 import type { CompanySettings } from "@/lib/hq/settings";
+import type { KitParts, PriceBook } from "@/lib/pricebook/types";
 import { defaultSettings } from "@/lib/hq/settings";
 
 /* ─────────────────────────── HQ session context ─────────────────────────── */
@@ -22,12 +23,16 @@ export interface StoreInfo {
 interface HqCtx {
   user: SessionUser;
   store: StoreInfo;
+  /** costs, margins and planning numbers: only sent to the roles that see Finance (null for everyone else) */
+  book: PriceBook | null;
+  /** each kit's parts without any money: sent to the roles that pack and assemble kits (null for everyone else) */
+  parts: KitParts | null;
 }
 
 const HqContext = createContext<HqCtx | null>(null);
 
-export function HqProvider({ user, store, children }: HqCtx & { children: React.ReactNode }) {
-  return <HqContext.Provider value={{ user, store }}>{children}</HqContext.Provider>;
+export function HqProvider({ user, store, book = null, parts = null, children }: Omit<HqCtx, "book" | "parts"> & Partial<Pick<HqCtx, "book" | "parts">> & { children: React.ReactNode }) {
+  return <HqContext.Provider value={{ user, store, book, parts }}>{children}</HqContext.Provider>;
 }
 
 export function useHq() {
@@ -39,6 +44,20 @@ export function useHq() {
 /** Amounts of money are shown only to the roles that see Finance (the server leaves them out for everyone else too). */
 export function useShowMoney() {
   return can(useHq().user, OPS);
+}
+
+/**
+ * The price book as saved in HQ → Money → Prices & Costs: what every part costs, margins, the cost of a JOVE Day,
+ * monthly costs, launch budget and targets. Null for roles that do not see Finance — always handle that case.
+ * It is read on the server for each page, so it is current without a reload of the app.
+ */
+export function useBook() {
+  return useHq().book;
+}
+
+/** Each kit's parts and quantities, without costs. Null for roles that neither see Finance nor pack kits. */
+export function useKitParts() {
+  return useHq().parts;
 }
 
 /* ─────────────────────────── API helpers ─────────────────────────── */

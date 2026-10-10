@@ -53,6 +53,7 @@ There is no database server and no storage service. HQ reads and writes the **pr
    | `NEXT_PUBLIC_CONTACT_EMAIL` / `NEXT_PUBLIC_CONTACT_PHONE` / `NEXT_PUBLIC_WHATSAPP` | optional — shown on the site when set (WhatsApp: digits with country code, e.g. `919876543210`) |
    | `NEXT_PUBLIC_LOCATION` / `NEXT_PUBLIC_INSTAGRAM` / `NEXT_PUBLIC_YOUTUBE` / `NEXT_PUBLIC_LINKEDIN` | optional |
    | `NEXT_PUBLIC_GA_ID` / `NEXT_PUBLIC_ANALYTICS_CONSENT` | optional — see *Analytics* below |
+   | `VERCEL_DEPLOY_HOOK_URL` | optional — the address of a Vercel Deploy Hook, so saving a price in HQ rebuilds the site by itself (see *Prices and costs* below) |
 
 5. **Deploy** (or redeploy after adding variables). Delete `.env.vercel` and `.env.hq-logins` once the variables are saved. Open `/hq`, sign in, and fill **HQ → Settings** (legal name, address, GSTIN, bank/UPI for invoices, numbering).
 6. *(Optional)* add `hq.your-domain.com` as a second domain in Vercel — it opens the portal directly.
@@ -102,8 +103,9 @@ Without `GITHUB_TOKEN`, HQ reads and writes local `data/`, `OPERATIONS/` and `va
 src/app/(site)/        public website pages
 src/app/hq/            JOVE HQ — login, (portal)/ modules, print/ documents
 src/app/api/           hq/* (authenticated) · public/submit (website forms → HQ leads) · public/order (shop → HQ orders)
-src/lib/content/       business.ts  ← prices, kits/BOMs, packages, costs, targets
+src/lib/content/       business.ts  ← the public catalogue: programmes, packages, kits and their public prices
                        labs.ts      ← Virtual Labs catalogue
+src/lib/pricebook/     the price book: types and arithmetic (cost, margin, price that follows cost)
 src/lib/hq/            collections (schema), auth, records engine, settings, roles, nav
 src/lib/store/         the GitHub-as-database layer (with the private-repo safety lock)
 src/components/        brand/ ui/ site/ hq/ labs/ three/ print/
@@ -111,7 +113,14 @@ public/brand/          logo system  ·  public/models/  the hero's 3D sketch arm
 scripts/               make-hq-env.mjs (first set-up: Vercel env + logins), hq-user.mjs (add / remove one login), hash-password.mjs, process-assets.py, typecheck-paths.mjs, check-routes.mjs
 ```
 
-Change a price, kit component or cost in **`src/lib/content/business.ts`** and the website, quote estimator, proposals, invoice prefill and the business planner all update together.
+### Prices and costs
+
+Prices and costs are changed in **HQ → Money → Prices & Costs**, not in the code. That screen edits one document in the private data repo, `data/pricebook.json`:
+
+- **Private numbers** — what every kit part costs, margins, the cost lines of a JOVE Day, monthly costs, launch budget, targets. HQ reads them at run time, for founder / admin / ops only. They are never in this repository or in the site's JavaScript.
+- **Public prices** — kit MRPs (typed, or following the cost at a chosen margin), per-student workshop prices, minimums, payment terms, add-on prices. On each save HQ stores them under `published`.
+
+The site does not look prices up while it runs. `next.config.ts` reads the `published` part at **build** time and bakes it in (`JOVE_PRICEBOOK` → `src/lib/content/business.ts`), so the website, shop, brochures, proposals, invoice prefill and quote estimator always agree. Saving a price therefore needs a rebuild: with `VERCEL_DEPLOY_HOOK_URL` set (Vercel → Settings → Git → Deploy Hooks, branch `main`) HQ starts it and the new price is live in about a minute; without it, redeploy by hand. The numbers typed in `business.ts` are only the starting values used until a price book has been saved. A build stops, leaving the previous deployment live, if the data repo is configured but the price book cannot be read.
 
 ### Analytics
 

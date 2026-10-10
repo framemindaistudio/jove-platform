@@ -1,18 +1,45 @@
 /**
  * ─────────────────────────────────────────────────────────────────────────────
- *  JOVE BUSINESS MODEL — SINGLE SOURCE OF TRUTH
+ *  JOVE CATALOGUE — WHAT JOVE OFFERS AND WHAT CUSTOMERS PAY
  * ─────────────────────────────────────────────────────────────────────────────
- *  Every price, kit, package, cost assumption and revenue stream used by the
- *  public website, the HQ portal (calculators, proposals, invoices) and the
- *  OPERATIONS documents comes from this file. Change a number here and the
- *  whole company updates.
+ *  Programmes, grade bands, the JOVE Day timetable, packages, add-ons and kits,
+ *  with their PUBLIC prices. The public website, the HQ portal (proposals,
+ *  invoices, calculators) and the brochures all read from here.
  *
- *  Currency: INR. School workshop prices are EXCLUSIVE of GST (18% added on
- *  invoice once registered). Online kit MRPs are INCLUSIVE of GST.
- *  Component prices are 2026 market estimates (Robu.in / Robocraze / local
- *  electronics markets) — verify with vendors before each purchase order.
+ *  The prices are set in HQ → Money → Prices & Costs. The build reads them from
+ *  the private data repository (next.config.ts → JOVE_PRICEBOOK); the numbers
+ *  typed in this file are only the starting values, used until a price book has
+ *  been saved. To change a price, change it in HQ, not here.
+ *
+ *  Nothing in this file is private. What things cost JOVE (parts, margins, the
+ *  cost of a JOVE Day, monthly costs, launch budget, targets) lives only in the
+ *  price book and reaches HQ at run time, for the roles that see Finance.
+ *
+ *  Currency: INR. School workshop prices are EXCLUSIVE of GST. Online kit MRPs
+ *  are INCLUSIVE of GST.
  * ─────────────────────────────────────────────────────────────────────────────
  */
+import type { PublicPrices } from "@/lib/pricebook/types";
+
+const live: Partial<PublicPrices> = (() => {
+  try {
+    return (JSON.parse(process.env.JOVE_PRICEBOOK || "null") as Partial<PublicPrices> | null) ?? {};
+  } catch {
+    return {};
+  }
+})();
+/** the saved price when there is one, else the starting value */
+const pick = (saved: unknown, starting: number) => (typeof saved === "number" && Number.isFinite(saved) && saved >= 0 ? saved : starting);
+const inr = (n: number) => `₹${new Intl.NumberFormat("en-IN").format(n)}`;
+const range = (values: number[]) => {
+  const lo = Math.min(...values);
+  const hi = Math.max(...values);
+  return lo === hi ? inr(lo) : `${inr(lo)} – ${inr(hi)}`;
+};
+const listAnd = (items: string[]) => (items.length > 1 ? `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}` : items.join(""));
+
+/** Fingerprint of the saved prices this build was made with ("" = the starting values). HQ compares it with the price book. */
+export const priceStamp = typeof live.stamp === "string" ? live.stamp : "";
 
 export type GradeBandId = "g1-2" | "g3-5" | "g6-8" | "g9-10";
 
@@ -35,7 +62,7 @@ export interface GradeBand {
   skills: string[];
 }
 
-export const gradeBands: GradeBand[] = [
+const BANDS: GradeBand[] = [
   {
     id: "g1-2",
     grades: "Grades 1–2",
@@ -154,6 +181,16 @@ export const gradeBands: GradeBand[] = [
   },
 ];
 
+export const gradeBands: GradeBand[] = BANDS.map((b) => {
+  const saved = live.bands?.[b.id];
+  return {
+    ...b,
+    pricePerStudent: pick(saved?.day, b.pricePerStudent),
+    quarterPricePerStudent: pick(saved?.quarter, b.quarterPricePerStudent),
+    yearPricePerStudent: pick(saved?.year, b.yearPricePerStudent),
+  };
+});
+
 /**
  * A JOVE Day = one full day on campus. Two halls run in parallel:
  *  Hall A (founder-led) → senior AI & robotics sessions
@@ -172,8 +209,7 @@ export const joveDaySchedule = [
   { time: "15:50", end: "16:30", hall: "Office", title: "Principal interview & pack-up", detail: "Testimonial interview, feedback forms, inventory check-out.", who: "Founders + media" },
 ] as const;
 
-/** Commercial rules for a JOVE Day. */
-export const joveDayRules = {
+const RULES = {
   minimumStudents: 200,
   minimumBilling: 70_000, // ex-GST
   maxStudentsPerDay: 480,
@@ -186,10 +222,21 @@ export const joveDayRules = {
   targetStudentsPerDay: 250,
 };
 
+/** Commercial rules for a JOVE Day. */
+export const joveDayRules = {
+  ...RULES,
+  minimumStudents: pick(live.rules?.minimumStudents, RULES.minimumStudents),
+  minimumBilling: pick(live.rules?.minimumBilling, RULES.minimumBilling),
+  maxStudentsPerDay: pick(live.rules?.maxStudentsPerDay, RULES.maxStudentsPerDay),
+  advancePercent: pick(live.rules?.advancePercent, RULES.advancePercent),
+  balanceDueDays: pick(live.rules?.balanceDueDays, RULES.balanceDueDays),
+  gstPercent: pick(live.rules?.gstPercent, RULES.gstPercent),
+};
+
 /** The differentiator — included free with every JOVE Day (produced by FrameMind AI Studio). */
 export const mediaPack = {
   name: "JOVE Media Pack by FrameMind AI Studio",
-  marketValue: 60_000,
+  marketValue: pick(live.mediaPackValue, 60_000),
   items: [
     { title: "3–4 cinematic reels", detail: "Vertical 9:16, 30–60 s, music-synced, ready for Instagram, YouTube Shorts & WhatsApp status.", delivery: "Within 5 working days" },
     { title: "Full-day highlight film", detail: "3–5 minute 4K film of the entire JOVE Day — opening show to certificate ceremony.", delivery: "Within 10 working days" },
@@ -214,13 +261,22 @@ export interface Package {
   idealFor: string;
 }
 
+/** After-school JOVE Club: price per student per month, and the smallest batch. */
+export const clubRules = {
+  pricePerMonth: pick(live.club?.pricePerMonth, 799),
+  minimumStudents: pick(live.club?.minimumStudents, 25),
+};
+
+/** The most a school saves per student on JOVE Quarter against three separate JOVE Days, in percent. */
+const quarterSaving = Math.max(0, ...gradeBands.map((b) => (b.pricePerStudent > 0 ? Math.round((1 - b.quarterPricePerStudent / (3 * b.pricePerStudent)) * 100) : 0)));
+
 export const packages: Package[] = [
   {
     id: "jove-day",
     name: "JOVE Day",
     cadence: "One full day",
     headline: "The full-day Robotics & AI festival for your whole school.",
-    priceNote: "₹249 – ₹549 per student by grade · min. 200 students",
+    priceNote: `${range(gradeBands.map((b) => b.pricePerStudent))} per student by grade · min. ${joveDayRules.minimumStudents} students`,
     includes: [
       "Age-specific sessions for Grades 1–10 in one day",
       "Opening robot + drone show for the whole school",
@@ -236,7 +292,7 @@ export const packages: Package[] = [
     name: "JOVE Quarter",
     cadence: "3 months · 3 JOVE Days",
     headline: "A progressive 3-level journey, one JOVE Day every month.",
-    priceNote: "₹649 – ₹1,399 per student per quarter (≈15% saving)",
+    priceNote: `${range(gradeBands.map((b) => b.quarterPricePerStudent))} per student per quarter${quarterSaving > 0 ? ` (up to ${quarterSaving}% saving)` : ""}`,
     highlight: true,
     includes: [
       "3 JOVE Days — Level 1 → 2 → 3 curriculum that builds month on month",
@@ -253,7 +309,7 @@ export const packages: Package[] = [
     name: "JOVE Year",
     cadence: "Academic year · 8 sessions",
     headline: "Your school's Robotics & AI department — run by JOVE.",
-    priceNote: "₹1,599 – ₹3,399 per student per year",
+    priceNote: `${range(gradeBands.map((b) => b.yearPricePerStudent))} per student per year`,
     includes: [
       "8 sessions across the academic year + annual Innovation Showcase",
       "JOVE Robotics Corner set up on campus (kits stay at school)",
@@ -269,7 +325,7 @@ export const packages: Package[] = [
     name: "JOVE Club",
     cadence: "Monthly · after school",
     headline: "Weekly after-school Robotics & AI club on your campus.",
-    priceNote: "₹799 per student per month · min. 25 students",
+    priceNote: `${inr(clubRules.pricePerMonth)} per student per month · min. ${clubRules.minimumStudents} students`,
     includes: [
       "4 × 60-minute sessions per month",
       "Project-based curriculum (build something every month)",
@@ -290,25 +346,28 @@ export interface AddOn {
   owner: "JOVE" | "FrameMind AI Studio";
 }
 
-export const addOns: AddOn[] = [
-  { id: "smm-starter", name: "Social Media Management — Starter", price: "₹14,999 / month", priceValue: 14999, unit: "month", detail: "8 posts + 4 reels per month, captions, scheduling, monthly report.", owner: "FrameMind AI Studio" },
-  { id: "smm-growth", name: "Social Media Management — Growth", price: "₹24,999 / month", priceValue: 24999, unit: "month", detail: "12 posts + 8 reels, stories, community replies, admissions ad campaign management (ad spend extra).", owner: "FrameMind AI Studio" },
-  { id: "smm-premium", name: "Social Media Management — Premium", price: "₹39,999 / month", priceValue: 39999, unit: "month", detail: "Everything in Growth + monthly campus shoot day, YouTube management, quarterly brand film.", owner: "FrameMind AI Studio" },
-  { id: "film-admissions", name: "Admissions / Commercial Film", price: "₹45,000", priceValue: 45000, unit: "project", detail: "1-day shoot, 2-minute school film + 3 reels, drone shots, colour grade.", owner: "FrameMind AI Studio" },
-  { id: "film-premium", name: "Premium Brand Film", price: "₹95,000", priceValue: 95000, unit: "project", detail: "2-day shoot, 5-minute documentary-style film, interviews, 6 reels, drone, licensed music.", owner: "FrameMind AI Studio" },
-  { id: "teacher-training", name: "Teacher Training & Certification", price: "₹1,499 / teacher", priceValue: 1499, unit: "teacher", detail: "4-hour hands-on robotics & AI training with JOVE certificate (min. 10 teachers).", owner: "JOVE" },
-  { id: "take-home-kits", name: "Take-home Kits for Students", price: "10% off MRP", priceValue: 0, unit: "kit", detail: "Each student takes their own kit home — bulk school price on any JOVE kit (min. 30 kits).", owner: "JOVE" },
-  { id: "lab-setup", name: "Robotics & AI Lab Setup (turnkey)", price: "from ₹3,50,000", priceValue: 350000, unit: "project", detail: "Design, furniture layout, kits, tools, curriculum and teacher training for a permanent campus lab (ATL-style).", owner: "JOVE" },
+/** How an add-on's price is worded: a plain price, "from …" for a quote that starts there, or the bulk discount on kits. */
+const ADD_ONS: (Omit<AddOn, "price"> & { priceKind?: "from" | "discount" })[] = [
+  { id: "smm-starter", name: "Social Media Management — Starter", priceValue: 14999, unit: "month", detail: "8 posts + 4 reels per month, captions, scheduling, monthly report.", owner: "FrameMind AI Studio" },
+  { id: "smm-growth", name: "Social Media Management — Growth", priceValue: 24999, unit: "month", detail: "12 posts + 8 reels, stories, community replies, admissions ad campaign management (ad spend extra).", owner: "FrameMind AI Studio" },
+  { id: "smm-premium", name: "Social Media Management — Premium", priceValue: 39999, unit: "month", detail: "Everything in Growth + monthly campus shoot day, YouTube management, quarterly brand film.", owner: "FrameMind AI Studio" },
+  { id: "film-admissions", name: "Admissions / Commercial Film", priceValue: 45000, unit: "project", detail: "1-day shoot, 2-minute school film + 3 reels, drone shots, colour grade.", owner: "FrameMind AI Studio" },
+  { id: "film-premium", name: "Premium Brand Film", priceValue: 95000, unit: "project", detail: "2-day shoot, 5-minute documentary-style film, interviews, 6 reels, drone, licensed music.", owner: "FrameMind AI Studio" },
+  { id: "teacher-training", name: "Teacher Training & Certification", priceValue: 1499, unit: "teacher", detail: "4-hour hands-on robotics & AI training with JOVE certificate (min. 10 teachers).", owner: "JOVE" },
+  { id: "take-home-kits", name: "Take-home Kits for Students", priceValue: 0, unit: "kit", detail: "Each student takes their own kit home — bulk school price on any JOVE kit (min. 30 kits).", owner: "JOVE", priceKind: "discount" },
+  { id: "lab-setup", name: "Robotics & AI Lab Setup (turnkey)", priceValue: 350000, unit: "project", detail: "Design, furniture layout, kits, tools, curriculum and teacher training for a permanent campus lab (ATL-style).", owner: "JOVE", priceKind: "from" },
 ];
 
-export type KitId = "spark" | "explorer" | "builder" | "innovator";
+/** A school buying kits in bulk pays the MRP less this, in percent. */
+export const schoolDiscountPercent = pick(live.schoolDiscountPercent, 10);
 
-export interface BomItem {
-  item: string;
-  qty: number;
-  unitCost: number;
-  vendorHint: string;
-}
+export const addOns: AddOn[] = ADD_ONS.map(({ priceKind, ...a }) => {
+  const priceValue = priceKind === "discount" ? 0 : pick(live.addOns?.[a.id], a.priceValue);
+  const price = priceKind === "discount" ? `${schoolDiscountPercent}% off MRP` : priceKind === "from" ? `from ${inr(priceValue)}` : a.unit === "project" ? inr(priceValue) : `${inr(priceValue)} / ${a.unit}`;
+  return { ...a, priceValue, price };
+});
+
+export type KitId = "spark" | "explorer" | "builder" | "innovator";
 
 export interface Kit {
   id: KitId;
@@ -322,11 +381,12 @@ export interface Kit {
   image: string;
   highlights: string[];
   inTheBox: string[];
-  bom: BomItem[];
   weightGrams: number;
+  /** AA cells one station uses in a session (null = the kit runs from USB or a power module) */
+  aaCells: number | null;
 }
 
-export const kits: Kit[] = [
+const KITS: Kit[] = [
   {
     id: "spark",
     sku: "JOVE-KIT-SPK",
@@ -340,22 +400,8 @@ export const kits: Kit[] = [
     image: "/images/kits/kit-spark.webp",
     highlights: ["Zero soldering, child-safe", "Learn circuits by playing", "8-page illustrated activity book", "Free online lab: Code the Rover"],
     inTheBox: ["Die-cut cardboard robot sheet", "Battery holder with switch + 2 AA cells", "4 LEDs, buzzer, mini motor + fan", "Crocodile-clip wires & copper tape", "Stickers & googly eyes", "Activity booklet"],
-    bom: [
-      { item: "Die-cut cardboard robot sheet (A4, 300 gsm, printed)", qty: 1, unitCost: 18, vendorHint: "Local printer / die-cutter" },
-      { item: "2×AA battery holder with switch", qty: 1, unitCost: 22, vendorHint: "Robu.in / local market" },
-      { item: "AA alkaline cells", qty: 2, unitCost: 12, vendorHint: "Wholesale (box of 40)" },
-      { item: "5 mm LEDs (2 white, 2 red)", qty: 4, unitCost: 1.5, vendorHint: "Bulk pack of 100" },
-      { item: "3V mini buzzer", qty: 1, unitCost: 12, vendorHint: "Robu.in" },
-      { item: "3V mini DC motor", qty: 1, unitCost: 18, vendorHint: "Robu.in" },
-      { item: "Fan propeller", qty: 1, unitCost: 6, vendorHint: "Robu.in" },
-      { item: "Crocodile-clip wires", qty: 4, unitCost: 7, vendorHint: "Bulk pack" },
-      { item: "Copper tape (1 m)", qty: 1, unitCost: 15, vendorHint: "Amazon / Robu.in" },
-      { item: "Stickers + googly eyes", qty: 1, unitCost: 10, vendorHint: "Stationery wholesale" },
-      { item: "Activity booklet (8 pp, colour)", qty: 1, unitCost: 25, vendorHint: "Digital press, 500+ run" },
-      { item: "Printed kit box (small)", qty: 1, unitCost: 35, vendorHint: "Box printer, MOQ 500" },
-      { item: "Zip bags & packing", qty: 1, unitCost: 6, vendorHint: "Packaging wholesale" },
-    ],
     weightGrams: 280,
+    aaCells: 2,
   },
   {
     id: "explorer",
@@ -370,25 +416,8 @@ export const kits: Kit[] = [
     image: "/images/kits/kit-explorer.webp",
     highlights: ["Real sensors & transistor logic", "Solder-free breadboard build", "16-page colour build guide", "Free online labs: Logic Gates & Echo"],
     inTheBox: ["Laser-cut chassis + castor", "2 geared BO motors + wheels", "4×AA holder + cells", "Mini breadboard, 2 light sensors, transistors", "LEDs, resistors, jumper wires", "Mini screwdriver & hardware", "Build guide"],
-    bom: [
-      { item: "Laser-cut chassis plate (acrylic/MDF)", qty: 1, unitCost: 55, vendorHint: "Local laser-cutting shop" },
-      { item: "BO geared motor (3–6V)", qty: 2, unitCost: 35, vendorHint: "Robu.in / Robocraze" },
-      { item: "Wheel for BO motor", qty: 2, unitCost: 20, vendorHint: "Robu.in" },
-      { item: "Castor ball", qty: 1, unitCost: 15, vendorHint: "Robu.in" },
-      { item: "4×AA battery holder with switch", qty: 1, unitCost: 30, vendorHint: "Robu.in" },
-      { item: "AA alkaline cells", qty: 4, unitCost: 12, vendorHint: "Wholesale" },
-      { item: "Mini breadboard (170 pt)", qty: 1, unitCost: 35, vendorHint: "Robu.in" },
-      { item: "LDR light sensor", qty: 2, unitCost: 4, vendorHint: "Bulk" },
-      { item: "BC547 transistors + resistor pack", qty: 1, unitCost: 20, vendorHint: "Bulk" },
-      { item: "5 mm LEDs", qty: 4, unitCost: 1.5, vendorHint: "Bulk" },
-      { item: "Jumper wires (20, M-M)", qty: 1, unitCost: 30, vendorHint: "Robu.in" },
-      { item: "Screws, nuts & standoffs", qty: 1, unitCost: 20, vendorHint: "Hardware wholesale" },
-      { item: "Mini screwdriver", qty: 1, unitCost: 20, vendorHint: "Tools wholesale" },
-      { item: "Build guide (16 pp, colour)", qty: 1, unitCost: 40, vendorHint: "Digital press" },
-      { item: "Printed kit box", qty: 1, unitCost: 45, vendorHint: "Box printer, MOQ 500" },
-      { item: "Packaging", qty: 1, unitCost: 8, vendorHint: "Packaging wholesale" },
-    ],
     weightGrams: 520,
+    aaCells: 4,
   },
   {
     id: "builder",
@@ -403,23 +432,8 @@ export const kits: Kit[] = [
     image: "/images/kits/kit-builder.webp",
     highlights: ["Arduino-compatible board + USB", "10 guided projects", "32-page guide + video lessons", "Free online labs: Line Follower & Echo"],
     inTheBox: ["Arduino Uno-compatible board + cable", "Motor driver shield", "2WD chassis with motors & wheels", "Ultrasonic sensor + servo mount", "2 IR line sensors", "6×AA battery holder", "Breadboard, buzzer, LEDs, wires", "Screwdriver & hardware", "Project guide"],
-    bom: [
-      { item: "Arduino Uno-compatible board (CH340) + USB cable", qty: 1, unitCost: 420, vendorHint: "Robu.in / Robocraze" },
-      { item: "L293D motor driver shield", qty: 1, unitCost: 160, vendorHint: "Robu.in" },
-      { item: "2WD acrylic chassis kit (motors, wheels, castor)", qty: 1, unitCost: 350, vendorHint: "Robu.in" },
-      { item: "HC-SR04 ultrasonic sensor + holder", qty: 1, unitCost: 85, vendorHint: "Robu.in" },
-      { item: "SG90 micro servo", qty: 1, unitCost: 110, vendorHint: "Robu.in" },
-      { item: "IR line sensor module", qty: 2, unitCost: 40, vendorHint: "Robu.in" },
-      { item: "6×AA battery holder + cells", qty: 1, unitCost: 112, vendorHint: "Wholesale" },
-      { item: "Jumper wire set (M-M, M-F)", qty: 1, unitCost: 60, vendorHint: "Robu.in" },
-      { item: "Mini breadboard", qty: 1, unitCost: 35, vendorHint: "Robu.in" },
-      { item: "Buzzer, LEDs, resistors", qty: 1, unitCost: 25, vendorHint: "Bulk" },
-      { item: "Screwdriver + hardware", qty: 1, unitCost: 35, vendorHint: "Tools wholesale" },
-      { item: "Project guide (32 pp) with QR video lessons", qty: 1, unitCost: 60, vendorHint: "Digital press" },
-      { item: "Rigid printed kit box", qty: 1, unitCost: 70, vendorHint: "Box printer, MOQ 300" },
-      { item: "Packaging", qty: 1, unitCost: 10, vendorHint: "Packaging wholesale" },
-    ],
     weightGrams: 900,
+    aaCells: 6,
   },
   {
     id: "innovator",
@@ -434,145 +448,28 @@ export const kits: Kit[] = [
     image: "/images/kits/kit-innovator.webp",
     highlights: ["ESP32 camera + Wi-Fi", "Train real AI models", "15+ AI & IoT projects", "48-page guide + online AI course"],
     inTheBox: ["ESP32-CAM + programmer board", "ESP32 DevKit", "Pan-tilt bracket + 2 servos", "0.96\" OLED display", "IMU, ultrasonic, PIR & temperature sensors", "830-point breadboard + wires", "Power module + cables", "Acrylic base & hardware", "AI project guide"],
-    bom: [
-      { item: "ESP32-CAM + ESP32-CAM-MB programmer", qty: 1, unitCost: 520, vendorHint: "Robu.in / Robocraze" },
-      { item: "ESP32 DevKit V1 (WROOM-32)", qty: 1, unitCost: 380, vendorHint: "Robu.in" },
-      { item: "Pan-tilt bracket + 2× SG90 servos", qty: 1, unitCost: 300, vendorHint: "Robu.in" },
-      { item: "0.96\" I2C OLED display", qty: 1, unitCost: 170, vendorHint: "Robu.in" },
-      { item: "MPU6050 IMU", qty: 1, unitCost: 130, vendorHint: "Robu.in" },
-      { item: "HC-SR04 ultrasonic sensor", qty: 1, unitCost: 70, vendorHint: "Robu.in" },
-      { item: "PIR motion sensor", qty: 1, unitCost: 70, vendorHint: "Robu.in" },
-      { item: "DHT11 temperature & humidity", qty: 1, unitCost: 85, vendorHint: "Robu.in" },
-      { item: "830-point breadboard", qty: 1, unitCost: 90, vendorHint: "Robu.in" },
-      { item: "Jumper wire set", qty: 1, unitCost: 70, vendorHint: "Robu.in" },
-      { item: "5V power module / battery holder", qty: 1, unitCost: 180, vendorHint: "Robu.in" },
-      { item: "USB cables", qty: 2, unitCost: 30, vendorHint: "Wholesale" },
-      { item: "Acrylic base + hardware", qty: 1, unitCost: 90, vendorHint: "Laser-cutting shop" },
-      { item: "AI project guide (48 pp) + online course access", qty: 1, unitCost: 80, vendorHint: "Digital press" },
-      { item: "Rigid premium kit box", qty: 1, unitCost: 90, vendorHint: "Box printer, MOQ 300" },
-      { item: "Packaging", qty: 1, unitCost: 12, vendorHint: "Packaging wholesale" },
-    ],
     weightGrams: 1100,
+    aaCells: null,
   },
 ];
 
-export function kitCost(kit: Kit) {
-  return Math.round(kit.bom.reduce((s, b) => s + b.qty * b.unitCost, 0));
-}
+export const kits: Kit[] = KITS.map((k) => {
+  const saved = live.kits?.[k.id];
+  return { ...k, mrp: pick(saved?.mrp, k.mrp), schoolPrice: pick(saved?.schoolPrice, k.schoolPrice) };
+});
 
-/** MRP incl. GST → net revenue ex-GST → gross margin. */
-export function kitMargin(kit: Kit, price = kit.mrp, gstPercent = 18) {
-  const net = price / (1 + gstPercent / 100);
-  const cost = kitCost(kit);
-  return { net: Math.round(net), cost, margin: Math.round(net - cost), marginPct: Math.round(((net - cost) / net) * 100) };
-}
-
-/** Branding, print & merchandise — typical 2026 rates for a small run. */
-export const printCatalog = [
-  { item: "Participation certificate (A4, 300 gsm, colour)", unitCost: 8, unit: "piece", note: "Digital print, 300+ run" },
-  { item: "Worksheet (A4, B/W, double-sided)", unitCost: 3, unit: "sheet", note: "Per student per session" },
-  { item: "Roll-up standee (6×3 ft) with stand", unitCost: 2200, unit: "piece", note: "Reusable ~50 events" },
-  { item: "Backdrop flex banner (10×8 ft)", unitCost: 1600, unit: "piece", note: "₹18–20 / sq ft star flex" },
-  { item: "Team T-shirt (printed, cotton)", unitCost: 380, unit: "piece", note: "Front + back print" },
-  { item: "PVC ID card + lanyard", unitCost: 60, unit: "piece", note: "Team & trainers" },
-  { item: "Visiting cards (premium matte)", unitCost: 2, unit: "piece", note: "Box of 500" },
-  { item: "Tri-fold brochure (A4, 170 gsm)", unitCost: 9, unit: "piece", note: "1,000 run" },
-  { item: "Kit box printing", unitCost: 45, unit: "piece", note: "MOQ 300–500, varies by size" },
-  { item: "Stickers (die-cut logo)", unitCost: 4, unit: "piece", note: "500 run" },
-  { item: "Letterhead (A4, 100 gsm)", unitCost: 3, unit: "sheet", note: "500 run" },
-  { item: "Proposal folder (printed)", unitCost: 35, unit: "piece", note: "100 run" },
-];
-
-/** Default per-JOVE-Day variable cost model (250 students). Editable in HQ → Planner. */
-export const workshopCostModel = {
-  students: 250,
-  avgPricePerStudent: 400,
-  lines: [
-    { id: "trainers", label: "Freelance trainers (2 × ₹2,000)", type: "fixed", amount: 4000 },
-    { id: "travel", label: "Travel — vehicle & fuel (~120 km round trip)", type: "fixed", amount: 4500 },
-    { id: "food", label: "Team food & refreshments (5 people)", type: "fixed", amount: 1500 },
-    { id: "stay", label: "Accommodation (amortised, outstation only)", type: "fixed", amount: 1000 },
-    { id: "consumables", label: "Consumables (cells, LEDs, cardboard, tape)", type: "perStudent", amount: 12 },
-    { id: "worksheets", label: "Worksheets (₹3 per student)", type: "perStudent", amount: 3 },
-    { id: "certificates", label: "Certificates (₹8 per student)", type: "perStudent", amount: 8 },
-    { id: "fleet", label: "Kit fleet depreciation", type: "fixed", amount: 4000 },
-    { id: "media", label: "Media production direct cost (editor, storage, drone batteries)", type: "fixed", amount: 5000 },
-    { id: "branding", label: "Branding wear & tear (standee, badges, stickers)", type: "fixed", amount: 1000 },
-    { id: "contingency", label: "Contingency (3% of revenue)", type: "percentRevenue", amount: 3 },
-  ] as { id: string; label: string; type: "fixed" | "perStudent" | "percentRevenue"; amount: number }[],
-};
-
-export function workshopEconomics(students = workshopCostModel.students, avgPrice = workshopCostModel.avgPricePerStudent, lines = workshopCostModel.lines) {
-  const revenue = Math.max(students * avgPrice, joveDayRules.minimumBilling);
-  const costs = lines.map((l) => ({
-    ...l,
-    total: Math.round(l.type === "fixed" ? l.amount : l.type === "perStudent" ? l.amount * students : (l.amount / 100) * revenue),
-  }));
-  const variable = costs.reduce((s, c) => s + c.total, 0);
-  return { revenue, costs, variable, contribution: revenue - variable, marginPct: Math.round(((revenue - variable) / revenue) * 100) };
-}
-
-/** Monthly fixed costs at launch (lean). */
-export const monthlyFixedCosts = [
-  { id: "founder-shiva", label: "Founder stipend — Shivaprasad", amount: 25000 },
-  { id: "founder-chinmay", label: "Co-founder stipend — Chinmay", amount: 25000 },
-  { id: "storage", label: "Storage / workspace", amount: 8000 },
-  { id: "software", label: "Phone, internet & software", amount: 4000 },
-  { id: "marketing", label: "Marketing (ads, brochures, school visits)", amount: 15000 },
-  { id: "accounting", label: "Accountant / CA & compliance", amount: 3000 },
-  { id: "vehicle", label: "Vehicle maintenance & insurance", amount: 4000 },
-  { id: "misc", label: "Miscellaneous", amount: 4000 },
-];
-
-/** One-time launch investment. */
-export const launchCapex = [
-  { id: "fleet-primary", label: "Primary station sets × 30 (Spark/Explorer reusable parts)", amount: 10500 },
-  { id: "fleet-builder", label: "Builder stations × 25 (Arduino cars)", amount: 40000 },
-  { id: "fleet-innovator", label: "Innovator AI stations × 12", amount: 28800 },
-  { id: "spares", label: "Spare parts & consumables buffer (15%)", amount: 12000 },
-  { id: "demo", label: "Showpieces: 6-axis arm, robot dog, AI camera, arena mats", amount: 51000 },
-  { id: "av", label: "Portable projector, speaker & wireless mic", amount: 35000 },
-  { id: "tools", label: "Tools, multimeters, glue guns, extension boards, crates", amount: 23000 },
-  { id: "laptops", label: "6 refurbished laptops for AI sessions (optional)", amount: 108000 },
-  { id: "branding", label: "Launch branding: standees, backdrop, T-shirts, ID cards, brochures, cards", amount: 35000 },
-  { id: "legal", label: "Company registration, GST, trademark, current account", amount: 25000 },
-  { id: "buffer", label: "Working-capital buffer (≈3 months fixed costs)", amount: 250000 },
-];
-
+/** What the founders say in public about the first year. Everything else they plan with stays in HQ. */
 export const targets = {
-  workshopsPerMonth: 4,
-  monthlyRevenue: 4_00_000,
-  revenuePerWorkshop: 1_00_000,
-  yearOneSchools: 40,
+  workshopsPerMonth: pick(live.targets?.workshopsPerMonth, 4),
+  yearOneSchools: pick(live.targets?.yearOneSchools, 40),
 };
 
-/** Every way JOVE earns. Used on HQ → Planner and in the business plan. */
-export const revenueStreams = [
-  { id: "jove-day", name: "JOVE Day workshops", model: "Per student (₹249–₹549)", potential: "₹1L per school day · 4/month = ₹4L", stage: "Now" },
-  { id: "quarter", name: "JOVE Quarter programs", model: "Per student per quarter", potential: "₹2–3L per school per quarter", stage: "Now" },
-  { id: "year", name: "JOVE Year partnerships", model: "Per student per year + lab", potential: "₹5–12L per school per year", stage: "Month 3+" },
-  { id: "club", name: "After-school JOVE Clubs", model: "₹799 / student / month", potential: "₹20K–40K per school per month, recurring", stage: "Month 2+" },
-  { id: "kits-school", name: "Take-home kits (school bulk)", model: "10% off MRP, min. 30", potential: "35–55% gross margin", stage: "Now" },
-  { id: "kits-online", name: "Online kit store", model: "MRP ₹599–₹4,499", potential: "D2C parents & hobbyists", stage: "Now" },
-  { id: "smm", name: "Social media management for schools", model: "₹14,999–₹39,999 / month", potential: "High-margin retainer via FrameMind", stage: "Now" },
-  { id: "films", name: "Admissions & commercial films", model: "₹45K–₹95K per project", potential: "Peak season Dec–Mar", stage: "Now" },
-  { id: "courses", name: "Paid online courses (Pro Virtual Labs)", model: "₹499–₹2,999 per course", potential: "Scales without travel", stage: "Month 6+" },
-  { id: "teacher", name: "Teacher training & certification", model: "₹1,499 / teacher", potential: "Clusters of 10–40 teachers", stage: "Month 3+" },
-  { id: "camps", name: "Summer & winter camps", model: "₹2,999–₹4,999 / student (5 days)", potential: "April–May & Oct–Dec holidays", stage: "Seasonal" },
-  { id: "league", name: "JOVE Robo League (inter-school)", model: "Team registration + sponsors", potential: "Brand + ₹2–5L per event", stage: "Year 1 end" },
-  { id: "lab", name: "Robotics & AI lab setup (turnkey)", model: "₹3.5L–₹10L per lab", potential: "High-ticket, includes AMC", stage: "Month 6+" },
-  { id: "atl", name: "Atal Tinkering Lab mentoring & AMC", model: "Annual contract per ATL school", potential: "Thousands of ATL schools nationwide", stage: "Month 6+" },
-  { id: "csr", name: "CSR-funded workshops in government schools", model: "Corporate pays per school/student", potential: "Large volumes, Schedule VII education", stage: "Month 6+" },
-  { id: "parties", name: "Robot birthday parties & weekend maker sessions", model: "₹8K–₹20K per event", potential: "Weekend utilisation of team & kits", stage: "Opportunistic" },
-  { id: "corporate", name: "Corporate family days & STEM fairs", model: "₹40K–₹1.5L per event", potential: "Employee engagement budgets", stage: "Opportunistic" },
-  { id: "license", name: "Curriculum licensing / franchise", model: "Fee + royalty per partner", potential: "Expand to new cities without travel", stage: "Year 2" },
-  { id: "sponsor", name: "Brand sponsorships of JOVE Days", model: "Sponsor logo on films & kits", potential: "₹10K–₹50K per event", stage: "Year 1 end" },
-  { id: "content", name: "YouTube & content licensing", model: "Ad revenue + licensing", potential: "Compounding long-term", stage: "Ongoing" },
-];
+/** The robots and props that travel to every JOVE Day for the opening show and the stations. */
+export const showpieces = "6-axis arm, robot dog, AI camera, arena mats";
 
 export const faqs = [
   { q: "What exactly happens on a JOVE Day?", a: "Our team arrives at 7:30 am, opens with a live robot and drone show for the whole school, then runs age-specific hands-on sessions for each grade group through the day, and closes with a showcase and certificate ceremony. Every student builds and tests something real." },
-  { q: "How is pricing calculated?", a: "Per student, by grade group: ₹249 (Grades 1–2), ₹349 (Grades 3–5), ₹449 (Grades 6–8) and ₹549 (Grades 9–10), plus GST. The minimum for a JOVE Day is 200 students. Kits, certificates and the Media Pack are included." },
+  { q: "How is pricing calculated?", a: `Per student, by grade group: ${listAnd(gradeBands.map((b) => `${inr(b.pricePerStudent)} (${b.grades})`))}, plus GST. The minimum for a JOVE Day is ${joveDayRules.minimumStudents} students. Kits, certificates and the Media Pack are included.` },
   { q: "Do students take the kits home?", a: "Workshop kits are reused by JOVE (so the price stays low). Schools can add take-home kits for every student at a bulk price — or parents can order them from our online store." },
   { q: "What is the free Media Pack?", a: "Our in-house film studio, FrameMind AI Studio, shoots your JOVE Day and delivers 3–4 cinematic reels, a full-day highlight film, drone aerial shots, 30+ edited photos and a principal testimonial clip — ready for your school's social media and admissions campaigns." },
   { q: "What do you need from the school?", a: "A hall or classrooms for each session, a projector or screen, power points, tables for team stations, and permission for photography and drone shots. We bring everything else." },

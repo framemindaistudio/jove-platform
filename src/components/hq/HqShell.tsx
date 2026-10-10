@@ -10,12 +10,13 @@ import { navForRole } from "@/lib/hq/nav";
 import { roleLabels } from "@/lib/hq/roles";
 import { cn } from "@/lib/utils";
 import { HqIcon } from "./Icon";
+import type { KitParts, PriceBook } from "@/lib/pricebook/types";
 import { HqProvider, useHq, type StoreInfo } from "./data";
 import type { SessionUser } from "@/lib/hq/roles";
 
-export function HqShell({ user, store, children }: { user: SessionUser; store: StoreInfo; children: React.ReactNode }) {
+export function HqShell({ user, store, book, parts, children }: { user: SessionUser; store: StoreInfo; book: PriceBook | null; parts: KitParts | null; children: React.ReactNode }) {
   return (
-    <HqProvider user={user} store={store}>
+    <HqProvider user={user} store={store} book={book} parts={parts}>
       <ShellInner>{children}</ShellInner>
     </HqProvider>
   );

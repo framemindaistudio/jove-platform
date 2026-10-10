@@ -21,6 +21,7 @@ export interface EnvInfo {
   contactEmail: boolean;
   contactPhone: boolean;
   whatsapp: boolean;
+  deployHook: boolean;
 }
 
 export type SystemInfo = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; users: LoginInfo[]; env: EnvInfo };

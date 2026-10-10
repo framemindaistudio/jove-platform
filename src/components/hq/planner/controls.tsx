@@ -1,6 +1,8 @@
 "use client";
 
 import { useId, useState } from "react";
+import Link from "next/link";
+import { PRICES_HREF } from "@/components/hq/product/lib";
 import { cn } from "@/lib/utils";
 
 const fieldBase =
@@ -160,5 +162,26 @@ export function TextButton({ children, className, ...props }: React.ButtonHTMLAt
   );
 }
 
-export const TABLE_WRAP = "hq-scroll overflow-x-auto rounded-[var(--radius-md)] border border-graphite/12 bg-paper-50";
+/** Link to the screen where the founders keep what things cost: the planner's defaults all come from there. */
+export function PricesLink({ children = "Money → Prices & Costs", className }: { children?: React.ReactNode; className?: string }) {
+  return (
+    <Link href={PRICES_HREF} className={cn("font-semibold underline underline-offset-2 hover:text-graphite", className)}>
+      {children}
+    </Link>
+  );
+}
+
+/** A short line that says what is missing, or where a number comes from. */
+export function Note({ tone = "neutral", children, className }: { tone?: "neutral" | "warn"; children: React.ReactNode; className?: string }) {
+  return (
+    <p role="status" className={cn("rounded-[var(--radius-sm)] border px-3 py-2 text-xs leading-relaxed", tone === "warn" ? "border-warn/30 bg-warn/10 text-warn" : "border-graphite/15 bg-graphite/[0.04] text-charcoal", className)}>
+      {children}
+    </p>
+  );
+}
+
+/** "a, b and c" */
+export const listAnd = (items: string[]) => (items.length > 1 ? `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}` : items.join(""));
+
+export const TABLE_WRAP ="hq-scroll overflow-x-auto rounded-[var(--radius-md)] border border-graphite/12 bg-paper-50";
 export const TH = "annot px-3 py-2.5 text-left text-[10px] font-semibold text-blueprint";

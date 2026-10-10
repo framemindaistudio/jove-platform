@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Download, FileJson, Loader2, PackageOpen } from "lucide-react";
-import { api, useHq } from "@/components/hq/data";
+import { api, useBook, useHq } from "@/components/hq/data";
 import { refLabel } from "@/components/hq/fields";
 import { Button } from "@/components/ui/Button";
 import { collections, type BaseRecord, type CollectionDef } from "@/lib/hq/collections";
@@ -67,6 +67,8 @@ async function loadAll(defs: CollectionDef[], onProgress: (done: number) => void
 
 export function DataExport() {
   const { user, store } = useHq();
+  // prices and costs (Money → Prices & Costs) are part of a full backup
+  const book = useBook();
   const [state, setState] = useState<State>({ status: "idle" });
   const defs = collections.filter((c) => can(user, c.read));
 
@@ -92,6 +94,7 @@ export function DataExport() {
       exportedBy: user.name,
       storage: { mode: store.mode, repo: store.repo ?? null, branch: store.branch },
       settings: state.settings,
+      priceBook: book,
       collections: state.data,
     };
     download(`jove-hq-backup-${isoDate()}.json`, JSON.stringify(file, null, 2), "application/json");
@@ -123,7 +126,7 @@ export function DataExport() {
               Refresh data
             </Button>
             <span className="text-xs text-blueprint" role="status">
-              {formatNumber(total)} records across {Object.keys(state.data).length} collections, plus company settings.
+              {formatNumber(total)} records across {Object.keys(state.data).length} collections, plus company settings and the price book.
             </span>
           </>
         )}

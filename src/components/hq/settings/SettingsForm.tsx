@@ -2,10 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { Loader2, RotateCcw, Save, Undo2 } from "lucide-react";
-import { useHq, useSettings } from "@/components/hq/data";
+import { useBook, useHq, useSettings } from "@/components/hq/data";
 import { Button } from "@/components/ui/Button";
 import { Field, Input, Textarea } from "@/components/ui/form";
-import { targets } from "@/lib/content/business";
 import type { CompanySettings } from "@/lib/hq/settings";
 import { cn, formatDateTime, formatINR } from "@/lib/utils";
 import { SettingsSection, Subhead } from "./shared";
@@ -79,6 +78,9 @@ const pad = (n: number, to: number) => String(Math.max(0, Math.floor(n) || 0)).p
 export function SettingsForm({ children }: { children?: React.ReactNode }) {
   const { settings, loading, save } = useSettings();
   const { store } = useHq();
+  // the plan lives in Money → Prices & Costs; the shortcut below is offered only when it has been filled in
+  const plan = useBook()?.planner.targets;
+  const hasPlan = !!plan && plan.monthlyRevenue > 0 && plan.workshopsPerMonth > 0;
   const [edits, setEdits] = useState<Partial<CompanySettings>>({});
   const [resetKey, setResetKey] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -262,23 +264,25 @@ export function SettingsForm({ children }: { children?: React.ReactNode }) {
             {num("monthlyRevenueTarget", "Monthly revenue target (₹, ex-GST)", { step: 1000, help: Number.isFinite(value.monthlyRevenueTarget) ? `${formatINR(value.monthlyRevenueTarget)} a month` : undefined })}
             {num("workshopsPerMonthTarget", "Workshops per month")}
           </div>
-          <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-blueprint">
-            <span>
-              Plan: {targets.workshopsPerMonth} workshops a month at about {formatINR(targets.revenuePerWorkshop)} each is {formatINR(targets.monthlyRevenue)} a month.
-            </span>
-            <button
-              type="button"
-              disabled={locked}
-              onClick={() => {
-                set("monthlyRevenueTarget", targets.monthlyRevenue);
-                set("workshopsPerMonthTarget", targets.workshopsPerMonth);
-                setResetKey((k) => k + 1);
-              }}
-              className="inline-flex items-center gap-1 font-semibold text-graphite underline underline-offset-4 hover:text-ink disabled:opacity-50"
-            >
-              <RotateCcw className="size-3" aria-hidden /> Use the plan targets
-            </button>
-          </div>
+          {hasPlan && plan && (
+            <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-blueprint">
+              <span>
+                Plan: {plan.workshopsPerMonth} workshops a month at about {formatINR(plan.revenuePerWorkshop)} each is {formatINR(plan.monthlyRevenue)} a month.
+              </span>
+              <button
+                type="button"
+                disabled={locked}
+                onClick={() => {
+                  set("monthlyRevenueTarget", plan.monthlyRevenue);
+                  set("workshopsPerMonthTarget", plan.workshopsPerMonth);
+                  setResetKey((k) => k + 1);
+                }}
+                className="inline-flex items-center gap-1 font-semibold text-graphite underline underline-offset-4 hover:text-ink disabled:opacity-50"
+              >
+                <RotateCcw className="size-3" aria-hidden /> Use the plan targets
+              </button>
+            </div>
+          )}
         </SettingsSection>
 
         {/* 05 */}

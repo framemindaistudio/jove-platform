@@ -1,20 +1,12 @@
 /**
- * Business Planner model: pure functions, no React. Every default comes from
- * src/lib/content/business.ts (the single source of truth); the scenario the
- * founders edit lives in the browser (see store.ts) and never overwrites it.
+ * Business Planner model: pure functions, no React — and no private number typed in this file.
+ * Every default comes from the price book the founders keep in HQ → Money → Prices & Costs (passed in as `book`):
+ * the cost lines of a JOVE Day, monthly fixed costs, launch budget, targets and what each kit's parts cost.
+ * The scenario the founders edit lives in their browser (see store.ts) and never overwrites the book.
  */
-import {
-  addOns,
-  gradeBands,
-  joveDayRules,
-  kitCost,
-  kits,
-  launchCapex,
-  monthlyFixedCosts,
-  targets,
-  workshopCostModel,
-  type GradeBandId,
-} from "@/lib/content/business";
+import { addOns, gradeBands, joveDayRules, kits, type GradeBandId } from "@/lib/content/business";
+import { bomCost, kitFigures } from "@/lib/pricebook/math";
+import type { PriceBook } from "@/lib/pricebook/types";
 
 /* ───────────────────────────── types ───────────────────────────── */
 
@@ -43,7 +35,7 @@ export interface AddonRow {
   qty: number;
   /** ex-GST revenue per unit */
   unitRevenue: number;
-  /** share of revenue left after direct costs (planning assumption, editable) */
+  /** share of revenue left after direct costs (the founders' own assumption, typed in the planner) */
   marginPct: number;
 }
 
@@ -74,6 +66,13 @@ export interface Scenario {
   capex: CapexLine[];
   kitCostAdjustPct: number;
   estimator: Record<string, number>;
+  /** share of revenue kept per estimator row, as typed by the founders (none is assumed in the code) */
+  estimatorMargins: Record<string, number>;
+  /**
+   * The price book's numbers this scenario started from. A part that still equals them was never changed here,
+   * so it keeps following the book; a part that differs is the founders' own what-if and is kept as typed.
+   */
+  base?: BookParts;
 }
 
 /* ───────────────────────────── constants ───────────────────────────── */
@@ -88,80 +87,144 @@ export const PROJECTION_MONTHS: string[] = Array.from({ length: 12 }, (_, i) => 
   return `${MON[idx % 12]} ${START.year + Math.floor(idx / 12)}`;
 });
 
-/** Default ramp: Oct 1, Nov 2, Dec 3, Jan–Mar 4, Apr–May 2 + camps, Jun–Sep 4–5. */
-const DEFAULT_RAMP = [1, 2, 3, 4, 4, 4, 2, 2, 4, 5, 4, 5];
+/**
+ * Shape of the first year, as a share of the workshops-per-month target in the price book:
+ * a three-month climb, the target from Jan to Mar, half of it in Apr–May (exams and holidays, camps instead),
+ * then the target and a little above it. With a target of 4 this is 1, 2, 3, 4, 4, 4, 2, 2, 4, 5, 4, 5.
+ */
+const RAMP_SHAPE = [0.25, 0.5, 0.75, 1, 1, 1, 0.5, 0.5, 1, 1.25, 1, 1.25];
 const DEFAULT_CAMPS = [0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0];
 
-/** Mid-point of the ₹2,999–₹4,999 5-day camp range in business.ts → revenueStreams. */
-const CAMP_PRICE = 3999;
+/** How a JOVE Day's students usually split across the grade bands (a head-count assumption, not money). */
+const STUDENT_MIX: Record<GradeBandId, number> = { "g1-2": 0.2, "g3-5": 0.28, "g6-8": 0.32, "g9-10": 0.2 };
 
-export const CLUB_PRICE = 799; // business.ts → packages "jove-club": ₹799 per student per month
+/** `total` students split across the bands by the usual mix, in whole students that add up to `total`. */
+function splitStudents(total: number): Record<GradeBandId, number> {
+  const whole = Math.max(0, Math.round(total));
+  const exact = BAND_IDS.map((id) => ({ id, value: whole * (STUDENT_MIX[id] ?? 1 / BAND_IDS.length) }));
+  const out = Object.fromEntries(exact.map((e) => [e.id, Math.floor(e.value + 1e-9)])) as Record<GradeBandId, number>;
+  let left = whole - BAND_IDS.reduce((s, id) => s + out[id], 0);
+  for (const e of [...exact].sort((a, b) => (b.value % 1) - (a.value % 1))) {
+    if (left <= 0) break;
+    out[e.id] += 1;
+    left -= 1;
+  }
+  return out;
+}
 
-const addOnPrice = (id: string) => addOns.find((a) => a.id === id)?.priceValue ?? 0;
+/**
+ * What a camp lists at, read from the founders' revenue-stream notes in the price book: the camps line names a
+ * price or a "from – to" range in rupees, and this is the mid-point. 0 when the notes name no camp price.
+ */
+export function campListPrice(book: PriceBook) {
+  const text = book.planner.streams.find((s) => s.id === "camps")?.model ?? "";
+  const amounts = [...text.matchAll(/₹\s?([\d,]+)/g)]
+    .map((m) => Number(m[1].replace(/,/g, "")))
+    .filter((v) => Number.isFinite(v) && v > 0)
+    .slice(0, 2);
+  return amounts.length ? Math.round(amounts.reduce((s, v) => s + v, 0) / amounts.length) : 0;
+}
 
-/** Planning assumptions: direct margin kept after delivery cost, per add-on. Editable in the UI. */
-export const ESTIMATOR_ROWS = [
-  { id: "smm-starter", label: "Social media management: Starter", unit: "retainers / month", price: addOnPrice("smm-starter"), marginPct: 70, group: "smm" },
-  { id: "smm-growth", label: "Social media management: Growth", unit: "retainers / month", price: addOnPrice("smm-growth"), marginPct: 65, group: "smm" },
-  { id: "smm-premium", label: "Social media management: Premium", unit: "retainers / month", price: addOnPrice("smm-premium"), marginPct: 55, group: "smm" },
-  { id: "film-admissions", label: "Admissions / commercial film", unit: "films / month", price: addOnPrice("film-admissions"), marginPct: 60, group: "films" },
-  { id: "film-premium", label: "Premium brand film", unit: "films / month", price: addOnPrice("film-premium"), marginPct: 55, group: "films" },
-  { id: "teacher-training", label: "Teacher training & certification", unit: "teachers / month", price: addOnPrice("teacher-training"), marginPct: 60, group: "teacher" },
-  { id: "club", label: "After-school JOVE Club", unit: "student-months", price: CLUB_PRICE, marginPct: 55, group: "clubs" },
-  { id: "camp", label: "Summer / winter camp", unit: "students / month", price: CAMP_PRICE, marginPct: 50, group: "camps" },
-  { id: "lab-setup", label: "Robotics & AI lab setup (turnkey)", unit: "labs / month", price: addOnPrice("lab-setup"), marginPct: 30, group: "lab" },
-] as const;
+/** The camp line of the founders' revenue-stream notes, shown as a hint next to the camp price. */
+export function campNote(book: PriceBook) {
+  return book.planner.streams.find((s) => s.id === "camps")?.model ?? "";
+}
+
+export type EstimatorGroup = "smm" | "films" | "teacher" | "clubs" | "camps" | "lab";
+export interface EstimatorRow {
+  id: string;
+  label: string;
+  unit: string;
+  /** what the customer pays, ex-GST */
+  price: number;
+  group: EstimatorGroup;
+}
+
+/** The add-ons the estimator can count, with today's prices from the price book. A row without a price is left out. */
+export function estimatorRows(book: PriceBook): EstimatorRow[] {
+  const price = (id: string) => n(book.addOns?.[id] ?? addOns.find((a) => a.id === id)?.priceValue);
+  const rows: EstimatorRow[] = [
+    { id: "smm-starter", label: "Social media management: Starter", unit: "retainers / month", price: price("smm-starter"), group: "smm" },
+    { id: "smm-growth", label: "Social media management: Growth", unit: "retainers / month", price: price("smm-growth"), group: "smm" },
+    { id: "smm-premium", label: "Social media management: Premium", unit: "retainers / month", price: price("smm-premium"), group: "smm" },
+    { id: "film-admissions", label: "Admissions / commercial film", unit: "films / month", price: price("film-admissions"), group: "films" },
+    { id: "film-premium", label: "Premium brand film", unit: "films / month", price: price("film-premium"), group: "films" },
+    { id: "teacher-training", label: "Teacher training & certification", unit: "teachers / month", price: price("teacher-training"), group: "teacher" },
+    { id: "club", label: "After-school JOVE Club", unit: "student-months", price: n(book.club?.pricePerMonth), group: "clubs" },
+    { id: "camp", label: "Summer / winter camp", unit: "students / month", price: campListPrice(book), group: "camps" },
+    { id: "lab-setup", label: "Robotics & AI lab setup (turnkey)", unit: "labs / month", price: price("lab-setup"), group: "lab" },
+  ];
+  return rows.filter((r) => r.price > 0);
+}
 
 /* ───────────────────────────── defaults ───────────────────────────── */
 
-export function defaultKitAverages() {
-  const m = kits.map((k) => {
-    const net = k.schoolPrice / 1.18;
-    const cost = kitCost(k);
-    return { net, marginPct: ((net - cost) / net) * 100 };
+/**
+ * The average kit sold in bulk to a school: what it brings in after GST, and the share of that left after the parts.
+ * Kits whose parts have no cost yet are left out of the margin (they would count as pure profit).
+ */
+export function defaultKitAverages(book: PriceBook) {
+  const gst = 1 + n(book.kitGstPercent) / 100;
+  const m = kits.flatMap((k) => {
+    const kb = book.kits?.[k.id];
+    if (!kb) return [];
+    const net = kitFigures(kb, book.kitGstPercent, book.schoolDiscountPercent).schoolPrice / gst;
+    const cost = bomCost(kb.bom);
+    return [{ net, marginPct: cost > 0 && net > 0 ? ((net - cost) / net) * 100 : null }];
   });
-  const avg = (f: (x: (typeof m)[number]) => number) => m.reduce((s, x) => s + f(x), 0) / m.length;
-  return { unitRevenue: Math.round(avg((x) => x.net)), marginPct: Math.round(avg((x) => x.marginPct)) };
+  const costed = m.filter((x) => x.marginPct !== null);
+  return {
+    unitRevenue: m.length ? Math.round(m.reduce((s, x) => s + x.net, 0) / m.length) : 0,
+    marginPct: costed.length ? Math.round(costed.reduce((s, x) => s + (x.marginPct ?? 0), 0) / costed.length) : 0,
+  };
 }
 
-export function defaultScenario(): Scenario {
-  const students = { "g1-2": 50, "g3-5": 70, "g6-8": 80, "g9-10": 50 } as Record<GradeBandId, number>;
-  const prices = Object.fromEntries(gradeBands.map((b) => [b.id, b.pricePerStudent])) as Record<GradeBandId, number>;
-  const kitAvg = defaultKitAverages();
-  return {
+/** The planner's starting scenario: every amount is the price book's. */
+export function defaultScenario(book: PriceBook): Scenario {
+  const plan = book.planner;
+  const addOnPrice = (id: string) => n(book.addOns?.[id] ?? addOns.find((a) => a.id === id)?.priceValue);
+  const prices = Object.fromEntries(gradeBands.map((b) => [b.id, n(book.bands?.[b.id]?.day ?? b.pricePerStudent)])) as Record<GradeBandId, number>;
+  const kitAvg = defaultKitAverages(book);
+  const perMonth = n(plan.targets.workshopsPerMonth);
+  const s: Scenario = {
     v: 1,
     day: {
-      students,
+      students: splitStudents(n(plan.students)),
       prices,
-      minimumBilling: joveDayRules.minimumBilling,
-      lines: workshopCostModel.lines.map((l) => ({ ...l })),
+      minimumBilling: n(book.rules?.minimumBilling ?? joveDayRules.minimumBilling),
+      lines: plan.lines.map((l) => ({ id: l.id, label: l.label, type: l.type, amount: l.amount })),
     },
     month: {
-      workshops: targets.workshopsPerMonth,
+      workshops: perMonth,
       revenueMode: "day",
-      customRevenue: targets.revenuePerWorkshop,
-      target: targets.monthlyRevenue,
-      fixed: monthlyFixedCosts.map((f) => ({ ...f })),
+      customRevenue: n(plan.targets.revenuePerWorkshop),
+      target: n(plan.targets.monthlyRevenue),
+      fixed: plan.fixedCosts.map((f) => ({ id: f.id, label: f.label, amount: f.amount })),
+      // the margin of each service is the founders' assumption, kept in the price book (planner.margins)
       addons: [
         { id: "kits", label: "Take-home kits sold (school bulk + online)", unit: "kits", qty: 0, unitRevenue: kitAvg.unitRevenue, marginPct: kitAvg.marginPct },
-        { id: "smm", label: "Social media management retainers", unit: "retainers", qty: 0, unitRevenue: addOnPrice("smm-starter"), marginPct: 70 },
-        { id: "films", label: "Admissions / brand films", unit: "films", qty: 0, unitRevenue: addOnPrice("film-admissions"), marginPct: 60 },
-        { id: "clubs", label: "After-school club students (monthly)", unit: "students", qty: 0, unitRevenue: CLUB_PRICE, marginPct: 55 },
-        { id: "teacher", label: "Teacher training seats", unit: "teachers", qty: 0, unitRevenue: addOnPrice("teacher-training"), marginPct: 60 },
+        { id: "smm", label: "Social media management retainers", unit: "retainers", qty: 0, unitRevenue: addOnPrice("smm-starter"), marginPct: n(plan.margins?.["smm-starter"]) },
+        { id: "films", label: "Admissions / brand films", unit: "films", qty: 0, unitRevenue: addOnPrice("film-admissions"), marginPct: n(plan.margins?.["film-admissions"]) },
+        { id: "clubs", label: "After-school club students (monthly)", unit: "students", qty: 0, unitRevenue: n(book.club?.pricePerMonth), marginPct: n(plan.margins?.club) },
+        { id: "teacher", label: "Teacher training seats", unit: "teachers", qty: 0, unitRevenue: addOnPrice("teacher-training"), marginPct: n(plan.margins?.["teacher-training"]) },
       ],
     },
     year: {
-      workshops: [...DEFAULT_RAMP],
+      workshops: RAMP_SHAPE.map((share) => Math.max(0, Math.round(share * perMonth))),
       camps: [...DEFAULT_CAMPS],
       campStudents: 30,
-      campPrice: CAMP_PRICE,
-      campMarginPct: 50,
+      campPrice: campListPrice(book),
+      campMarginPct: n(plan.margins?.camp),
       addonsFromMonth: 4,
     },
-    capex: launchCapex.map((l) => ({ id: l.id, label: l.label, amount: l.amount, included: !isOptionalLine(l) })),
+    capex: plan.capex.map((l) => ({ id: l.id, label: l.label, amount: l.amount, included: !isOptionalLine(l) })),
     kitCostAdjustPct: 0,
     estimator: {},
+    // each estimator row starts at the book's margin for it; a row without one follows its stream in the monthly plan
+    estimatorMargins: Object.fromEntries(Object.entries(plan.margins ?? {}).filter(([, v]) => Number.isFinite(v) && v > 0)),
   };
+  s.base = bookParts(s);
+  return s;
 }
 
 export function isOptionalLine(l: { label: string }) {
@@ -171,27 +234,116 @@ export function isReserveLine(l: { id: string }) {
   return l.id === "buffer";
 }
 
-/** Merge a stored scenario onto the defaults so older/partial saves never crash the UI. */
-export function reviveScenario(raw: unknown): Scenario {
-  const d = defaultScenario();
+/* ───────────────────────────── what follows the price book ───────────────────────────── */
+
+const copy = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
+/** JSON with object keys in a fixed order, so two values with the same content always compare equal */
+const stable = (v: unknown) =>
+  JSON.stringify(v, (_key, val: unknown) => (val && typeof val === "object" && !Array.isArray(val) ? Object.fromEntries(Object.entries(val).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) : val));
+const same = (a: unknown, b: unknown) => stable(a) === stable(b);
+
+/** The parts of a scenario that start as the price book's numbers (a copy: editing the scenario never changes it). */
+function bookParts(s: Scenario) {
+  return copy({
+    students: s.day.students,
+    prices: s.day.prices,
+    minimumBilling: s.day.minimumBilling,
+    lines: s.day.lines.map((l) => ({ id: l.id, label: l.label, type: l.type, amount: l.amount })),
+    workshops: s.month.workshops,
+    customRevenue: s.month.customRevenue,
+    target: s.month.target,
+    fixed: s.month.fixed.map((f) => ({ id: f.id, label: f.label, amount: f.amount })),
+    addons: s.month.addons.map((a) => ({ id: a.id, unitRevenue: a.unitRevenue, marginPct: a.marginPct })),
+    ramp: s.year.workshops,
+    campPrice: s.year.campPrice,
+    capex: s.capex.map((c) => ({ id: c.id, label: c.label, amount: c.amount })),
+  });
+}
+export type BookParts = ReturnType<typeof bookParts>;
+
+/**
+ * In plain words, the parts of this scenario that no longer follow the price book because they were changed
+ * in this browser. Empty when the whole scenario still runs on the book's numbers.
+ */
+export function ownNumbers(s: Scenario): string[] {
+  const b = s.base;
+  if (!b) return [];
+  const now = bookParts(s);
+  const out: string[] = [];
+  if (!same(now.prices, b.prices) || now.minimumBilling !== b.minimumBilling) out.push("prices per student");
+  if (!same(now.lines, b.lines)) out.push("the cost lines of a JOVE Day");
+  if (!same(now.fixed, b.fixed)) out.push("monthly fixed costs");
+  if (now.target !== b.target || now.customRevenue !== b.customRevenue) out.push("the monthly target");
+  if (!same(now.capex, b.capex)) out.push("the launch budget");
+  return out;
+}
+
+/**
+ * Merge a stored scenario onto the defaults so older/partial saves never crash the UI.
+ * A saved part that is still the book's number it started from is replaced by today's book number,
+ * so a cost changed in Prices & Costs reaches the planner; a part the founders changed here is kept as typed.
+ * A scenario saved before this was tracked has no starting point: all of it is kept as typed.
+ */
+export function reviveScenario(raw: unknown, book: PriceBook): Scenario {
+  const d = defaultScenario(book);
   if (!raw || typeof raw !== "object") return d;
   const r = raw as Partial<Scenario>;
   if (r.v !== 1) return d;
-  const numArr = (a: unknown, fallback: number[]) => (Array.isArray(a) && a.length === 12 && a.every((x) => typeof x === "number") ? (a as number[]) : fallback);
-  return {
+  const b: Partial<BookParts> | undefined = r.base && typeof r.base === "object" ? r.base : undefined;
+  /** the saved value — unless it is missing, or still the book's number it started from: then today's book number */
+  const keep = <T,>(saved: T | undefined | null, started: unknown, today: T): T => (saved === undefined || saved === null ? today : b && same(saved, started) ? today : saved);
+  const number = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
+  const numArr = (a: unknown) => (Array.isArray(a) && a.length === 12 && a.every((x) => typeof x === "number") ? (a as number[]) : undefined);
+  const record = (v: unknown) => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, number>) : {});
+
+  const scenario: Scenario = {
     v: 1,
-    day: { ...d.day, ...(r.day ?? {}), students: { ...d.day.students, ...(r.day?.students ?? {}) }, prices: { ...d.day.prices, ...(r.day?.prices ?? {}) }, lines: Array.isArray(r.day?.lines) ? r.day!.lines : d.day.lines },
+    day: {
+      ...d.day,
+      ...(r.day ?? {}),
+      students: keep(r.day?.students ? { ...d.day.students, ...r.day.students } : undefined, b?.students, d.day.students),
+      prices: keep(r.day?.prices ? { ...d.day.prices, ...r.day.prices } : undefined, b?.prices, d.day.prices),
+      minimumBilling: keep(number(r.day?.minimumBilling), b?.minimumBilling, d.day.minimumBilling),
+      lines: keep(Array.isArray(r.day?.lines) ? r.day.lines : undefined, b?.lines, d.day.lines),
+    },
     month: {
       ...d.month,
       ...(r.month ?? {}),
-      fixed: Array.isArray(r.month?.fixed) ? r.month!.fixed : d.month.fixed,
-      addons: d.month.addons.map((a) => ({ ...a, ...(r.month?.addons?.find((x) => x.id === a.id) ?? {}) })),
+      workshops: keep(number(r.month?.workshops), b?.workshops, d.month.workshops),
+      customRevenue: keep(number(r.month?.customRevenue), b?.customRevenue, d.month.customRevenue),
+      target: keep(number(r.month?.target), b?.target, d.month.target),
+      fixed: keep(Array.isArray(r.month?.fixed) ? r.month.fixed : undefined, b?.fixed, d.month.fixed),
+      addons: d.month.addons.map((a) => {
+        const saved = Array.isArray(r.month?.addons) ? r.month.addons.find((x) => x?.id === a.id) : undefined;
+        const started = Array.isArray(b?.addons) ? b.addons.find((x) => x?.id === a.id) : undefined;
+        return { ...a, ...(saved ?? {}), unitRevenue: keep(number(saved?.unitRevenue), started?.unitRevenue, a.unitRevenue), marginPct: keep(number(saved?.marginPct), started?.marginPct, a.marginPct) };
+      }),
     },
-    year: { ...d.year, ...(r.year ?? {}), workshops: numArr(r.year?.workshops, d.year.workshops), camps: numArr(r.year?.camps, d.year.camps) },
-    capex: d.capex.map((c) => ({ ...c, ...(r.capex?.find((x) => x.id === c.id) ?? {}) })),
+    year: {
+      ...d.year,
+      ...(r.year ?? {}),
+      workshops: keep(numArr(r.year?.workshops), b?.ramp, d.year.workshops),
+      camps: numArr(r.year?.camps) ?? d.year.camps,
+      campPrice: keep(number(r.year?.campPrice), b?.campPrice, d.year.campPrice),
+    },
+    capex: d.capex.map((c) => {
+      const saved = Array.isArray(r.capex) ? r.capex.find((x) => x?.id === c.id) : undefined;
+      if (!saved) return c;
+      const started = Array.isArray(b?.capex) ? b.capex.find((x) => x?.id === c.id) : undefined;
+      return {
+        id: c.id,
+        label: keep(typeof saved.label === "string" ? saved.label : undefined, started?.label, c.label),
+        amount: keep(number(saved.amount), started?.amount, c.amount),
+        included: typeof saved.included === "boolean" ? saved.included : c.included,
+      };
+    }),
     kitCostAdjustPct: typeof r.kitCostAdjustPct === "number" ? r.kitCostAdjustPct : 0,
-    estimator: r.estimator && typeof r.estimator === "object" ? r.estimator : {},
+    estimator: record(r.estimator),
+    estimatorMargins: record(r.estimatorMargins),
   };
+  // from here on the scenario is measured against today's book
+  scenario.base = d.base;
+  return scenario;
 }
 
 /* ───────────────────────────── a) JOVE Day ───────────────────────────── */
@@ -386,25 +538,46 @@ export function projection(s: Scenario) {
 
 /* ───────────────────────────── e) kits ───────────────────────────── */
 
-export function kitRows(adjPct: number) {
+/**
+ * Each kit's cost (its parts in the price book, with the what-if change applied) against its MRP and school price.
+ * `cost` and the margins are null while the kit's parts have no cost in the price book: show a dash, never ₹0.
+ */
+export function kitRows(adjPct: number, book: PriceBook) {
   const f = 1 + adjPct / 100;
-  const row = (price: number, cost: number) => {
-    const net = price / 1.18;
-    return { price, net, margin: net - cost, marginPct: net > 0 ? ((net - cost) / net) * 100 : 0 };
+  const gst = 1 + n(book.kitGstPercent) / 100;
+  const row = (price: number, cost: number | null) => {
+    const net = price / gst;
+    return { price, net, margin: cost === null ? null : net - cost, marginPct: cost === null || net <= 0 ? null : ((net - cost) / net) * 100 };
   };
   return kits.map((k) => {
-    const cost = Math.round(kitCost(k) * f);
-    return { kit: k, cost, mrp: row(k.mrp, cost), school: row(k.schoolPrice, cost) };
+    const kb = book.kits?.[k.id];
+    const fig = kb ? kitFigures(kb, book.kitGstPercent, book.schoolDiscountPercent) : { mrp: k.mrp, schoolPrice: k.schoolPrice };
+    const parts = kb?.bom.length ?? 0;
+    const listed = kb ? bomCost(kb.bom) : 0;
+    const cost = listed > 0 ? Math.round(listed * f) : null;
+    return { kit: k, parts, cost, mrp: row(fig.mrp, cost), school: row(fig.schoolPrice, cost) };
   });
 }
 
 /* ───────────────────────────── f) estimator ───────────────────────────── */
 
-export function estimatorTotals(qty: Record<string, number>) {
-  const rows = ESTIMATOR_ROWS.map((r) => {
-    const q = n(qty[r.id]);
+/**
+ * The share of revenue kept on one estimator row: what the founders typed for it, else what they typed for the same
+ * stream in the monthly plan (camps: in the 12-month projection), else nothing (0).
+ */
+function estimatorMargin(s: Scenario, row: EstimatorRow) {
+  const typed = s.estimatorMargins?.[row.id];
+  if (typeof typed === "number" && Number.isFinite(typed)) return typed;
+  if (row.group === "camps") return n(s.year.campMarginPct);
+  return n(s.month.addons.find((a) => a.id === row.group)?.marginPct);
+}
+
+export function estimatorTotals(s: Scenario, book: PriceBook) {
+  const rows = estimatorRows(book).map((r) => {
+    const q = n(s.estimator[r.id]);
+    const marginPct = estimatorMargin(s, r);
     const monthly = q * r.price;
-    return { ...r, qty: q, monthly, contribution: monthly * (r.marginPct / 100), annual: monthly * 12 };
+    return { ...r, qty: q, marginPct, monthly, contribution: monthly * (marginPct / 100), annual: monthly * 12 };
   });
   return {
     rows,
@@ -415,8 +588,8 @@ export function estimatorTotals(qty: Record<string, number>) {
 }
 
 /** Turn the estimator's rows into the monthly plan's add-on rows (camps and lab setups are not part of the plan add-ons). */
-export function estimatorToAddons(qty: Record<string, number>, current: AddonRow[]): AddonRow[] {
-  const rows = estimatorTotals(qty).rows;
+export function estimatorToAddons(s: Scenario, book: PriceBook): AddonRow[] {
+  const rows = estimatorTotals(s, book).rows;
   const group = (g: string) => {
     const r = rows.filter((x) => x.group === g);
     const q = r.reduce((sum, x) => sum + x.qty, 0);
@@ -425,7 +598,7 @@ export function estimatorToAddons(qty: Record<string, number>, current: AddonRow
     return { q, unit: q > 0 ? Math.round(rev / q) : 0, margin: rev > 0 ? Math.round((contrib / rev) * 100) : 0 };
   };
   const map: Record<string, ReturnType<typeof group>> = { smm: group("smm"), films: group("films"), clubs: group("clubs"), teacher: group("teacher") };
-  return current.map((a) => {
+  return s.month.addons.map((a) => {
     const g = map[a.id];
     return g && g.q > 0 ? { ...a, qty: g.q, unitRevenue: g.unit, marginPct: g.margin } : g ? { ...a, qty: 0 } : a;
   });
@@ -433,7 +606,7 @@ export function estimatorToAddons(qty: Record<string, number>, current: AddonRow
 
 /* ───────────────────────────── g) CSV ───────────────────────────── */
 
-export function scenarioCsv(s: Scenario): string {
+export function scenarioCsv(s: Scenario, book: PriceBook): string {
   const rows: (string | number)[][] = [["Section", "Item", "Value", "Notes"]];
   const add = (section: string, item: string, value: string | number, note = "") => rows.push([section, item, typeof value === "number" ? Math.round(value * 100) / 100 : value, note]);
 
@@ -475,9 +648,12 @@ export function scenarioCsv(s: Scenario): string {
   add("Launch capex", "Lean budget (INR)", cx.lean);
   add("Launch capex", "Full budget (INR)", cx.full);
 
-  for (const r of kitRows(s.kitCostAdjustPct)) add("Kit economics", `${r.kit.name} (BOM cost / MRP margin / school margin)`, r.cost, `MRP ${r.kit.mrp} margin ${Math.round(r.mrp.margin)} (${Math.round(r.mrp.marginPct)}%); school ${r.kit.schoolPrice} margin ${Math.round(r.school.margin)} (${Math.round(r.school.marginPct)}%)`);
+  for (const r of kitRows(s.kitCostAdjustPct, book)) {
+    if (r.cost === null || r.mrp.margin === null || r.school.margin === null) add("Kit economics", `${r.kit.name} (BOM cost / MRP margin / school margin)`, "n/a", `MRP ${r.mrp.price}; school ${r.school.price}; no part costs in Prices & Costs yet`);
+    else add("Kit economics", `${r.kit.name} (BOM cost / MRP margin / school margin)`, r.cost, `MRP ${r.mrp.price} margin ${Math.round(r.mrp.margin)} (${Math.round(r.mrp.marginPct ?? 0)}%); school ${r.school.price} margin ${Math.round(r.school.margin)} (${Math.round(r.school.marginPct ?? 0)}%)`);
+  }
 
-  const e = estimatorTotals(s.estimator);
+  const e = estimatorTotals(s, book);
   for (const r of e.rows.filter((x) => x.qty > 0)) add("Add-on estimator", r.label, r.monthly, `${r.qty} ${r.unit}`);
 
   const esc = (v: string | number) => {

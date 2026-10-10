@@ -2,10 +2,11 @@
 
 import { useMemo } from "react";
 import dynamic from "next/dynamic";
-import { Panel } from "@/components/hq/ui";
+import { EmptyState, Panel } from "@/components/hq/ui";
+import type { PriceBook } from "@/lib/pricebook/types";
 import { cn, formatINR, formatINRCompact, formatNumber } from "@/lib/utils";
-import { Metric, NumField, Section, TABLE_WRAP, TH } from "./controls";
-import { projection, type Scenario } from "./model";
+import { Metric, NumField, PricesLink, Section, TABLE_WRAP, TH, listAnd } from "./controls";
+import { campNote, projection, type Scenario } from "./model";
 import type { Update } from "./PlannerApp";
 
 const ProjectionChart = dynamic(() => import("./ProjectionChart"), {
@@ -13,42 +14,66 @@ const ProjectionChart = dynamic(() => import("./ProjectionChart"), {
   loading: () => <div className="grid h-[300px] place-items-center text-sm text-blueprint">Loading chart…</div>,
 });
 
-const inr = (v: number) => formatINR(Math.round(v));
+// "|| 0" turns a −0 into a plain 0, so it never prints as "-₹0"
+const inr = (v: number) => formatINR(Math.round(v) || 0);
 const signed = (v: number) => (v < 0 ? `−${inr(-v)}` : inr(v));
 
-export function Projection({ s, update }: { s: Scenario; update: Update }) {
+const INTRO = "Oct 2026 to Sep 2027. Edit the ramp of workshops and camps; revenue, costs and cash follow. Camps are an assumption to test, not a commitment.";
+
+export function Projection({ s, update, book }: { s: Scenario; update: Update; book: PriceBook }) {
   const p = useMemo(() => projection(s), [s]);
   const last = p.rows[p.rows.length - 1];
   const cashPositive = last.cash >= 0;
+  const camps = campNote(book);
+  const noCapex = s.capex.length === 0;
+  // a year of profit and cash worked out without costs would be a plan built on zeros: say what is missing instead
+  const missing = [s.day.lines.length === 0 && "the cost lines of a JOVE Day", s.month.fixed.length === 0 && "your monthly fixed costs"].filter((x): x is string => !!x);
+
+  if (missing.length) {
+    return (
+      <Section id="projection" index="03" title="12-month projection" intro={INTRO}>
+        <EmptyState
+          icon="Calculator"
+          title="The projection needs your costs"
+          description={
+            <>
+              Profit and cash for the year cannot be worked out without {listAnd(missing)}. Add what is missing in <PricesLink />.
+            </>
+          }
+        />
+      </Section>
+    );
+  }
 
   return (
-    <Section
-      id="projection"
-      index="03"
-      title="12-month projection"
-      intro="Oct 2026 to Sep 2027. Edit the ramp of workshops and camps; revenue, costs and cash follow. Camps are an assumption to test, not a commitment."
-    >
+    <Section id="projection" index="03" title="12-month projection" intro={INTRO}>
       <div className="grid gap-6">
         <div className="grid grid-cols-2 gap-4 rounded-[var(--radius-md)] border border-graphite/12 bg-paper-50 p-5 sm:grid-cols-3 lg:grid-cols-6">
           <Metric label="12-month revenue" value={formatINRCompact(p.totals.revenue)} sub={`${p.totals.workshops} workshops, ${p.totals.camps} camps`} />
           <Metric label="12-month profit" value={<span className={p.totals.profit < 0 ? "text-bad" : undefined}>{formatINRCompact(p.totals.profit)}</span>} sub="After fixed costs" />
-          <Metric label="Launch spend" value={formatINRCompact(p.capex.spend)} sub={p.capex.selectedReserve ? `+ ${formatINRCompact(p.capex.selectedReserve)} cash reserve` : "Selected capex"} />
+          <Metric label="Launch spend" value={noCapex ? "—" : formatINRCompact(p.capex.spend)} sub={noCapex ? "No launch budget yet" : p.capex.selectedReserve ? `+ ${formatINRCompact(p.capex.selectedReserve)} cash reserve` : "Selected capex"} />
           <Metric
             label="Payback month"
-            value={p.paybackLabel ?? (p.extraMonths ? `~${p.extraMonths} mo after Sep ’27` : "Not reached")}
-            sub={p.paybackLabel ? `Month ${p.paybackIndex + 1} of 12` : p.extraMonths ? "At the last 3 months’ run-rate" : "Run-rate profit is not positive"}
+            value={noCapex ? "—" : (p.paybackLabel ?? (p.extraMonths ? `~${p.extraMonths} mo after Sep ’27` : "Not reached"))}
+            sub={noCapex ? "Needs the launch budget" : p.paybackLabel ? `Month ${p.paybackIndex + 1} of 12` : p.extraMonths ? "At the last 3 months’ run-rate" : "Run-rate profit is not positive"}
             strong
           />
-          <Metric label="Deepest cash dip" value={formatINRCompact(p.lowestCash)} sub="Lowest point after capex" />
+          <Metric label="Deepest cash dip" value={formatINRCompact(p.lowestCash)} sub={noCapex ? "Lowest point of the year" : "Lowest point after capex"} />
           <Metric label="Exit run-rate" value={`${formatINRCompact(p.runRate)}/mo`} sub="Avg profit, last 3 months" />
         </div>
 
         <Panel
           title="Cash position vs launch capex"
           subtitle={
-            p.paybackLabel
-              ? `Launch spend of ${inr(p.capex.spend)} is recovered in ${p.paybackLabel}. By Sep 2027 the cash position is ${signed(last.cash)}.`
-              : `Launch spend of ${inr(p.capex.spend)} is not recovered within 12 months; cash position in Sep 2027 is ${signed(last.cash)}.`
+            noCapex ? (
+              <>
+                No launch budget yet, so there is nothing to pay back: add it in <PricesLink />. By Sep 2027 the cash position is {signed(last.cash)}.
+              </>
+            ) : p.paybackLabel ? (
+              `Launch spend of ${inr(p.capex.spend)} is recovered in ${p.paybackLabel}. By Sep 2027 the cash position is ${signed(last.cash)}.`
+            ) : (
+              `Launch spend of ${inr(p.capex.spend)} is not recovered within 12 months; cash position in Sep 2027 is ${signed(last.cash)}.`
+            )
           }
         >
           <ul className="mb-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-charcoal" aria-hidden>
@@ -56,7 +81,7 @@ export function Projection({ s, update }: { s: Scenario; update: Update }) {
             <li className="flex items-center gap-2"><span className="inline-block h-0.5 w-5 bg-graphite" /> Revenue</li>
             <li className="flex items-center gap-2"><span className="inline-block w-5 border-t-2 border-dashed border-blueprint" /> Profit</li>
           </ul>
-          <ProjectionChart rows={p.rows} spend={p.capex.spend} paybackLabel={p.paybackLabel} />
+          <ProjectionChart rows={p.rows} spend={p.capex.spend} paybackLabel={noCapex ? null : p.paybackLabel} />
         </Panel>
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
@@ -79,7 +104,7 @@ export function Projection({ s, update }: { s: Scenario; update: Update }) {
                   <tr key={r.label} className={cn("border-b border-graphite/[0.07]", i === p.paybackIndex && "bg-graphite/[0.06]")}>
                     <th scope="row" className="px-3 py-1.5 text-left font-medium">
                       {r.label}
-                      {i === p.paybackIndex && <span className="annot ml-2 rounded-full bg-graphite px-2 py-0.5 text-[9px] text-paper">Payback</span>}
+                      {i === p.paybackIndex && !noCapex && <span className="annot ml-2 rounded-full bg-graphite px-2 py-0.5 text-[9px] text-paper">Payback</span>}
                     </th>
                     <td className="px-3 py-1.5">
                       <NumField ariaLabel={`${r.label} workshops`} inputClassName="h-9" max={31} value={s.year.workshops[i]} onChange={(v) => update((d) => ((d.year.workshops[i] = v), d))} />
@@ -111,8 +136,8 @@ export function Projection({ s, update }: { s: Scenario; update: Update }) {
           <Panel title="Camps and add-ons" subtitle="Assumptions behind the ramp.">
             <div className="space-y-4">
               <NumField label="Students per camp batch" value={s.year.campStudents} onChange={(v) => update((d) => ((d.year.campStudents = v), d))} />
-              <NumField label="Camp price per student" prefix="₹" step={100} value={s.year.campPrice} onChange={(v) => update((d) => ((d.year.campPrice = v), d))} hint="Camps list at ₹2,999 to ₹4,999 for 5 days." />
-              <NumField label="Camp margin kept" suffix="%" max={100} value={s.year.campMarginPct} onChange={(v) => update((d) => ((d.year.campMarginPct = v), d))} hint="Planning assumption." />
+              <NumField label="Camp price per student" prefix="₹" step={100} value={s.year.campPrice} onChange={(v) => update((d) => ((d.year.campPrice = v), d))} hint={camps ? `Your revenue-stream notes say: ${camps}.` : "What one student pays for a camp."} />
+              <NumField label="Camp margin kept" suffix="%" max={100} value={s.year.campMarginPct} onChange={(v) => update((d) => ((d.year.campMarginPct = v), d))} hint="Your own assumption: the share of camp revenue you keep. It starts at 0%, so type it." />
               <NumField label="Add-ons (section 02) start in month" min={1} max={13} value={s.year.addonsFromMonth} onChange={(v) => update((d) => ((d.year.addonsFromMonth = Math.round(v)), d))} hint="Use 13 to leave add-ons out of the projection." />
             </div>
           </Panel>

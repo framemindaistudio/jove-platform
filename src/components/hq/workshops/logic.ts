@@ -1,21 +1,22 @@
 /**
  * Workshop & travel maths for HQ — pure functions, no React.
- * Every number comes from src/lib/content/business.ts (single source of truth).
+ * Quantities, timings and what customers pay come from src/lib/content/business.ts (the public catalogue).
+ * What things cost JOVE comes only from the price book (HQ → Money → Prices & Costs): see planCosts().
  */
 import {
+  clubRules,
   gradeBands,
   joveDayRules,
   joveDaySchedule,
   kits,
-  launchCapex,
   mediaPack,
-  packages,
-  workshopCostModel,
+  showpieces,
   type GradeBand,
   type GradeBandId,
   type Kit,
 } from "@/lib/content/business";
 import { getCollection, totalStudents, tripTotal, type BaseRecord, type FieldOption } from "@/lib/hq/collections";
+import type { CostLineType, PriceBook } from "@/lib/pricebook/types";
 
 export type Rec = BaseRecord;
 
@@ -123,12 +124,8 @@ export function kitFor(band: GradeBand): Kit | undefined {
 
 /* ─────────────────────────── value & money ─────────────────────────── */
 
-/** JOVE Club price per student per month, read from the package copy so it never drifts. */
-export const CLUB_PRICE_PER_STUDENT = (() => {
-  const note = packages.find((p) => p.id === "jove-club")?.priceNote ?? "";
-  const m = /₹\s?([\d,]+)/.exec(note);
-  return m ? Number(m[1].replace(/,/g, "")) : 0;
-})();
+/** JOVE Club price per student per month. */
+export const CLUB_PRICE_PER_STUDENT = clubRules.pricePerMonth;
 
 export function rateFor(pkg: string, band: GradeBand) {
   switch (pkg) {
@@ -447,19 +444,11 @@ export function sortSchedule(rows: ScheduleRow[]) {
 
 /* ─────────────────────────── kits & materials ─────────────────────────── */
 
-const perStudent = (id: string) => workshopCostModel.lines.find((l) => l.id === id && l.type === "perStudent")?.amount ?? 0;
-export const CONSUMABLES_PER_STUDENT = perStudent("consumables");
-export const WORKSHEET_COST = perStudent("worksheets");
-export const CERTIFICATE_COST = perStudent("certificates");
 export const SPARE_RATE = 0.1;
 
-/** AA cells per station, read from the kit's bill of materials (null = USB / power-module kit). */
+/** AA cells one station uses in a session (null = USB / power-module kit). */
 export function cellsPerStation(kit: Kit | undefined): number | null {
-  if (!kit) return null;
-  const cells = kit.bom.find((b) => /AA alkaline cells/i.test(b.item));
-  if (cells) return cells.qty;
-  const holder = kit.bom.map((b) => /(\d+)\s*×\s*AA/i.exec(b.item)).find(Boolean);
-  return holder ? Number(holder[1]) : null;
+  return kit?.aaCells ?? null;
 }
 
 export interface BandPlan {
@@ -476,10 +465,6 @@ export interface BandPlan {
   aaCells: number;
   worksheets: number;
   certificates: number;
-  consumablesCost: number;
-  worksheetCost: number;
-  certificateCost: number;
-  materialsCost: number;
 }
 
 export function bandPlan(r: Record<string, unknown>, band: GradeBand): BandPlan {
@@ -491,9 +476,6 @@ export function bandPlan(r: Record<string, unknown>, band: GradeBand): BandPlan 
   const kit = kitFor(band);
   const cps = cellsPerStation(kit);
   const batterySets = stations + spares;
-  const consumablesCost = students * CONSUMABLES_PER_STUDENT;
-  const worksheetCost = students * WORKSHEET_COST;
-  const certificateCost = students * CERTIFICATE_COST;
   return {
     band,
     kit,
@@ -508,10 +490,6 @@ export function bandPlan(r: Record<string, unknown>, band: GradeBand): BandPlan 
     aaCells: cps ? batterySets * cps : 0,
     worksheets: students,
     certificates: students,
-    consumablesCost,
-    worksheetCost,
-    certificateCost,
-    materialsCost: consumablesCost + worksheetCost + certificateCost,
   };
 }
 
@@ -530,11 +508,75 @@ export function kitPlan(r: Record<string, unknown>) {
       aaCells: t((p) => p.aaCells),
       worksheets: t((p) => p.worksheets),
       certificates: t((p) => p.certificates),
-      consumablesCost: t((p) => p.consumablesCost),
-      worksheetCost: t((p) => p.worksheetCost),
-      certificateCost: t((p) => p.certificateCost),
-      materialsCost: t((p) => p.materialsCost),
     },
+  };
+}
+
+/* ─────────────────────────── planned costs (from the price book) ─────────────────────────── */
+
+/**
+ * What the JOVE Day plan allows for the things these screens count. Read from the cost lines of a JOVE Day in the
+ * price book (HQ → Money → Prices & Costs); none of these amounts is typed in the code.
+ * Every amount is 0 when this login has no price book, or the book has no such line yet:
+ * 0 means "not known" — show a dash or leave the figure out, never ₹0.
+ */
+export interface PlanCosts {
+  /** per student */
+  consumables: number;
+  worksheets: number;
+  certificates: number;
+  /** per JOVE Day */
+  travel: number;
+  food: number;
+  stay: number;
+  /** travel + food + stay: what the plan allows for one trip */
+  trip: number;
+  /** the food line shared between the team that travels */
+  foodPerPersonDay: number;
+}
+
+export function planCosts(book: PriceBook | null): PlanCosts {
+  const lines = book?.planner?.lines ?? [];
+  const line = (id: string, type: CostLineType) => Math.max(0, num(lines.find((l) => l.id === id && l.type === type)?.amount));
+  const travel = line("travel", "fixed");
+  const food = line("food", "fixed");
+  const stay = line("stay", "fixed");
+  return {
+    consumables: line("consumables", "perStudent"),
+    worksheets: line("worksheets", "perStudent"),
+    certificates: line("certificates", "perStudent"),
+    travel,
+    food,
+    stay,
+    trip: travel + food + stay,
+    foodPerPersonDay: TEAM_SIZE ? Math.round(food / TEAM_SIZE) : 0,
+  };
+}
+
+export interface MaterialLine {
+  id: "consumables" | "worksheets" | "certificates";
+  label: string;
+  qty: number;
+  /** null = the price book has no cost for this yet, or this login has no price book */
+  unitCost: number | null;
+  cost: number | null;
+}
+
+/** Consumables, worksheets and certificates of a kit plan: the quantities always, the planned cost where it is known. */
+export function materialLines(totals: { students: number; worksheets: number; certificates: number }, costs: PlanCosts) {
+  const row = (id: MaterialLine["id"], label: string, qty: number, unit: number): MaterialLine => ({ id, label, qty, unitCost: unit > 0 ? unit : null, cost: unit > 0 ? qty * unit : null });
+  const lines = [
+    row("consumables", "Consumables packs (cells, LEDs, cardboard, tape)", totals.students, costs.consumables),
+    row("worksheets", "Worksheets (one set per student)", totals.worksheets, costs.worksheets),
+    row("certificates", "Certificates (one per student)", totals.certificates, costs.certificates),
+  ];
+  const priced = lines.filter((l) => l.cost !== null);
+  return {
+    lines,
+    /** null while no line has a cost */
+    total: priced.length ? priced.reduce((s, l) => s + (l.cost ?? 0), 0) : null,
+    /** true when a line has no cost yet: the total is then not the whole materials cost */
+    incomplete: priced.length < lines.length,
   };
 }
 
@@ -542,8 +584,6 @@ export interface PackGroup {
   group: string;
   items: { label: string; qty?: string }[];
 }
-
-const showpieces = launchCapex.find((c) => c.id === "demo")?.label.replace(/^Showpieces:\s*/i, "") ?? "6-axis arm, robot dog, AI camera, arena mats";
 
 /** Packing list for the van, derived from the kit plan. */
 export function packingList(r: Record<string, unknown>): PackGroup[] {
@@ -678,14 +718,8 @@ export function fillFromSchool(draft: Record<string, unknown>, school: Rec | und
 
 /* ─────────────────────────── travel ─────────────────────────── */
 
+/** How many people travel to a JOVE Day. What the plan allows for the trip is in the price book: see planCosts(). */
 export const TEAM_SIZE = Object.values(joveDayRules.teamSize).reduce((s, n) => s + n, 0);
-
-const fixedLine = (id: string) => workshopCostModel.lines.find((l) => l.id === id && l.type === "fixed")?.amount ?? 0;
-/** JOVE Day plan for travel-related costs (vehicle & fuel + food + stay), from the cost model. */
-export const PLAN_TRAVEL = fixedLine("travel");
-export const PLAN_FOOD = fixedLine("food");
-export const PLAN_STAY = fixedLine("stay");
-export const FOOD_PER_PERSON_DAY = TEAM_SIZE ? Math.round(PLAN_FOOD / TEAM_SIZE) : 0;
 
 export interface VehiclePreset {
   value: string;

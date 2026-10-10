@@ -3,7 +3,8 @@
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import { ExternalLink, MessageCircle, Phone, Printer, Rows3, Columns3 } from "lucide-react";
-import { kitMargin } from "@/lib/content/business";
+import { marginAt } from "@/lib/pricebook/math";
+import type { PriceBook } from "@/lib/pricebook/types";
 import { lineItemsTotal } from "@/lib/hq/collections";
 import { can, OPS } from "@/lib/hq/roles";
 import { Badge } from "@/components/ui/Badge";
@@ -11,11 +12,11 @@ import { Button } from "@/components/ui/Button";
 import { Tabs } from "@/components/ui/Tabs";
 import { CollectionManager, type ExtraColumn } from "@/components/hq/CollectionManager";
 import { Kanban } from "@/components/hq/Kanban";
-import { nextNumber, useCollection, useHq } from "@/components/hq/data";
+import { nextNumber, useBook, useCollection, useHq } from "@/components/hq/data";
 import { EmptyState, KV, PageHeader, StatCard } from "@/components/hq/ui";
 import { cn, formatDate, formatINR, monthKey, slugify } from "@/lib/utils";
 import { IconLink, Notice, Segmented, errMsg, useDrawerControl, useNotice } from "./controls";
-import { ORDER_FLOW, ORDER_STATUSES, getKit, num, orderUnits, orderWhatsAppText, statusLabel, str, telLink, waLink, type Rec } from "./lib";
+import { ORDER_FLOW, ORDER_STATUSES, getKit, kitCostExact, num, orderUnits, orderWhatsAppText, statusLabel, str, telLink, waLink, type Rec } from "./lib";
 
 type Tab = "orders" | "products";
 
@@ -260,30 +261,38 @@ function Thumb({ src, alt }: { src: string; alt: string }) {
 
 const isPublic = (r: Record<string, unknown>) => ["active", "out-of-stock"].includes(str(r.status));
 
-const PRODUCT_EXTRA: ExtraColumn<Rec>[] = [
+/** A product linked to a kit: what its price leaves after GST and the kit's parts (from Money → Prices & Costs). */
+const productMargin = (r: Rec, book: PriceBook | null) => {
+  const cost = book && getKit(r.kitId) ? kitCostExact(r.kitId, book) : null;
+  return cost === null || !book || !num(r.price) ? null : marginAt(cost, num(r.price), book.kitGstPercent);
+};
+
+const productExtra = (book: PriceBook | null): ExtraColumn<Rec>[] => [
   { key: "image", label: "Image", sortValue: (r) => str(r.image), render: (r) => <Thumb src={str(r.image)} alt={str(r.name)} /> },
-  {
-    key: "margin",
-    label: "Gross margin",
-    className: "text-right",
-    sortValue: (r) => {
-      const kit = getKit(r.kitId);
-      return kit ? kitMargin(kit, num(r.price)).marginPct : -1;
-    },
-    render: (r) => {
-      const kit = getKit(r.kitId);
-      if (!kit || !num(r.price)) return <span className="text-blueprint/60">—</span>;
-      const m = kitMargin(kit, num(r.price));
-      return (
-        <span className={cn("tabular", m.margin < 0 && "text-bad")} title={`${formatINR(m.margin)} on ${formatINR(m.net)} net, BOM ${formatINR(m.cost)}`}>
-          {m.marginPct}%
-        </span>
-      );
-    },
-  },
+  ...(book
+    ? [
+        {
+          key: "margin",
+          label: "Gross margin",
+          className: "text-right",
+          sortValue: (r: Rec) => productMargin(r, book)?.marginPct ?? -1,
+          render: (r: Rec) => {
+            const m = productMargin(r, book);
+            if (!m) return <span className="text-blueprint/60">—</span>;
+            return (
+              <span className={cn("tabular", m.margin < 0 && "text-bad")} title={`${formatINR(m.margin)} left on ${formatINR(m.net)} after GST; parts cost ${formatINR(m.cost)}`}>
+                {m.marginPct}%
+              </span>
+            );
+          },
+        } satisfies ExtraColumn<Rec>,
+      ]
+    : []),
 ];
 
 function ProductsTab() {
+  const book = useBook();
+  const extra = useMemo(() => productExtra(book), [book]);
   const products = useCollection<Rec>("products");
 
   async function beforeSave(r: Record<string, unknown>) {
@@ -307,7 +316,7 @@ function ProductsTab() {
       <CollectionManager<Rec>
         name="products"
         columns={["name", "category", "status", "price", "stock"]}
-        extraColumns={PRODUCT_EXTRA}
+        extraColumns={extra}
         defaults={{ category: "Kits", status: "draft", stock: 0 }}
         newLabel="New product"
         beforeSave={beforeSave}

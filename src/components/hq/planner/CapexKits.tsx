@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
-import { Panel } from "@/components/hq/ui";
+import { EmptyState, Panel } from "@/components/hq/ui";
 import { Badge } from "@/components/ui/Badge";
+import type { PriceBook } from "@/lib/pricebook/types";
 import { cn, formatINR, formatINRCompact } from "@/lib/utils";
-import { Metric, NumField, Section, SliderField, TABLE_WRAP, TH, TextButton } from "./controls";
+import { Metric, NumField, PricesLink, Section, SliderField, TABLE_WRAP, TH, TextButton } from "./controls";
 import { capexSummary, isOptionalLine, isReserveLine, kitRows, type Scenario } from "./model";
 import type { Update } from "./PlannerApp";
 
@@ -20,12 +21,33 @@ export function Capex({ s, update }: { s: Scenario; update: Update }) {
       return d;
     });
 
+  // a fresh installation: the launch budget has not been typed into the price book yet
+  if (!s.capex.length) {
+    return (
+      <Section id="capex" index="04" title="Launch capex" intro="One-time investment before the first workshop.">
+        <EmptyState
+          icon="Calculator"
+          title="No launch budget yet"
+          description={
+            <>
+              List what you need to buy before the first workshop in <PricesLink />. The planner then shows the lean and the full budget, and when profit pays it back.
+            </>
+          }
+        />
+      </Section>
+    );
+  }
+
   return (
     <Section
       id="capex"
       index="04"
       title="Launch capex"
-      intro="One-time investment before the first workshop. Tick what you will actually buy; the 12-month projection pays this back from profit."
+      intro={
+        <>
+          One-time investment before the first workshop, from the launch budget in <PricesLink />. Tick what you will actually buy; the 12-month projection pays this back from profit.
+        </>
+      }
       action={
         <div className="flex gap-1">
           <TextButton onClick={() => preset("lean")}>Lean budget</TextButton>
@@ -85,19 +107,22 @@ export function Capex({ s, update }: { s: Scenario; update: Update }) {
               <p className="annot text-paper/55">Selected budget</p>
               <p className="tabular mt-2 text-3xl font-bold tracking-tight">{inr(c.selected)}</p>
               <p className="mt-1 text-sm text-paper/70">
-                {inr(c.spend)} spent on kit, tools and branding
+                {inr(c.spend)} to spend
                 {c.selectedReserve > 0 && <> plus {inr(c.selectedReserve)} held as working capital</>}.
               </p>
             </div>
           </div>
           <Panel title="Lean vs full">
             <div className="grid grid-cols-2 gap-4">
-              <Metric label="Lean budget" value={formatINRCompact(c.lean)} sub="No laptops, no cash reserve" strong />
+              <Metric label="Lean budget" value={formatINRCompact(c.lean)} sub="Without optional items and the cash reserve" strong />
               <Metric label="Full budget" value={formatINRCompact(c.full)} sub="Everything in the list" strong />
-              <Metric label="Optional items" value={formatINRCompact(c.optional)} sub="Refurbished laptops for AI sessions" />
-              <Metric label="Cash reserve" value={formatINRCompact(c.reserve)} sub="About 3 months of fixed costs" />
+              <Metric label="Optional items" value={c.optional > 0 ? formatINRCompact(c.optional) : "—"} sub={c.optional > 0 ? "Lines marked optional" : "No line is marked optional"} />
+              <Metric label="Cash reserve" value={c.reserve > 0 ? formatINRCompact(c.reserve) : "—"} sub={c.reserve > 0 ? "Held as working capital, not spent" : "No working-capital line"} />
             </div>
-            <p className="mt-4 text-xs text-charcoal">Lean needs {formatINRCompact(c.full - c.lean)} less up front, but leaves no cushion if early school bookings slip. Component prices are 2026 market estimates: confirm with vendors before purchase orders.</p>
+            <p className="mt-4 text-xs text-charcoal">
+              {c.full > c.lean ? <>Lean needs {formatINRCompact(c.full - c.lean)} less up front, but leaves no cushion if early school bookings slip. </> : null}
+              Amounts are estimates: confirm with vendors before purchase orders.
+            </p>
           </Panel>
         </div>
       </div>
@@ -107,17 +132,29 @@ export function Capex({ s, update }: { s: Scenario; update: Update }) {
 
 /* ───────────────────────────── e) kit economics ───────────────────────────── */
 
-export function KitEconomics({ s, update }: { s: Scenario; update: Update }) {
-  const rows = useMemo(() => kitRows(s.kitCostAdjustPct), [s.kitCostAdjustPct]);
+export function KitEconomics({ s, update, book }: { s: Scenario; update: Update; book: PriceBook }) {
+  const rows = useMemo(() => kitRows(s.kitCostAdjustPct, book), [s.kitCostAdjustPct, book]);
   const pct = (v: number) => `${Math.round(v)}%`;
+  /** kits whose parts have no cost in the price book yet: their cost and margins show a dash */
+  const uncosted = rows.filter((r) => r.cost === null);
+  const dash = <span className="font-normal text-blueprint/60">—</span>;
 
   return (
     <Section
       id="kits"
       index="05"
       title="Kit economics"
-      intro="Bill-of-materials cost against online MRP and the bulk school price. Prices include 18% GST; margin is calculated on the amount left after GST."
+      intro={
+        <>
+          What each kit&rsquo;s parts cost (its bill of materials in <PricesLink />) against the online MRP and the bulk school price. Prices include {book.kitGstPercent}% GST; margin is calculated on the amount left after GST.
+        </>
+      }
     >
+      {uncosted.length > 0 && (
+        <p className="mb-4 rounded-[var(--radius-sm)] border border-dashed border-graphite/25 px-3 py-2 text-xs text-charcoal">
+          {uncosted.length === rows.length ? "No kit has its parts and their costs listed yet" : `No part costs yet for ${uncosted.map((r) => r.kit.name).join(", ")}`}, so {uncosted.length === 1 ? "its" : "their"} cost and margins show a dash. Add the parts in <PricesLink />.
+        </p>
+      )}
       <div className="mb-4 max-w-md">
         <SliderField
           label="Component price change (what-if)"
@@ -145,31 +182,45 @@ export function KitEconomics({ s, update }: { s: Scenario; update: Update }) {
             </tr>
           </thead>
           <tbody>
-            {rows.map(({ kit, cost, mrp, school }) => (
+            {rows.map(({ kit, parts, cost, mrp, school }) => (
               <tr key={kit.id} className="border-b border-graphite/[0.07] last:border-0">
                 <th scope="row" className="px-3 py-3 text-left">
                   <span className="block font-semibold">{kit.name}</span>
                   <span className="tabular text-xs font-normal text-blueprint">
-                    {kit.sku} · {kit.grades} · {kit.bom.length} parts
+                    {kit.sku} · {kit.grades} · {parts ? `${parts} part${parts === 1 ? "" : "s"}` : "no parts listed yet"}
                   </span>
                 </th>
-                <td className="tabular px-3 py-3 text-right font-medium">{inr(cost)}</td>
+                <td className="tabular px-3 py-3 text-right font-medium">{cost === null ? dash : inr(cost)}</td>
                 <td className="tabular px-3 py-3 text-right">{inr(mrp.price)}</td>
                 <td className="tabular px-3 py-3 text-right text-charcoal">{inr(mrp.net)}</td>
-                <td className={cn("tabular px-3 py-3 text-right font-bold", mrp.margin < 0 && "text-bad")}>
-                  {inr(mrp.margin)} <span className="font-normal text-charcoal">({pct(mrp.marginPct)})</span>
+                <td className={cn("tabular px-3 py-3 text-right font-bold", mrp.margin !== null && mrp.margin < 0 && "text-bad")}>
+                  {mrp.margin === null || mrp.marginPct === null ? (
+                    dash
+                  ) : (
+                    <>
+                      {inr(mrp.margin)} <span className="font-normal text-charcoal">({pct(mrp.marginPct)})</span>
+                    </>
+                  )}
                 </td>
                 <td className="tabular px-3 py-3 text-right">{inr(school.price)}</td>
                 <td className="tabular px-3 py-3 text-right text-charcoal">{inr(school.net)}</td>
-                <td className={cn("tabular px-3 py-3 text-right font-bold", school.margin < 0 && "text-bad")}>
-                  {inr(school.margin)} <span className="font-normal text-charcoal">({pct(school.marginPct)})</span>
+                <td className={cn("tabular px-3 py-3 text-right font-bold", school.margin !== null && school.margin < 0 && "text-bad")}>
+                  {school.margin === null || school.marginPct === null ? (
+                    dash
+                  ) : (
+                    <>
+                      {inr(school.margin)} <span className="font-normal text-charcoal">({pct(school.marginPct)})</span>
+                    </>
+                  )}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <p className="mt-3 text-xs text-blueprint">Margins exclude packaging labour, shipping, payment-gateway fees and returns. Bulk school price applies from 30 kits.</p>
+      <p className="mt-3 text-xs text-blueprint">
+        Margins exclude packaging labour, shipping, payment-gateway fees and returns. The bulk school price is the MRP less {book.schoolDiscountPercent}% and applies from 30 kits.
+      </p>
     </Section>
   );
 }

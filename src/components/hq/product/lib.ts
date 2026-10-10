@@ -2,8 +2,10 @@
  * Shared, framework-free helpers for the Kits / Inventory / Shop modules.
  * Pure functions only — safe to import from client components and print pages.
  */
-import { kits, kitCost, type Kit } from "@/lib/content/business";
+import { kits, type Kit } from "@/lib/content/business";
 import type { BaseRecord } from "@/lib/hq/collections";
+import { bomCostExact } from "@/lib/pricebook/math";
+import type { KitParts, PriceBook } from "@/lib/pricebook/types";
 import { formatINR } from "@/lib/utils";
 
 export type Rec = BaseRecord;
@@ -29,7 +31,39 @@ export const KIT_SLUGS: Record<KitId, string> = {
 };
 export const kitSlug = (id: KitId) => KIT_SLUGS[id];
 export const getKit = (id: unknown): Kit | undefined => kits.find((k) => k.id === id);
-export { kits, kitCost };
+export { kits };
+
+/** Where the founders change what parts cost and what customers pay. */
+export const PRICES_HREF = "/hq/prices";
+
+/** One part of a kit. The cost and the vendor note are null for a login that does not see costs. */
+export interface KitLine {
+  item: string;
+  qty: number;
+  unitCost: number | null;
+  vendorHint: string | null;
+}
+
+/**
+ * The parts of one kit, as saved in HQ → Money → Prices & Costs. With the price book (founder, admin, ops) every
+ * line carries its cost; with the parts list only (a trainer) the cost is unknown; with neither the list is empty.
+ */
+export function kitLines(kitId: KitId, book: PriceBook | null, parts: KitParts | null): KitLine[] {
+  const priced = book?.kits?.[kitId]?.bom;
+  if (priced) return priced.map((l) => ({ item: l.item, qty: l.qty, unitCost: l.unitCost, vendorHint: l.vendorHint }));
+  return (parts?.[kitId] ?? []).map((l) => ({ item: l.item, qty: l.qty, unitCost: null, vendorHint: null }));
+}
+
+/**
+ * What the parts of one kit cost, exact to the paisa. Null when the cost is not known: no price book for this login,
+ * or no part has a cost typed in yet. Show a dash for null, never ₹0.
+ */
+export function kitCostExact(kitId: unknown, book: PriceBook | null): number | null {
+  const bom = book?.kits?.[kitId as KitId]?.bom;
+  if (!bom) return null;
+  const cost = bomCostExact(bom);
+  return cost > 0 ? cost : null;
+}
 
 /* ── CSV ───────────────────────────────────────────────────────────────── */
 export function toCsv(rows: (string | number)[][]) {
@@ -75,19 +109,23 @@ export interface Requirement {
   item: string;
   perKit: number;
   required: number;
-  unitCost: number;
-  vendorHint: string;
+  /** null = this login does not see costs */
+  unitCost: number | null;
+  vendorHint: string | null;
   /** null = no inventory record with this name */
   stock: number | null;
   short: number;
   inventoryId?: string;
 }
 
-/** BOM × quantity vs current stock (matched by component name, case-insensitive). */
-export function buildRequirements(kit: Kit, qty: number, inventory: Map<string, Rec>): Requirement[] {
-  return kit.bom.map((b) => {
+/** a quantity can be a fraction (0.5 m of wire): keep two decimals, without floating-point dust */
+const qty2 = (v: number) => Math.round(v * 100) / 100;
+
+/** A kit's parts × quantity vs current stock (matched by part name, case-insensitive). */
+export function buildRequirements(lines: readonly KitLine[], qty: number, inventory: Map<string, Rec>): Requirement[] {
+  return lines.map((b) => {
     const rec = inventory.get(norm(b.item));
-    const required = b.qty * qty;
+    const required = qty2(b.qty * qty);
     const stock = rec ? Math.max(0, num(rec.stockQty)) : null;
     return {
       item: b.item,
@@ -96,7 +134,7 @@ export function buildRequirements(kit: Kit, qty: number, inventory: Map<string, 
       unitCost: b.unitCost,
       vendorHint: b.vendorHint,
       stock,
-      short: Math.max(0, required - (stock ?? 0)),
+      short: qty2(Math.max(0, required - (stock ?? 0))),
       inventoryId: rec?.id,
     };
   });
@@ -104,8 +142,10 @@ export function buildRequirements(kit: Kit, qty: number, inventory: Map<string, 
 
 /** How many complete kits can be built from what is in stock right now. */
 export function buildableNow(reqs: Requirement[]) {
-  if (!reqs.length) return 0;
-  return Math.max(0, Math.min(...reqs.map((r) => Math.floor((r.stock ?? 0) / r.perKit))));
+  // a line with quantity 0 is a note, not a part that can run out
+  const used = reqs.filter((r) => r.perKit > 0);
+  if (!used.length) return 0;
+  return Math.max(0, Math.min(...used.map((r) => Math.floor((r.stock ?? 0) / r.perKit))));
 }
 
 /* ── orders ────────────────────────────────────────────────────────────── */

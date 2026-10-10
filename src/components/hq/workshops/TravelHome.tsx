@@ -6,9 +6,9 @@ import { can, OPS, OPS_MEDIA } from "@/lib/hq/roles";
 import { Badge } from "@/components/ui/Badge";
 import { formatINR, formatNumber, isoDate } from "@/lib/utils";
 import { CollectionManager, type ExtraColumn } from "@/components/hq/CollectionManager";
-import { useCollection, useHq } from "@/components/hq/data";
+import { useBook, useCollection, useHq } from "@/components/hq/data";
 import { Loading, PageHeader, StatCard } from "@/components/hq/ui";
-import { num, PLAN_FOOD, PLAN_STAY, PLAN_TRAVEL, str, tripCost, type Rec } from "./logic";
+import { num, planCosts, str, tripCost, type Rec } from "./logic";
 import { useToday } from "./time";
 import { Notice } from "./bits";
 import { TripEstimator } from "./TripEstimator";
@@ -37,6 +37,9 @@ const EXTRA_COLUMNS: ExtraColumn<Rec>[] = [
 export function TravelHome() {
   const { user, store } = useHq();
   const canWrite = can(user, OPS) && store.writable;
+  // what the JOVE Day plan allows for travel, food and stay: in the price book, so 0 (not shown) for a trainer
+  const plan = planCosts(useBook()).trip;
+  const planNote = plan > 0 ? ` · plan ${formatINR(plan)}` : "";
   const today = useToday();
   const { records: trips, loading, error, save: saveTrip } = useCollection("trips");
   const { records: workshops } = useCollection("workshops");
@@ -92,8 +95,6 @@ export function TravelHome() {
     }
   }
 
-  const plan = PLAN_TRAVEL + PLAN_FOOD + PLAN_STAY;
-
   return (
     <div>
       <PageHeader
@@ -121,7 +122,7 @@ export function TravelHome() {
               <StatCard
                 label="Avg cost per workshop"
                 value={stats.avgPerWorkshop === null ? "—" : formatINR(Math.round(stats.avgPerWorkshop))}
-                sub={stats.workshops ? `Across ${stats.workshops} workshop${stats.workshops === 1 ? "" : "s"} · plan ${formatINR(plan)}` : `Link trips to workshops · plan ${formatINR(plan)}`}
+                sub={stats.workshops ? `Across ${stats.workshops} workshop${stats.workshops === 1 ? "" : "s"}${planNote}` : `Link trips to workshops${planNote}`}
               />
             </div>
           )}

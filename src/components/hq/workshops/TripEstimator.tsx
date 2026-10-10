@@ -6,20 +6,26 @@ import { Button } from "@/components/ui/Button";
 import { Field, Input, Select } from "@/components/ui/form";
 import { Modal } from "@/components/ui/Overlay";
 import { formatINR, formatNumber } from "@/lib/utils";
-import { useCollection, useSettings } from "@/components/hq/data";
+import { useBook, useCollection, useSettings } from "@/components/hq/data";
 import { Panel } from "@/components/hq/ui";
-import { Notice } from "./bits";
-import { FOOD_PER_PERSON_DAY, isIso, list, num, PLAN_FOOD, PLAN_STAY, PLAN_TRAVEL, str, TEAM_SIZE, VEHICLE_PRESETS, type Rec } from "./logic";
+import { Notice, PricesLink } from "./bits";
+import { isIso, list, num, planCosts, str, TEAM_SIZE, VEHICLE_PRESETS, type Rec } from "./logic";
 
 const toNum = (v: string) => {
   const n = Number(v);
   return Number.isFinite(n) && n > 0 ? n : 0;
 };
+/** an amount in the estimate: a dash while it is nothing */
+const amount = (v: number) => (v > 0 ? formatINR(v) : "—");
 
 export function TripEstimator({ workshops, schools, canWrite }: { workshops: Rec[]; schools: Map<string, Rec>; canWrite: boolean }) {
   const uid = useId();
   const { settings } = useSettings();
   const { save } = useCollection("trips");
+  // What the JOVE Day plan allows for travel, food and stay is in the price book. A trainer has no price book:
+  // the estimator works the same, without the comparison with the plan.
+  const book = useBook();
+  const costs = useMemo(() => planCosts(book), [book]);
 
   const [km, setKm] = useState("120");
   const [vehicle, setVehicle] = useState(VEHICLE_PRESETS[0].value);
@@ -28,7 +34,7 @@ export function TripEstimator({ workshops, schools, canWrite }: { workshops: Rec
   const [nights, setNights] = useState("0");
   const [stayRate, setStayRate] = useState("3000");
   const [people, setPeople] = useState(String(TEAM_SIZE));
-  const [food, setFood] = useState(String(FOOD_PER_PERSON_DAY));
+  const [food, setFood] = useState(() => (costs.foodPerPersonDay > 0 ? String(costs.foodPerPersonDay) : ""));
 
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
@@ -52,7 +58,8 @@ export function TripEstimator({ workshops, schools, canWrite }: { workshops: Rec
     return { distance, vehicleCost, tolls, stay, foodTotal, total, perKm: distance ? total / distance : 0 };
   }, [km, rate, toll, nights, stayRate, people, food]);
 
-  const plan = PLAN_TRAVEL + PLAN_FOOD + PLAN_STAY;
+  /** 0 = no plan to compare with (no price book for this login, or those cost lines are not filled in yet) */
+  const plan = costs.trip;
   const delta = calc.total - plan;
 
   const upcoming = useMemo(() => [...workshops].filter((w) => str(w.status) !== "cancelled").sort((a, b) => str(b.date).localeCompare(str(a.date))), [workshops]);
@@ -127,7 +134,7 @@ export function TripEstimator({ workshops, schools, canWrite }: { workshops: Rec
               ))}
             </Select>
           </Field>
-          <Field label="Rate (₹ per km)" htmlFor={f("rate")} help={preset.ratePerKm === null ? "From Settings → fuel cost per km" : "Preset — edit to match your quote"}>
+          <Field label="Rate (₹ per km)" htmlFor={f("rate")} help={preset.ratePerKm !== null ? "Preset — edit to match your quote" : presetRate > 0 ? "From Settings → fuel cost per km" : "Type what the fuel costs per km"}>
             <Input id={f("rate")} type="number" inputMode="decimal" min={0} step="0.5" value={rateOverride ?? String(presetRate)} onChange={(e) => setRateOverride(e.target.value)} />
           </Field>
           <Field label="Tolls & parking (₹)" htmlFor={f("toll")}>
@@ -142,8 +149,8 @@ export function TripEstimator({ workshops, schools, canWrite }: { workshops: Rec
           <Field label="People travelling" htmlFor={f("people")} help={`JOVE Day plan: ${TEAM_SIZE} people`}>
             <Input id={f("people")} type="number" inputMode="numeric" min={0} value={people} onChange={(e) => setPeople(e.target.value)} />
           </Field>
-          <Field label="Food per person (₹)" htmlFor={f("food")} help={`Cost plan: ${formatINR(FOOD_PER_PERSON_DAY)} a day`}>
-            <Input id={f("food")} type="number" inputMode="decimal" min={0} value={food} onChange={(e) => setFood(e.target.value)} />
+          <Field label="Food per person (₹)" htmlFor={f("food")} help={costs.foodPerPersonDay > 0 ? `Cost plan: ${formatINR(costs.foodPerPersonDay)} a day` : "What one person spends on food in a day"}>
+            <Input id={f("food")} type="number" inputMode="decimal" min={0} placeholder="0" value={food} onChange={(e) => setFood(e.target.value)} />
           </Field>
         </div>
 
@@ -155,23 +162,32 @@ export function TripEstimator({ workshops, schools, canWrite }: { workshops: Rec
             </p>
             <dl className="mt-4 space-y-2 text-sm">
               {[
-                [`${preset.label} · ${formatNumber(calc.distance)} km × ${formatINR(rate)}`, calc.vehicleCost],
-                ["Tolls & parking", calc.tolls],
-                [`Stay · ${toNum(nights)} night${toNum(nights) === 1 ? "" : "s"}`, calc.stay],
-                [`Food · ${toNum(people)} × ${formatINR(toNum(food))}`, calc.foodTotal],
+                // a rate or a cost that has not been typed shows a dash: not a trip that costs nothing
+                rate > 0 ? [`${preset.label} · ${formatNumber(calc.distance)} km × ${formatINR(rate)}`, amount(calc.vehicleCost)] : [`${preset.label} · rate per km not typed yet`, "—"],
+                ["Tolls & parking", amount(calc.tolls)],
+                [`Stay · ${toNum(nights)} night${toNum(nights) === 1 ? "" : "s"}`, amount(calc.stay)],
+                toNum(food) > 0 ? [`Food · ${toNum(people)} × ${formatINR(toNum(food))}`, amount(calc.foodTotal)] : ["Food · cost per person not typed yet", "—"],
               ].map(([k, v]) => (
-                <div key={String(k)} className="flex items-baseline justify-between gap-3 border-b border-dashed border-paper/15 pb-2">
+                <div key={k} className="flex items-baseline justify-between gap-3 border-b border-dashed border-paper/15 pb-2">
                   <dt className="text-paper/70">{k}</dt>
-                  <dd className="tabular font-mono">{formatINR(Number(v))}</dd>
+                  <dd className="tabular font-mono">{v}</dd>
                 </div>
               ))}
             </dl>
-            <p className="tabular mt-4 font-mono text-3xl font-bold tracking-tight">{formatINR(calc.total)}</p>
-            <p className="mt-1 text-xs text-paper/60">{calc.perKm ? `${formatINR(calc.perKm)} per km all-in` : "Enter a distance to see the cost per km"}</p>
-            <p className="mt-3 text-xs leading-relaxed text-paper/60">
-              The JOVE Day cost plan allows {formatINR(plan)} for travel, food and stay.{" "}
-              {calc.total > 0 && <span className="text-paper">{delta > 0 ? `This trip is ${formatINR(delta)} over plan.` : delta < 0 ? `This trip is ${formatINR(-delta)} under plan.` : "Exactly on plan."}</span>}
-            </p>
+            <p className="tabular mt-4 font-mono text-3xl font-bold tracking-tight">{amount(calc.total)}</p>
+            <p className="mt-1 text-xs text-paper/60">{calc.perKm ? `${formatINR(calc.perKm)} per km all-in` : calc.distance ? "Type the costs to see the total" : "Enter a distance to see the cost per km"}</p>
+            {plan > 0 ? (
+              <p className="mt-3 text-xs leading-relaxed text-paper/60">
+                The JOVE Day cost plan allows {formatINR(plan)} for travel, food and stay.{" "}
+                {calc.total > 0 && <span className="text-paper">{delta > 0 ? `This trip is ${formatINR(delta)} over plan.` : delta < 0 ? `This trip is ${formatINR(-delta)} under plan.` : "Exactly on plan."}</span>}
+              </p>
+            ) : (
+              book && (
+                <p className="mt-3 text-xs leading-relaxed text-paper/60">
+                  To compare a trip with the plan, add the travel, food and stay cost lines of a JOVE Day in <PricesLink className="text-paper" />.
+                </p>
+              )
+            )}
             {canWrite && (
               <Button variant="light" size="md" className="mt-5 w-full" disabled={!calc.total} onClick={() => { setError(""); setOpen(true); }}>
                 <Save className="size-4" aria-hidden /> Save as trip

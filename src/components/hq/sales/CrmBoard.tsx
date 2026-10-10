@@ -6,13 +6,12 @@ import { useRouter } from "next/navigation";
 import { Columns3, Loader2, Plus, Search, Table2, Users } from "lucide-react";
 import { getCollection, SCHOOL_STAGES, type BaseRecord } from "@/lib/hq/collections";
 import { can } from "@/lib/hq/roles";
-import { targets } from "@/lib/content/business";
 import { Badge, statusTone } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Overlay";
 import { Input, Label } from "@/components/ui/form";
 import { CollectionManager, type ExtraColumn } from "@/components/hq/CollectionManager";
-import { useCollection, useHq } from "@/components/hq/data";
+import { useBook, useCollection, useHq } from "@/components/hq/data";
 import { Kanban } from "@/components/hq/Kanban";
 import { EmptyState, Loading, PageHeader, StatCard } from "@/components/hq/ui";
 import { cn, formatINR, formatINRCompact, formatNumber } from "@/lib/utils";
@@ -131,7 +130,8 @@ export function CrmBoard({ initialView }: { initialView: CrmView }) {
     [today],
   );
 
-  const monthlyTarget = targets.monthlyRevenue;
+  // a planning number from Money → Prices & Costs: 0 for logins that do not see Finance, or before it is filled in
+  const monthlyTarget = useBook()?.planner.targets.monthlyRevenue ?? 0;
 
   return (
     <div>
@@ -167,7 +167,7 @@ export function CrmBoard({ initialView }: { initialView: CrmView }) {
           tone="dark"
           label="Weighted forecast"
           value={formatINRCompact(stats.forecast)}
-          sub={`≈ ${(stats.forecast / monthlyTarget).toFixed(1)} months of the ${formatINRCompact(monthlyTarget)} monthly target`}
+          sub={monthlyTarget > 0 ? `≈ ${(stats.forecast / monthlyTarget).toFixed(1)} months of the ${formatINRCompact(monthlyTarget)} monthly target` : "Open deals, weighted by how far along they are"}
         />
         <StatCard
           label="Conversion rate"

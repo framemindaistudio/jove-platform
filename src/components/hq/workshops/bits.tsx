@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { Badge, statusTone, type Tone } from "@/components/ui/Badge";
+import { PRICES_HREF } from "@/components/hq/product/lib";
 import { cn } from "@/lib/utils";
 import { WORKSHOP_STATUS, countdownLabel, daysBetween, isIso, optionLabel, parseIso } from "./logic";
 
@@ -138,5 +140,17 @@ export function Notice({ tone = "neutral", children, className }: { tone?: "neut
     <p role={tone === "bad" ? "alert" : "status"} className={cn("rounded-[var(--radius-sm)] border px-3 py-2 text-xs leading-relaxed", cls, className)}>
       {children}
     </p>
+  );
+}
+
+/**
+ * Link to the screen where the founders type what things cost. Render it only for the roles that see Finance
+ * (useBook() is not null): nobody else can open that page.
+ */
+export function PricesLink({ children = "Money → Prices & Costs", className }: { children?: React.ReactNode; className?: string }) {
+  return (
+    <Link href={PRICES_HREF} className={cn("font-semibold underline underline-offset-2", className)}>
+      {children}
+    </Link>
   );
 }

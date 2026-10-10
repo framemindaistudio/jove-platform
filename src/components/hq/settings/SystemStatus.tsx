@@ -29,6 +29,13 @@ const CHECKS: Check[] = [
   { key: "contactEmail", name: "NEXT_PUBLIC_CONTACT_EMAIL", required: false, what: "Shown on the public site and footer.", fix: "Hidden on the site until set." },
   { key: "contactPhone", name: "NEXT_PUBLIC_CONTACT_PHONE", required: false, what: "Shown on the public site and footer.", fix: "Hidden on the site until set." },
   { key: "whatsapp", name: "NEXT_PUBLIC_WHATSAPP", required: false, what: "Powers the WhatsApp buttons (digits with country code).", fix: "WhatsApp buttons stay hidden until set." },
+  {
+    key: "deployHook",
+    name: "VERCEL_DEPLOY_HOOK_URL",
+    required: false,
+    what: "Lets Money → Prices & Costs rebuild the website by itself, so a saved price reaches the site, brochures and proposals in about a minute.",
+    fix: "Until set, a saved price reaches the website only at the next redeploy. Make a Deploy Hook in Vercel → Settings → Git and paste its address here.",
+  },
 ];
 
 export function SystemStatus({ sys }: { sys: SystemInfo }) {

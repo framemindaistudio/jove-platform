@@ -3,17 +3,28 @@
 import { useMemo } from "react";
 import { Plus, X } from "lucide-react";
 import { Panel } from "@/components/hq/ui";
-import { targets } from "@/lib/content/business";
+import type { PriceBook } from "@/lib/pricebook/types";
 import { cn, formatINR, formatINRCompact, formatNumber } from "@/lib/utils";
-import { Metric, NumField, Section, SliderField, TABLE_WRAP, TH, TextButton } from "./controls";
+import { Metric, NumField, PricesLink, Section, SliderField, TABLE_WRAP, TH, TextButton } from "./controls";
 import { monthlyPlan, type Scenario } from "./model";
 import type { Update } from "./PlannerApp";
 
-const inr = (v: number) => formatINR(Math.round(v));
+// "|| 0" turns the −0 of "minus nothing" into a plain 0, so it never prints as "-₹0"
+const inr = (v: number) => formatINR(Math.round(v) || 0);
 const signed = (v: number) => (v < 0 ? `−${inr(-v)}` : inr(v));
 
-export function MonthlyPlan({ s, update }: { s: Scenario; update: Update }) {
+export function MonthlyPlan({ s, update, book }: { s: Scenario; update: Update; book: PriceBook }) {
   const m = useMemo(() => monthlyPlan(s), [s]);
+  // the company's own targets, as kept in the price book (0 = not set yet)
+  const targets = book.planner.targets;
+  const targetHint =
+    targets.monthlyRevenue > 0
+      ? `Company target: ${formatINR(targets.monthlyRevenue)}${targets.revenuePerWorkshop > 0 ? ` (${targets.workshopsPerMonth} workshops × ${formatINR(targets.revenuePerWorkshop)})` : ""}, from Money → Prices & Costs.`
+      : "No company target yet: set it in Money → Prices & Costs, or type one here to try it.";
+  /** without cost lines or fixed costs a profit figure would be made up: show a dash */
+  const noLines = s.day.lines.length === 0;
+  const noFixed = s.month.fixed.length === 0;
+  const dash = "—";
   const needCeil = m.workshopsForTarget === null ? null : Math.ceil(m.workshopsForTarget - 1e-9);
   const pct = Math.round(m.progress * 100);
   const onTarget = m.target > 0 && m.revenue >= m.target;
@@ -25,7 +36,7 @@ export function MonthlyPlan({ s, update }: { s: Scenario; update: Update }) {
           <Panel title="Workshops and target">
             <div className="grid gap-5 sm:grid-cols-2">
               <SliderField label="Workshops per month" min={0} max={12} value={s.month.workshops} onChange={(v) => update((d) => ((d.month.workshops = v), d))} />
-              <NumField label="Monthly revenue target" prefix="₹" step={10000} value={s.month.target} onChange={(v) => update((d) => ((d.month.target = v), d))} hint={`Company target: ${formatINR(targets.monthlyRevenue)} (${targets.workshopsPerMonth} workshops × ${formatINR(targets.revenuePerWorkshop)}).`} />
+              <NumField label="Monthly revenue target" prefix="₹" step={10000} value={s.month.target} onChange={(v) => update((d) => ((d.month.target = v), d))} hint={targetHint} />
             </div>
             <fieldset className="mt-5">
               <legend className="annot mb-2 text-charcoal">Revenue per workshop</legend>
@@ -48,7 +59,7 @@ export function MonthlyPlan({ s, update }: { s: Scenario; update: Update }) {
             </fieldset>
           </Panel>
 
-          <Panel title="Add-on revenue" subtitle="Upside on top of workshops. Margin is a planning assumption: the share of revenue kept after delivery costs.">
+          <Panel title="Add-on revenue" subtitle="Upside on top of workshops. Margin is your own assumption: the share of revenue you keep after delivery costs. It starts at 0% for the services, so type it.">
             <div className={TABLE_WRAP}>
               <table className="w-full min-w-[640px] text-sm">
                 <thead>
@@ -86,9 +97,14 @@ export function MonthlyPlan({ s, update }: { s: Scenario; update: Update }) {
 
           <Panel
             title="Fixed costs per month"
-            subtitle="Lean launch overheads from the company cost model."
+            subtitle={
+              <>
+                What the company spends every month. They start as the monthly costs in <PricesLink />.
+              </>
+            }
             action={
               <TextButton
+                className="shrink-0 whitespace-nowrap"
                 onClick={() =>
                   update((d) => {
                     d.month.fixed.push({ id: `custom-${Date.now().toString(36)}`, label: "New fixed cost", amount: 0 });
@@ -100,7 +116,12 @@ export function MonthlyPlan({ s, update }: { s: Scenario; update: Update }) {
               </TextButton>
             }
           >
-            <div className={TABLE_WRAP}>
+            {noFixed && (
+              <p className="mb-3 rounded-[var(--radius-sm)] border border-dashed border-graphite/25 px-3 py-2 text-xs text-charcoal">
+                No monthly fixed costs yet, so profit and break-even cannot be worked out. Add them in <PricesLink /> (every HQ screen then uses them), or use Add line to try a number here only.
+              </p>
+            )}
+            <div className={cn(TABLE_WRAP, noFixed && "hidden")}>
               <table className="w-full min-w-[480px] text-sm">
                 <tbody>
                   {s.month.fixed.map((f, i) => (
@@ -148,15 +169,15 @@ export function MonthlyPlan({ s, update }: { s: Scenario; update: Update }) {
             <div className="bp-grid-dark pointer-events-none absolute inset-0 opacity-50" aria-hidden />
             <div className="relative">
               <div className="flex items-baseline justify-between gap-3">
-                <p className="annot text-paper/55">Progress to {formatINRCompact(m.target)} / month</p>
-                <p className="tabular text-2xl font-bold">{pct}%</p>
+                <p className="annot text-paper/55">{m.target > 0 ? <>Progress to {formatINRCompact(m.target)} / month</> : "No monthly target yet"}</p>
+                <p className="tabular text-2xl font-bold">{m.target > 0 ? `${pct}%` : dash}</p>
               </div>
               <div className="relative mt-3 h-3 overflow-hidden rounded-full bg-paper/15" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(100, pct)} aria-label="Monthly revenue as a share of the target">
                 <div className="absolute inset-y-0 left-0 rounded-full bg-paper transition-[width] duration-700" style={{ width: `${Math.min(100, m.progress * 100)}%` }} />
               </div>
               <p className="tabular mt-2 flex justify-between text-xs text-paper/60">
                 <span>{inr(m.revenue)} planned</span>
-                <span>{inr(m.target)} target</span>
+                <span>{m.target > 0 ? `${inr(m.target)} target` : "no target"}</span>
               </p>
               <p className="mt-4 text-sm leading-relaxed" aria-live="polite">
                 {m.target <= 0 ? (
@@ -183,17 +204,17 @@ export function MonthlyPlan({ s, update }: { s: Scenario; update: Update }) {
               <PnlRow k={`Workshop revenue (${m.workshops} × ${inr(m.perWorkshopRevenue)})`} v={inr(m.workshopRevenue)} />
               <PnlRow k="Add-on revenue" v={inr(m.addonRevenue)} />
               <PnlRow k="Total revenue" v={inr(m.revenue)} bold />
-              <PnlRow k={`Workshop delivery costs (${m.workshops} × ${inr(m.perWorkshopVariable)})`} v={signed(-m.workshopVariable)} />
+              <PnlRow k={noLines ? "Workshop delivery costs (no cost lines yet)" : `Workshop delivery costs (${m.workshops} × ${inr(m.perWorkshopVariable)})`} v={noLines ? dash : signed(-m.workshopVariable)} />
               <PnlRow k="Add-on direct costs" v={signed(-m.addonDirect)} />
-              <PnlRow k="Contribution" v={signed(m.contribution)} bold />
-              <PnlRow k="Fixed costs" v={signed(-m.fixed)} />
-              <PnlRow k={`EBITDA (${m.marginPct.toFixed(0)}% of revenue)`} v={signed(m.ebitda)} bold strong negative={m.ebitda < 0} />
+              <PnlRow k="Contribution" v={noLines ? dash : signed(m.contribution)} bold />
+              <PnlRow k={noFixed ? "Fixed costs (none yet)" : "Fixed costs"} v={noFixed ? dash : signed(-m.fixed)} />
+              <PnlRow k={noLines || noFixed ? "EBITDA" : `EBITDA (${m.marginPct.toFixed(0)}% of revenue)`} v={noLines || noFixed ? dash : signed(m.ebitda)} bold strong negative={!noLines && !noFixed && m.ebitda < 0} />
             </dl>
             <div className="mt-4 grid grid-cols-2 gap-4 border-t border-dashed border-graphite/20 pt-4">
               <Metric
                 label="Break-even workshops / month"
-                value={m.breakEvenWorkshops === null ? "n/a" : m.breakEvenWorkshops.toFixed(1)}
-                sub={m.breakEvenWorkshops === null ? "Each workshop loses money" : `${inr(m.perWorkshopContribution)} contribution each covers ${inr(m.fixed)} of fixed costs`}
+                value={noLines || noFixed ? dash : m.breakEvenWorkshops === null ? "n/a" : m.breakEvenWorkshops.toFixed(1)}
+                sub={noLines ? "Needs the cost lines of a JOVE Day" : noFixed ? "Needs monthly fixed costs" : m.breakEvenWorkshops === null ? "Each workshop loses money" : `${inr(m.perWorkshopContribution)} contribution each covers ${inr(m.fixed)} of fixed costs`}
               />
               <Metric label="Students taught / month" value={formatNumber(Math.round(m.students))} sub={`${m.day.students} per workshop`} />
             </div>

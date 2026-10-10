@@ -7,11 +7,12 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/form";
 import { formatINR, formatNumber } from "@/lib/utils";
-import { useCollection, useHq } from "@/components/hq/data";
+import { useBook, useCollection, useHq } from "@/components/hq/data";
 import { KV, Panel } from "@/components/hq/ui";
-import { workshopEconomics } from "@/lib/content/business";
+import { joveDayRules } from "@/lib/content/business";
+import { dayEconomics } from "@/lib/pricebook/math";
 import { CHECKLIST, checklistOf, longDate, money, num, optionLabel, phaseProgress, str, studentsOf, bookedBands, tripCost, WORKSHOP_STATUS, type Rec } from "./logic";
-import { Notice, ProgressBar } from "./bits";
+import { Notice, PricesLink, ProgressBar } from "./bits";
 import type { PatchFn } from "./useWorkshopDoc";
 
 function reportTemplate(w: Rec) {
@@ -47,6 +48,8 @@ Next step with the school (JOVE Quarter / Year / Club):
 export function WrapUpTab({ w, patch, canWrite }: { w: Rec; patch: PatchFn; canWrite: boolean }) {
   const { user } = useHq();
   const canMoney = can(user, OPS);
+  // the cost lines of a JOVE Day: only the roles that see Finance receive the price book
+  const book = useBook();
   const feedbackQ = useCollection("feedback");
   const expensesQ = useCollection(canMoney ? "expenses" : "__none");
   const tripsQ = useCollection(canMoney ? "trips" : "__none");
@@ -68,7 +71,9 @@ export function WrapUpTab({ w, patch, canWrite }: { w: Rec; patch: PatchFn; canW
 
   const m = money(w);
   const students = studentsOf(w);
-  const econ = students ? workshopEconomics(students, m.basis / students) : null;
+  const costLines = book?.planner.lines ?? [];
+  /** the plan needs student counts and at least one cost line in the price book */
+  const econ = students && costLines.length ? dayEconomics(students, m.basis / students, costLines, joveDayRules.minimumBilling) : null;
   const post = phaseProgress(checklistOf(w), CHECKLIST[CHECKLIST.length - 1]);
   const report = text ?? str(w.report);
   const dirty = text !== null && text !== str(w.report);
@@ -152,22 +157,37 @@ export function WrapUpTab({ w, patch, canWrite }: { w: Rec; patch: PatchFn; canW
         </Panel>
 
         {canMoney && (
-        <Panel title="Economics" subtitle="Plan from the JOVE Day cost model vs expenses logged" className="lg:col-span-1">
-          {econ ? (
+        <Panel title="Economics" subtitle="Plan from the JOVE Day cost lines vs expenses logged" className="lg:col-span-1">
+          {!students ? (
+            <p className="text-sm text-blueprint">Add student counts to see the plan.</p>
+          ) : (
             <>
               <KV k="Revenue (ex-GST)" v={<span className="tabular font-mono">{formatINR(m.basis)}</span>} />
-              <KV k="Planned costs" v={<span className="tabular font-mono">{formatINR(Math.round(econ.variable))}</span>} />
-              <KV k="Planned contribution" v={<span className="tabular font-mono font-bold">{formatINR(Math.round(econ.contribution))}</span>} />
-              {canMoney && (
+              {econ && (
                 <>
-                  <KV k="Expenses logged" v={<span className="tabular font-mono">{formatINR(spent)}</span>} />
-                  <KV k="Trip costs recorded" v={<span className="tabular font-mono">{formatINR(tripSpend)}</span>} />
+                  <KV k="Planned costs" v={<span className="tabular font-mono">{formatINR(Math.round(econ.variable))}</span>} />
+                  <KV k="Planned contribution" v={<span className="tabular font-mono font-bold">{formatINR(Math.round(econ.contribution))}</span>} />
                 </>
               )}
-              <p className="mt-3 text-xs leading-relaxed text-blueprint">Planned margin {econ.marginPct}% at {formatNumber(students)} students. Actuals depend on every expense being logged against this workshop.</p>
+              <KV k="Expenses logged" v={<span className="tabular font-mono">{formatINR(spent)}</span>} />
+              <KV k="Trip costs recorded" v={<span className="tabular font-mono">{formatINR(tripSpend)}</span>} />
+              {econ ? (
+                <p className="mt-3 text-xs leading-relaxed text-blueprint">
+                  Planned margin {econ.marginPct}% at {formatNumber(students)} students, from the cost lines of a JOVE Day in <PricesLink className="hover:text-graphite" />. Actuals depend on every expense being logged against this workshop.
+                </p>
+              ) : (
+                <p className="mt-3 text-xs leading-relaxed text-blueprint">
+                  {book ? (
+                    <>
+                      No planned costs yet: the cost lines of a JOVE Day are empty. Add them in <PricesLink className="hover:text-graphite" /> to see the planned costs and contribution here.
+                    </>
+                  ) : (
+                    "Planned costs are not available for this login."
+                  )}{" "}
+                  Actuals depend on every expense being logged against this workshop.
+                </p>
+              )}
             </>
-          ) : (
-            <p className="text-sm text-blueprint">Add student counts to see the plan.</p>
           )}
         </Panel>
         )}

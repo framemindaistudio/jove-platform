@@ -45,6 +45,7 @@ export const hqNav: HqNavGroup[] = [
     title: "Money",
     items: [
       { label: "Finance", href: "/hq/finance", icon: "ReceiptIndianRupee", roles: OPS, description: "P&L, invoices, expenses, income" },
+      { label: "Prices & Costs", href: "/hq/prices", icon: "BadgeIndianRupee", roles: OPS, description: "Kit costs, margins and every price customers pay" },
       { label: "Team & Payroll", href: "/hq/team", icon: "Users", roles: OPS_TRAINER, description: "People, salaries, payslips" },
       { label: "Business Planner", href: "/hq/planner", icon: "Calculator", roles: OPS, description: "Unit economics, targets, revenue streams" },
     ],

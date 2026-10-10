@@ -4,16 +4,16 @@ import { useMemo, useState } from "react";
 import { Minus, PackageCheck, Plus, Printer, ReceiptText, ShoppingCart, TriangleAlert } from "lucide-react";
 import { lineItemsTotal } from "@/lib/hq/collections";
 import { can, OPS } from "@/lib/hq/roles";
-import { kitCost } from "@/lib/content/business";
+import type { PriceBook } from "@/lib/pricebook/types";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Tabs } from "@/components/ui/Tabs";
 import { CollectionManager, type ExtraColumn } from "@/components/hq/CollectionManager";
-import { nextNumber, useCollection, useHq, useLookup } from "@/components/hq/data";
+import { nextNumber, useBook, useCollection, useHq, useKitParts, useLookup } from "@/components/hq/data";
 import { KV, PageHeader, StatCard } from "@/components/hq/ui";
 import { formatINR, formatNumber, isoDate } from "@/lib/utils";
 import { IconButton, Notice, errMsg, useDrawerControl, useNotice, type NoticeState } from "./controls";
-import { getKit, indexInventory, inr, needsRestock, norm, num, str, stockState, stockValue, type Rec } from "./lib";
+import { getKit, indexInventory, inr, kitCostExact, kitLines, needsRestock, norm, num, str, stockState, stockValue, type Rec } from "./lib";
 
 type Tab = "stock" | "vendors" | "purchases" | "assembly";
 const TABS: Tab[] = ["stock", "vendors", "purchases", "assembly"];
@@ -389,24 +389,27 @@ const refName = (r: Rec | undefined) => (r ? str(r.name) : "");
 
 /* ═════════════════════════════ Assembly ═════════════════════════════ */
 
-const BATCH_COLUMNS: ExtraColumn<Rec>[] = [
-  {
-    key: "bomCost",
-    label: "BOM cost",
-    className: "text-right",
-    sortValue: (r) => {
-      const k = getKit(r.kitId);
-      return k ? kitCost(k) * num(r.qty) : 0;
-    },
-    render: (r) => {
-      const k = getKit(r.kitId);
-      return <span className="tabular">{k ? inr(kitCost(k) * num(r.qty)) : "—"}</span>;
-    },
-  },
-];
+/** What the parts of a batch cost, from the price book. The column is left out for logins that do not see costs. */
+const batchColumns = (book: PriceBook | null): ExtraColumn<Rec>[] =>
+  book
+    ? [
+        {
+          key: "bomCost",
+          label: "Parts cost",
+          className: "text-right",
+          sortValue: (r) => Math.round((kitCostExact(r.kitId, book) ?? 0) * num(r.qty)),
+          render: (r) => {
+            const each = kitCostExact(r.kitId, book);
+            return <span className="tabular">{each === null ? "—" : inr(Math.round(each * num(r.qty)))}</span>;
+          },
+        },
+      ]
+    : [];
 
 function AssemblyTab({ initialId }: { initialId?: string }) {
   const { user, store } = useHq();
+  const book = useBook();
+  const columns = useMemo(() => batchColumns(book), [book]);
   const canWrite = can(user, OPS) && store.writable;
   const { notice, setNotice, clear } = useNotice();
   const drawer = useDrawerControl(initialId);
@@ -417,7 +420,7 @@ function AssemblyTab({ initialId }: { initialId?: string }) {
       <CollectionManager<Rec>
         name="kitBatches"
         columns={["kitId", "qty", "date", "status", "destination"]}
-        extraColumns={BATCH_COLUMNS}
+        extraColumns={columns}
         defaults={{ status: "planned", date: isoDate(), destination: "Stock" }}
         newLabel="Plan a batch"
         openId={drawer.openId}
@@ -433,6 +436,8 @@ function CompleteBatchButton({ batch, onResult, onDone }: { batch: Record<string
   const inv = useCollection<Rec>("inventory");
   const products = useCollection<Rec>("products");
   const batches = useCollection<Rec>("kitBatches");
+  const book = useBook();
+  const parts = useKitParts();
   const [busy, setBusy] = useState(false);
   const status = str(batch.status);
   if (!batch.id || status === "ready" || status === "dispatched") return null;
@@ -442,11 +447,15 @@ function CompleteBatchButton({ batch, onResult, onDone }: { batch: Record<string
     const qty = Math.floor(num(batch.qty));
     if (!kit || qty < 1) return onResult({ tone: "bad", text: "Choose a kit and a quantity of at least 1 before completing the batch." });
 
+    // the parts of this kit as saved in Money → Prices & Costs
+    const lines = kitLines(kit.id, book, parts);
+    if (!lines.length) return onResult({ tone: "bad", text: `${kit.name} has no parts listed yet. Add them in Money → Prices & Costs, then complete the batch.` });
+
     const index = indexInventory(inv.records);
     const matched: { rec: Rec; need: number }[] = [];
     const missing: string[] = [];
     const short: string[] = [];
-    for (const b of kit.bom) {
+    for (const b of lines) {
       const rec = index.get(norm(b.item));
       if (!rec) {
         missing.push(b.item);
@@ -462,7 +471,7 @@ function CompleteBatchButton({ batch, onResult, onDone }: { batch: Record<string
     const msg = [
       `Complete this batch of ${qty} × ${kit.name}?`,
       "",
-      `• Deducts ${matched.length} of ${kit.bom.length} BOM components from inventory${missing.length ? ` (${missing.length} have no inventory record and are skipped)` : ""}.`,
+      `• Deducts ${matched.length} of ${lines.length} parts from inventory${missing.length ? ` (${missing.length} have no inventory record and are skipped)` : ""}.`,
       short.length ? `• ${short.length} component${short.length === 1 ? " doesn't" : "s don't"} have enough stock and will drop to 0: ${short.slice(0, 3).join(", ")}${short.length > 3 ? "…" : ""}.` : "",
       product ? `• Adds ${qty} to the shop stock of "${str(product.name)}".` : dest === "Stock" || dest === "Online orders" ? "• No shop product is linked to this kit, so shop stock is unchanged." : "",
     ]

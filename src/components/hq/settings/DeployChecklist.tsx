@@ -79,6 +79,7 @@ export function DeployChecklist({ sys }: { sys: SystemInfo }) {
         { id: "siteurl", label: "Site address points to the live domain", detail: "Defaults to https://www.jove.website. Set NEXT_PUBLIC_SITE_URL if it changes.", auto: env ? env.siteUrl : null },
         { id: "domain", label: "Custom domain connected and HTTPS working" },
         { id: "contact", label: "Public contact email and phone set", detail: "Optional, but schools expect to see them.", auto: env ? env.contactEmail && env.contactPhone : null },
+        { id: "deployhook", label: "Prices publish by themselves (VERCEL_DEPLOY_HOOK_URL set)", detail: "Vercel → Settings → Git → Deploy Hooks. Without it, redeploy by hand after changing a price.", auto: env ? env.deployHook : null },
       ],
     },
     {

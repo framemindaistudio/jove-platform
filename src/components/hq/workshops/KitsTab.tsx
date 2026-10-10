@@ -3,17 +3,25 @@
 import { Package, Printer, Square } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { formatINR, formatNumber } from "@/lib/utils";
+import { useBook } from "@/components/hq/data";
 import { Panel } from "@/components/hq/ui";
-import { Notice } from "./bits";
-import { CERTIFICATE_COST, CONSUMABLES_PER_STUDENT, kitPlan, packingList, SPARE_RATE, WORKSHEET_COST, type Rec } from "./logic";
+import { Notice, PricesLink } from "./bits";
+import { kitPlan, materialLines, packingList, planCosts, SPARE_RATE, type Rec } from "./logic";
 
 const th = "annot px-4 py-2.5 text-[10px] text-blueprint";
 const tdNum = "tabular px-4 py-3 text-right font-mono";
+const dash = <span className="text-blueprint/60">—</span>;
 
 export function KitsTab({ w, showMoney }: { w: Rec; showMoney: boolean }) {
+  // what materials cost is in the price book, which only the roles that see Finance receive
+  const book = useBook();
   const plan = kitPlan(w);
   const t = plan.totals;
   const packing = packingList(w);
+  const materials = materialLines(t, planCosts(book));
+  const canCost = showMoney && !!book;
+  /** the cost columns appear once the price book has a cost for at least one of the three items */
+  const withCost = canCost && materials.total !== null;
 
   if (!plan.rows.length) {
     return <Notice tone="warn">Add student counts per grade band (Edit) and this tab works out stations, kits to pack, batteries, worksheets and certificates for you.</Notice>;
@@ -85,7 +93,20 @@ export function KitsTab({ w, showMoney }: { w: Rec; showMoney: boolean }) {
       </Panel>
 
       <div className="grid gap-5 lg:grid-cols-5">
-        <Panel title="Consumables, worksheets & certificates" subtitle={showMoney ? "Unit costs from the JOVE Day cost model" : "Quantities to pack"} className="lg:col-span-3" bodyClassName="p-0">
+        <Panel
+          title="Consumables, worksheets & certificates"
+          subtitle={
+            withCost ? (
+              <>
+                Unit costs from the cost lines of a JOVE Day in <PricesLink className="hover:text-graphite" />
+              </>
+            ) : (
+              "Quantities to pack"
+            )
+          }
+          className="lg:col-span-3"
+          bodyClassName="p-0"
+        >
           <div className="hq-scroll overflow-x-auto" data-lenis-prevent>
             <table className="w-full min-w-[480px] text-sm">
               <thead>
@@ -93,7 +114,7 @@ export function KitsTab({ w, showMoney }: { w: Rec; showMoney: boolean }) {
                   <th scope="col" className={th}>
                     Item
                   </th>
-                  {["Quantity", ...(showMoney ? ["Unit cost", "Cost"] : [])].map((h) => (
+                  {["Quantity", ...(withCost ? ["Unit cost", "Cost"] : [])].map((h) => (
                     <th key={h} scope="col" className={`${th} text-right`}>
                       {h}
                     </th>
@@ -101,31 +122,32 @@ export function KitsTab({ w, showMoney }: { w: Rec; showMoney: boolean }) {
                 </tr>
               </thead>
               <tbody>
-                {[
-                  { label: "Consumables packs (cells, LEDs, cardboard, tape)", qty: t.students, unit: CONSUMABLES_PER_STUDENT, cost: t.consumablesCost },
-                  { label: "Worksheets (one set per student)", qty: t.worksheets, unit: WORKSHEET_COST, cost: t.worksheetCost },
-                  { label: "Certificates (one per student)", qty: t.certificates, unit: CERTIFICATE_COST, cost: t.certificateCost },
-                ].map((r) => (
-                  <tr key={r.label} className="border-b border-dashed border-graphite/10">
+                {materials.lines.map((r) => (
+                  <tr key={r.id} className="border-b border-dashed border-graphite/10">
                     <td className="px-4 py-3">{r.label}</td>
                     <td className={tdNum}>{formatNumber(r.qty)}</td>
-                    {showMoney && <td className={tdNum}>{formatINR(r.unit)}</td>}
-                    {showMoney && <td className={`${tdNum} font-semibold`}>{formatINR(r.cost)}</td>}
+                    {withCost && <td className={tdNum}>{r.unitCost === null ? dash : formatINR(r.unitCost, { decimals: !Number.isInteger(r.unitCost) })}</td>}
+                    {withCost && <td className={`${tdNum} font-semibold`}>{r.cost === null ? dash : formatINR(Math.round(r.cost))}</td>}
                   </tr>
                 ))}
               </tbody>
-              {showMoney && (
+              {withCost && materials.total !== null && (
                 <tfoot>
                   <tr className="bg-graphite/[0.035]">
                     <th scope="row" colSpan={3} className="px-4 py-3 text-left font-semibold">
-                      Materials cost
+                      {materials.incomplete ? "Materials cost so far" : "Materials cost"}
                     </th>
-                    <td className={`${tdNum} font-bold`}>{formatINR(t.materialsCost)}</td>
+                    <td className={`${tdNum} font-bold`}>{formatINR(Math.round(materials.total))}</td>
                   </tr>
                 </tfoot>
               )}
             </table>
           </div>
+          {canCost && materials.incomplete && (
+            <p className="border-t border-graphite/10 px-4 py-3 text-xs leading-relaxed text-blueprint">
+              {withCost ? "A dash means no cost per student is set for that item yet." : "No cost per student is set for these items yet, so only the quantities are shown."} Add it to the cost lines of a JOVE Day in <PricesLink className="hover:text-graphite" /> and it appears here.
+            </p>
+          )}
         </Panel>
 
         <Panel title="Kit for each band" className="lg:col-span-2">
