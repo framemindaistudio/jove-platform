@@ -93,6 +93,25 @@ function StockTab({ initialId }: { initialId?: string }) {
   const { notice, setNotice, clear } = useNotice();
   const [lowOnly, setLowOnly] = useState(false);
   const drawer = useDrawerControl(initialId);
+  // What each kit part costs in Money → Prices & Costs, by name. That screen is the one place a part's cost is
+  // changed; stock items follow it on every save there. Null: the kits list the part at different costs.
+  const book = useBook();
+  const bookCost = useMemo(() => {
+    const costs = new Map<string, number | null>();
+    for (const kit of Object.values(book?.kits ?? {})) {
+      for (const line of kit.bom) {
+        const key = norm(line.item);
+        costs.set(key, costs.has(key) && costs.get(key) !== line.unitCost ? null : line.unitCost);
+      }
+    }
+    return costs;
+  }, [book]);
+  function keepBookCost(r: Record<string, unknown>) {
+    const cost = bookCost.get(norm(r.name));
+    if (typeof cost !== "number" || num(r.unitCost) === cost) return r;
+    setNotice({ tone: "info", text: `“${str(r.name)}” is a part of a kit, so its unit cost comes from Money → Prices & Costs (${inr(cost)}). Change it there and stock follows.` });
+    return { ...r, unitCost: cost };
+  }
 
   const stats = useMemo(
     () => ({ items: inv.records.length, value: inv.records.reduce((s, r) => s + stockValue(r), 0), low: inv.records.filter(needsRestock) }),
@@ -110,18 +129,21 @@ function StockTab({ initialId }: { initialId?: string }) {
 
   return (
     <div>
-      <div className="mb-5 grid gap-3 sm:grid-cols-3">
+      <div className={book ? "mb-5 grid gap-3 sm:grid-cols-3" : "mb-5 grid gap-3 sm:grid-cols-2"}>
         <StatCard label="Inventory lines" value={formatNumber(stats.items)} sub="components, packaging, tools & demo gear" />
-        <StatCard label="Stock value" value={formatINR(stats.value)} sub="quantity × unit cost" />
+        {/* unit costs are not sent to logins that do not see Finance: no value to show, rather than ₹0 */}
+        {book && <StatCard label="Stock value" value={formatINR(stats.value)} sub="quantity × unit cost" />}
         <StatCard label="Need restocking" value={formatNumber(stats.low.length)} sub={stats.low.length ? "at or below reorder level" : "Everything is above its reorder level"} tone={stats.low.length ? "dark" : "light"} />
       </div>
       <Notice notice={notice} onDismiss={clear} />
+      {book && <p className="mb-3 text-xs text-blueprint">The unit cost of a part that goes into a kit is set in Money → Prices &amp; Costs and copied here on every save there. Other items keep the cost you type here.</p>}
       <CollectionManager<Rec>
         name="inventory"
         columns={["name", "category", "stockQty", "reorderLevel", "unitCost"]}
         extraColumns={STOCK_COLUMNS}
         filter={lowOnly ? needsRestock : undefined}
         defaults={{ unit: "pcs", stockQty: 0, reorderLevel: 0 }}
+        beforeSave={keepBookCost}
         newLabel="New item"
         openId={drawer.openId}
         onOpenChange={drawer.onOpenChange}

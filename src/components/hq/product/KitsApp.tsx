@@ -198,8 +198,8 @@ function KitCard({ kit, parts, figures, cost, selected, onSelect }: { kit: Kit; 
         ))}
 
       <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-graphite/10 px-4 py-3">
-        <Link href={`/hq/print/kit-label/${kit.id}`} className="inline-flex items-center gap-1.5 rounded px-2 py-1.5 text-xs font-semibold hover:bg-graphite/5">
-          <Printer className="size-3.5" aria-hidden /> Box labels
+        <Link href={`/hq/print/kit-stickers?kit=${kit.id}&from=kits`} className="inline-flex items-center gap-1.5 rounded px-2 py-1.5 text-xs font-semibold hover:bg-graphite/5">
+          <Printer className="size-3.5" aria-hidden /> Box stickers
         </Link>
         <a href={`/shop/${kitSlug(kit.id)}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded px-2 py-1.5 text-xs font-semibold hover:bg-graphite/5">
           <ExternalLink className="size-3.5" aria-hidden /> On site

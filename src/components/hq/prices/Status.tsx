@@ -21,6 +21,8 @@ export interface SaveResult extends Loaded {
   pricesChanged: boolean;
   /** how many shop products had their price brought in line */
   synced: number;
+  /** what the save did to Inventory (null: it could not be updated this time) */
+  stock: { updated: number; added: number; mixed: string[] } | null;
   deploy: "triggered" | "missing" | "invalid" | "failed" | "current";
 }
 
@@ -122,7 +124,7 @@ export function WhatChangesWhere() {
 
 /** Says exactly what the save did, from the server's answer. */
 export function SaveReport({ result, onDismiss }: { result: SaveResult; onDismiss: () => void }) {
-  const { pricesChanged, synced, deploy, storeMode } = result;
+  const { pricesChanged, synced, stock, deploy, storeMode } = result;
   // "current": the website is already on these prices, nothing to rebuild
   const rebuild = deploy !== "current";
   const local = storeMode === "local";
@@ -135,6 +137,15 @@ export function SaveReport({ result, onDismiss }: { result: SaveResult; onDismis
         <p className="font-semibold">Saved{result.book.updatedAt ? ` · ${formatDateTime(result.book.updatedAt)}` : ""}</p>
         <p>
           <strong className="font-semibold">Inside HQ:</strong> Kits &amp; BOM, the Business Planner and the workshop economics use the new numbers now.
+        </p>
+        <p>
+          <strong className="font-semibold">Inventory:</strong>{" "}
+          {!stock
+            ? "the unit costs could not be brought in line this time; they will be on the next save."
+            : stock.updated || stock.added
+              ? `${stock.updated ? `${stock.updated} stock item${stock.updated === 1 ? " now carries" : "s now carry"} the cost from here` : ""}${stock.updated && stock.added ? "; " : ""}${stock.added ? `${stock.added} part${stock.added === 1 ? " was" : "s were"} added to Inventory with a stock of 0` : ""}.`
+              : "every kit part already had the same unit cost there."}
+          {stock && stock.mixed.length > 0 && ` Left alone, because the kits list it at different costs: ${stock.mixed.join(", ")}.`}
         </p>
 
         {pricesChanged ? (

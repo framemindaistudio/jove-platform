@@ -1,12 +1,7 @@
-import type { Metadata } from "next";
-import { requireUser } from "@/lib/hq/auth";
-import { OPS_TRAINER } from "@/lib/hq/roles";
-import { KitLabelPrint } from "@/components/hq/product/KitLabelPrint";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "Kit box labels", robots: { index: false, follow: false } };
-
+/** The old kit label page: the box now carries a set of four stickers, printed from one page. */
 export default async function KitLabelPage({ params }: { params: Promise<{ kitId: string }> }) {
-  await requireUser(OPS_TRAINER);
   const { kitId } = await params;
-  return <KitLabelPrint kitId={kitId} />;
+  redirect(`/hq/print/kit-stickers?kit=${encodeURIComponent(kitId)}&from=kits`);
 }

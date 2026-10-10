@@ -11,7 +11,8 @@ import { Tabs } from "@/components/ui/Tabs";
 import { CornerMarks } from "@/components/brand/Blueprint";
 import { useCollection, useHq, useLookup } from "@/components/hq/data";
 import { PageHeader } from "@/components/hq/ui";
-import { gradeBands } from "@/lib/content/business";
+import { gradeBands, kits } from "@/lib/content/business";
+import { boxesOf, layoutSheets, showOf, SHOW_OPTIONS } from "@/components/hq/product/stickers/layout";
 import { clampInt, csv, isIso, qs, textLines } from "./util";
 import { PrintPreview } from "./PrintPreviews";
 
@@ -227,6 +228,27 @@ const GENERATORS: Gen[] = [
     fields: [school, date, { k: "bands", label: "Grade sessions to list", t: "bands", help: "Leave all unticked to show every grade band." }, { k: "note", label: "Extra note (optional)", t: "text", ph: "e.g. Please return consent slips by Friday" }, pages("Copies", 20)],
     defaults: { pages: "1" },
     summary: (v) => plural(clampInt(v.pages, 1, 20, 1), "copy", "copies"),
+  },
+  {
+    id: "kit-stickers",
+    group: "stationery",
+    title: "Kit box stickers",
+    blurb: "The sticker set that dresses a plain brown kit box: a lid label sized to the box, a round grade badge, a round seal for the lid flap and the back label with contents, MRP and packer details.",
+    route: "/hq/print/kit-stickers",
+    sheet: "A4 sticker paper · cut by hand",
+    fields: [
+      { k: "kit", label: "Kit", t: "select", options: kits.map((k): [string, string] => [k.id, `${k.name} · box ${k.box.label}`]) },
+      { k: "count", label: "Boxes to dress", t: "number", min: 1, max: 60, half: true },
+      { k: "show", label: "Print", t: "select", options: SHOW_OPTIONS, half: true },
+      { k: "batch", label: "Batch number (optional)", t: "text", ph: "e.g. B-2610-01", help: "Leave empty to print a line you can write on.", half: true },
+      { k: "origin", label: "Country of origin to print (optional)", t: "text", ph: "Leave empty until this is confirmed", half: true },
+    ],
+    defaults: { kit: kits[0].id, count: "4", show: "all" },
+    summary: (v) => {
+      const kit = kits.find((k) => k.id === v.kit) ?? kits[0];
+      const boxes = boxesOf(v.count);
+      return `${plural(boxes, "box", "boxes")} · ${plural(layoutSheets(kit, boxes, showOf(v.show)).length, "A4 sheet")}`;
+    },
   },
   {
     id: "table-tents",

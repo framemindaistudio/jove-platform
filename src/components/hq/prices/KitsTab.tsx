@@ -8,7 +8,7 @@ import { bomCostExact, kitFigures, priceForMargin, type KitFigures, type Margin 
 import type { PriceBook, Rounding } from "@/lib/pricebook/types";
 import { EmptyState, Panel } from "@/components/hq/ui";
 import { cn, formatINR } from "@/lib/utils";
-import { kitChanged, newPart, rupees, toNumber, type DraftKit, type DraftPart, type TabProps } from "./draft";
+import { kitChanged, newPart, rupees, toNumber, type Draft, type DraftKit, type DraftPart, type TabProps } from "./draft";
 import { AddButton, ChangedDot, FIGURE, Labeled, NumBox, PickBox, RemoveButton, TABLE_WRAP, TD, TextBox, TH, todayNote, useEditable } from "./fields";
 
 const ROUNDINGS: { value: Rounding; label: string }[] = [
@@ -37,6 +37,19 @@ export function KitsTab({ draft, book, saved, update, active, onActive }: TabPro
   const was = figuresOf(kit.id, saved);
 
   const setKit = (change: (k: DraftKit) => DraftKit) => update((d) => ({ ...d, kits: { ...d.kits, [kit.id]: change(d.kits[kit.id]) } }));
+  // One part, one cost: the same part in another kit follows, as long as it had the same cost there. Where the
+  // costs already differed (a loose name such as "Packaging") each kit keeps its own.
+  const setCost = (id: string, text: string) =>
+    update((d) => {
+      const line = d.kits[kit.id].bom.find((l) => l.id === id);
+      if (!line) return d;
+      const before = toNumber(line.unitCost);
+      const next = { ...d.kits };
+      for (const k of kits) {
+        next[k.id] = { ...d.kits[k.id], bom: d.kits[k.id].bom.map((l) => ((k.id === kit.id ? l.id === id : samePart(l.item, line.item) && toNumber(l.unitCost) === before) ? { ...l, unitCost: text } : l)) };
+      }
+      return { ...d, kits: next };
+    });
 
   return (
     <div className="space-y-6">
@@ -88,7 +101,7 @@ export function KitsTab({ draft, book, saved, update, active, onActive }: TabPro
 
       <PricingPanel key={`price-${kit.id}`} kit={kit} dk={dk} f={f} exact={exact} gst={book.kitGstPercent} target={target} setKit={setKit} />
 
-      <PartsPanel key={`parts-${kit.id}`} kit={kit} dk={dk} exact={exact} setKit={setKit} />
+      <PartsPanel key={`parts-${kit.id}`} kit={kit} dk={dk} exact={exact} setKit={setKit} all={draft.kits} setCost={setCost} />
 
       <Panel title="Shared by all four kits" subtitle="These two numbers apply to every kit.">
         <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
@@ -359,7 +372,27 @@ function Step({ k, v, strong }: { k: string; v: string; strong?: boolean }) {
 
 /* ═════════════════════════════ the parts ═════════════════════════════ */
 
-function PartsPanel({ kit, dk, exact, setKit }: { kit: Kit; dk: DraftKit; exact: number; setKit: (change: (k: DraftKit) => DraftKit) => void }) {
+/** two names of the same part: case and spacing do not matter (Inventory matches parts the same way) */
+const samePart = (a: string, b: string) => {
+  const key = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
+  return key(a) !== "" && key(a) === key(b);
+};
+
+/** Where else a part is listed, and whether it costs the same there. */
+function AlsoIn({ kit, part, all }: { kit: Kit; part: DraftPart; all: Draft["kits"] }) {
+  const others = kits.filter((k) => k.id !== kit.id).flatMap((k) => all[k.id].bom.filter((l) => samePart(l.item, part.item)).map((l) => ({ name: k.name.replace("JOVE ", "").replace(" Kit", ""), same: toNumber(l.unitCost) === toNumber(part.unitCost), cost: toNumber(l.unitCost) })));
+  if (!others.length) return null;
+  const linked = others.filter((o) => o.same);
+  const apart = others.filter((o) => !o.same);
+  return (
+    <p className="mt-1 text-[11px] leading-snug text-blueprint">
+      {linked.length > 0 && <>Also in {linked.map((o) => o.name).join(", ")}: the cost changes there too. </>}
+      {apart.length > 0 && <>In {apart.map((o) => `${o.name} at ${rupees(o.cost)}`).join(", ")}: kept separate.</>}
+    </p>
+  );
+}
+
+function PartsPanel({ kit, dk, exact, setKit, all, setCost }: { kit: Kit; dk: DraftKit; exact: number; setKit: (change: (k: DraftKit) => DraftKit) => void; all: Draft["kits"]; setCost: (id: string, text: string) => void }) {
   const editable = useEditable();
   // the row added last gets the cursor, so the founder can type its name straight away
   const [added, setAdded] = useState<string | null>(null);
@@ -442,12 +475,13 @@ function PartsPanel({ kit, dk, exact, setKit }: { kit: Kit; dk: DraftKit; exact:
                       <td className={cn(TD, "tabular font-mono text-xs text-blueprint")}>{String(i + 1).padStart(2, "0")}</td>
                       <td className={TD}>
                         <TextBox value={l.item} onChange={(v) => setPart(l.id, { item: v })} label={`Name of part ${i + 1}`} placeholder="Name of the part" invalid={nameless} autoFocus={l.id === added} maxLength={140} className="font-medium" />
+                        <AlsoIn kit={kit} part={l} all={all} />
                       </td>
                       <td className={TD}>
                         <NumBox value={l.qty} onChange={(v) => setPart(l.id, { qty: v })} label={`Quantity of ${name}`} />
                       </td>
                       <td className={TD}>
-                        <NumBox kind="money" value={l.unitCost} onChange={(v) => setPart(l.id, { unitCost: v })} label={`Cost of one ${name}`} />
+                        <NumBox kind="money" value={l.unitCost} onChange={(v) => setCost(l.id, v)} label={`Cost of one ${name}`} />
                       </td>
                       <td className={cn(TD, FIGURE)}>{rupees(Math.round(toNumber(l.qty) * toNumber(l.unitCost) * 100) / 100)}</td>
                       <td className={TD}>

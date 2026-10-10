@@ -384,6 +384,8 @@ export interface Kit {
   weightGrams: number;
   /** AA cells one station uses in a session (null = the kit runs from USB or a power module) */
   aaCells: number | null;
+  /** The plain mailer box the kit is sold in: inside size in mm (length × width × height). The box stickers are sized from it. */
+  box: { label: string; length: number; width: number; height: number };
 }
 
 const KITS: Kit[] = [
@@ -402,6 +404,7 @@ const KITS: Kit[] = [
     inTheBox: ["Die-cut cardboard robot sheet", "Battery holder with switch + 2 AA cells", "4 LEDs, buzzer, mini motor + fan", "Crocodile-clip wires & copper tape", "Stickers & googly eyes", "Activity booklet"],
     weightGrams: 280,
     aaCells: 2,
+    box: { label: "7 × 7 × 2 in", length: 178, width: 178, height: 51 },
   },
   {
     id: "explorer",
@@ -418,6 +421,7 @@ const KITS: Kit[] = [
     inTheBox: ["Laser-cut chassis + castor", "2 geared BO motors + wheels", "4×AA holder + cells", "Mini breadboard, 2 light sensors, transistors", "LEDs, resistors, jumper wires", "Mini screwdriver & hardware", "Build guide"],
     weightGrams: 520,
     aaCells: 4,
+    box: { label: "7 × 5 × 2.5 in", length: 178, width: 127, height: 64 },
   },
   {
     id: "builder",
@@ -434,6 +438,7 @@ const KITS: Kit[] = [
     inTheBox: ["Arduino Uno-compatible board + cable", "Motor driver shield", "2WD chassis with motors & wheels", "Ultrasonic sensor + servo mount", "2 IR line sensors", "6×AA battery holder", "Breadboard, buzzer, LEDs, wires", "Screwdriver & hardware", "Project guide"],
     weightGrams: 900,
     aaCells: 6,
+    box: { label: "8 × 6 × 3 in", length: 203, width: 152, height: 76 },
   },
   {
     id: "innovator",
@@ -450,6 +455,7 @@ const KITS: Kit[] = [
     inTheBox: ["ESP32-CAM + programmer board", "ESP32 DevKit", "Pan-tilt bracket + 2 servos", "0.96\" OLED display", "IMU, ultrasonic, PIR & temperature sensors", "830-point breadboard + wires", "Power module + cables", "Acrylic base & hardware", "AI project guide"],
     weightGrams: 1100,
     aaCells: null,
+    box: { label: "9 × 8 × 2.5 in", length: 229, width: 203, height: 64 },
   },
 ];
 

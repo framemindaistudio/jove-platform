@@ -266,6 +266,67 @@ export async function syncShopPrices(published: PublicPrices, author: string) {
   return changed.length;
 }
 
+/** the key two names of the same part share: case and spacing do not matter */
+const partKey = (v: unknown) => String(v ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+const guessCategory = (item: string) => (/box|bag|pack|sticker|label|tape/i.test(item) ? "Packaging" : /guide|booklet|printed|sheet|card/i.test(item) ? "Printed material" : undefined);
+
+export interface StockSync {
+  /** stock items whose unit cost or "used in kits" was brought in line */
+  updated: number;
+  /** parts that had no stock item yet and were added to Inventory with a stock of 0 */
+  added: number;
+  /** parts listed in several kits at different costs: their stock cost was left alone */
+  mixed: string[];
+}
+
+/**
+ * Inventory keeps one record per part, with its own unit cost (stock value = stock × unit cost). The price book is
+ * the master for what a part costs: after every save, each stock item that is a part of a kit gets the book's cost
+ * and the right "used in kits" list, and a part that has no stock item yet is added with a stock of 0. A stock item
+ * and a part are the same thing when their names match (case and spacing aside).
+ * A part listed in several kits at different costs has no single cost, so its stock cost is left as it is.
+ */
+export async function syncInventory(book: PriceBook, author: string): Promise<StockSync> {
+  const parts = new Map<string, { item: string; cost: number | null; kits: KitId[]; hint: string }>();
+  for (const id of KIT_IDS) {
+    for (const line of book.kits[id].bom) {
+      const key = partKey(line.item);
+      if (!key) continue;
+      const seen = parts.get(key);
+      if (!seen) parts.set(key, { item: line.item, cost: line.unitCost, kits: [id], hint: line.vendorHint });
+      else {
+        if (!seen.kits.includes(id)) seen.kits.push(id);
+        if (seen.cost !== line.unitCost) seen.cost = null;
+      }
+    }
+  }
+  const stock = await listRecords("inventory");
+  const byName = new Map(stock.map((r) => [partKey(r.name), r]));
+  const sameKits = (a: unknown, b: KitId[]) => Array.isArray(a) && a.length === b.length && b.every((k) => a.includes(k));
+  const changed: Record<string, unknown>[] = [];
+  const result: StockSync = { updated: 0, added: 0, mixed: [] };
+  for (const [key, part] of parts) {
+    if (part.cost === null) result.mixed.push(part.item);
+    const rec = byName.get(key);
+    if (!rec) {
+      changed.push({ name: part.item, category: guessCategory(part.item), unit: "pcs", stockQty: 0, reorderLevel: 0, unitCost: part.cost ?? 0, usedIn: part.kits, notes: part.hint ? `Suggested source: ${part.hint}.` : "" });
+      result.added += 1;
+    } else if ((part.cost !== null && Number(rec.unitCost) !== part.cost) || !sameKits(rec.usedIn, part.kits)) {
+      changed.push({ ...rec, unitCost: part.cost ?? rec.unitCost, usedIn: part.kits });
+      result.updated += 1;
+    }
+  }
+  // a stock item that is no longer a part of any kit keeps its cost, but stops saying it is used in one
+  for (const rec of stock) {
+    if (!parts.has(partKey(rec.name)) && Array.isArray(rec.usedIn) && rec.usedIn.length) {
+      changed.push({ ...rec, usedIn: [] });
+      result.updated += 1;
+    }
+  }
+  if (changed.length) await upsertMany("inventory", changed, author);
+  return result;
+}
+
 export type DeployResult = "triggered" | "missing" | "invalid" | "failed";
 
 /**

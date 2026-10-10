@@ -240,6 +240,23 @@ const previews: Record<string, () => React.ReactNode> = {
       <path d="M52 94h56" strokeWidth="0.8" />
     </Frame>
   ),
+  "kit-stickers": () => (
+    <Frame label="Sticker set sketch: a lid label, a back label, a round grade badge and a round seal on one sheet">
+      <Page />
+      <rect x="52" y="12" width="40" height="40" strokeWidth="0.9" />
+      <rect x="52" y="42" width="40" height="10" fill="currentColor" opacity="0.88" stroke="none" />
+      <path d="M56 36h20" strokeWidth="2.2" />
+      <circle cx="78" cy="23" r="6" strokeDasharray="1.5 2" opacity="0.55" />
+      <rect x="52" y="58" width="40" height="26" strokeWidth="0.9" />
+      <Lines x={55} y={63} w={16} n={4} gap={3.5} />
+      <rect x="80" y="72" width="9" height="9" fill="url(#pv-hatch)" />
+      <circle cx="101" cy="64" r="7.5" fill="currentColor" opacity="0.88" stroke="none" />
+      <path d="M97.5 64h7" stroke="var(--color-paper, #f5f1e8)" strokeWidth="1.8" />
+      <circle cx="101" cy="84" r="5.5" strokeWidth="0.9" />
+      <circle cx="101" cy="84" r="2" strokeWidth="0.8" />
+      <path d="M48 55h62" strokeDasharray="2 2" strokeWidth="0.6" opacity="0.6" />
+    </Frame>
+  ),
   "table-tents": () => (
     <Frame label="Table tent sketch: folded station sign">
       <path d="M22 96 L40 20 H120 L138 96 Z" fill="var(--color-paper-50, #fbf9f4)" />
