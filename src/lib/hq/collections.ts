@@ -339,9 +339,9 @@ export const collections: CollectionDef[] = [
   },
   {
     name: "contentCalendar",
-    label: "Content Calendar",
+    label: "Content plan",
     singular: "Post",
-    description: "JOVE's own social media pipeline.",
+    description: "Every post for JOVE's channels and for each founder's own profile.",
     icon: "CalendarHeart",
     titleField: "title",
     sortField: "date",
@@ -350,15 +350,18 @@ export const collections: CollectionDef[] = [
     read: MEDIA_SIDE,
     write: OPS_MEDIA,
     fields: [
+      { key: "account", label: "Posted from", type: "select", options: opts("JOVE", "Shivaprasad (personal)", "Chinmay (personal)"), default: "JOVE", table: true, width: "third" },
       { key: "date", label: "Publish date", type: "date", table: true, width: "third" },
       { key: "platform", label: "Platform", type: "select", options: opts("Instagram", "YouTube", "LinkedIn", "Facebook", "WhatsApp", "X"), table: true, width: "third" },
       { key: "format", label: "Format", type: "select", options: opts("Reel", "Post", "Carousel", "Story", "Short", "Long video", "Article"), table: true, width: "third" },
       { key: "title", label: "Title / hook", type: "text", required: true, table: true, width: "full" },
-      { key: "pillar", label: "Content pillar", type: "select", options: opts("Workshop highlights", "Student wins", "Behind the scenes", "STEM tips", "Founder story", "Product / kits", "Virtual labs", "Testimonials"), width: "half" },
-      { key: "status", label: "Status", type: "select", options: opts("idea", "scripted", "shot", "edited", "scheduled", "published"), default: "idea", table: true, width: "half" },
+      { key: "pillar", label: "Content pillar", type: "select", options: opts("Workshop highlights", "Student wins", "Behind the scenes", "STEM tips", "Founder story", "Product / kits", "Virtual labs", "Testimonials", "For schools", "Announcements", "Hiring", "Milestones", "Festival & days"), width: "half" },
+      { key: "status", label: "Status", type: "select", options: opts("idea", "scripted", "designed", "shot", "edited", "scheduled", "published"), default: "idea", table: true, width: "half" },
       { key: "caption", label: "Caption", type: "textarea", width: "full" },
       { key: "link", label: "Published link", type: "url", width: "full" },
       { key: "owner", label: "Owner", type: "text", width: "half" },
+      // a design saved from Social Studio → Create: which design and what was typed, so it can be opened again
+      { key: "design", label: "Design", type: "text", hidden: true },
     ],
   },
   {

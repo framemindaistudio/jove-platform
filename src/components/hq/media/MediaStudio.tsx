@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { Select } from "@/components/ui/form";
 import { Badge } from "@/components/ui/Badge";
 import { Tabs } from "@/components/ui/Tabs";
@@ -8,20 +9,22 @@ import { CollectionManager } from "@/components/hq/CollectionManager";
 import { useCollection, useLookup } from "@/components/hq/data";
 import { PageHeader } from "@/components/hq/ui";
 import { isIso, shortDate } from "@/components/hq/printables/util";
-import { ContentCalendar } from "./ContentCalendar";
 import { MediaGuides } from "./MediaGuides";
 import { useToday } from "@/components/hq/printables/hooks";
 import { Pipeline, daysBetween, isOverdue, type Job } from "./Pipeline";
 
-type Tab = "pipeline" | "deliverables" | "calendar" | "posts" | "guides";
-const TABS: Tab[] = ["pipeline", "deliverables", "calendar", "posts", "guides"];
+type Tab = "pipeline" | "deliverables" | "guides";
+const TABS: Tab[] = ["pipeline", "deliverables", "guides"];
 
-export function MediaStudio({ initialTab, initialWorkshop }: { initialTab?: string; initialWorkshop?: string }) {
+/**
+ * Media Studio: what a school is promised from its JOVE Day (reels, film, drone shots, photos) and nothing else.
+ * JOVE's own posts and content plan live in Social Studio.
+ */
+export function MediaStudio({ initialTab, initialWorkshop, closedDocs }: { initialTab?: string; initialWorkshop?: string; /** library documents this account may not open */ closedDocs?: string[] }) {
   const [tab, setTab] = useState<Tab>(TABS.includes(initialTab as Tab) ? (initialTab as Tab) : "pipeline");
   const [workshopId, setWorkshopId] = useState(initialWorkshop ?? "");
   const { records: workshopRecords } = useCollection("workshops");
   const { records: jobs } = useCollection<Job>("mediaJobs");
-  const { records: posts } = useCollection("contentCalendar");
   const workshops = useLookup("workshops");
   const today = useToday();
 
@@ -34,7 +37,15 @@ export function MediaStudio({ initialTab, initialWorkshop }: { initialTab?: stri
         icon="Clapperboard"
         eyebrow="FrameMind AI Studio"
         title="Media Studio"
-        description="Track every reel, film, drone shot and photo promised to a school, and plan JOVE's own content calendar."
+        description={
+          <>
+            Track every reel, film, drone shot and photo promised to a school. JOVE&apos;s own posts are planned in{" "}
+            <Link href="/hq/social?tab=plan" className="font-semibold text-graphite underline underline-offset-2">
+              Social Studio
+            </Link>
+            .
+          </>
+        }
       />
 
       <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -45,8 +56,6 @@ export function MediaStudio({ initialTab, initialWorkshop }: { initialTab?: stri
           tabs={[
             { value: "pipeline", label: "Pipeline", count: jobs.filter((j) => !["delivered", "posted"].includes(String(j.status))).length },
             { value: "deliverables", label: "Deliverables" },
-            { value: "calendar", label: "Content calendar" },
-            { value: "posts", label: "Posts", count: posts.length },
             { value: "guides", label: "Guides & SOPs" },
           ]}
         />
@@ -93,13 +102,7 @@ export function MediaStudio({ initialTab, initialWorkshop }: { initialTab?: stri
         />
       )}
 
-      {tab === "calendar" && <ContentCalendar />}
-
-      {tab === "posts" && (
-        <CollectionManager name="contentCalendar" columns={["date", "platform", "format", "title", "pillar", "status", "owner"]} newLabel="New post" emptyText="No posts planned yet. The calendar holds JOVE's own launch content, from teasers to kit reveals." />
-      )}
-
-      {tab === "guides" && <MediaGuides />}
+      {tab === "guides" && <MediaGuides closedDocs={closedDocs} />}
 
       {workshopId && scoped && workshops.get(workshopId) && (
         <p className="mt-4 text-xs text-blueprint">

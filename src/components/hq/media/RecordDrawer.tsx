@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Loader2, Trash2 } from "lucide-react";
 import { getCollection } from "@/lib/hq/collections";
-import { can } from "@/lib/hq/roles";
+import { canEdit } from "@/lib/hq/roles";
 import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/ui/Overlay";
 import { useCollection, useHq } from "@/components/hq/data";
@@ -11,11 +11,19 @@ import { RecordForm } from "@/components/hq/fields";
 
 type Rec = Record<string, unknown>;
 
-function Inner({ name, initial, onClose, subtitle }: { name: string; initial: Rec; onClose: () => void; subtitle?: React.ReactNode }) {
+interface Props {
+  name: string;
+  onClose: () => void;
+  subtitle?: React.ReactNode;
+  /** shown above the form, with the record as it is being typed (links and shortcuts that belong to this record) */
+  extra?: (record: Rec) => React.ReactNode;
+}
+
+function Inner({ name, initial, onClose, subtitle, extra }: Props & { initial: Rec }) {
   const def = getCollection(name)!;
   const { user, store } = useHq();
   const { save, remove } = useCollection(name);
-  const canWrite = can(user, def.write) && store.writable;
+  const canWrite = canEdit(user, def.write) && store.writable;
   const isNew = !initial.id;
   const [draft, setDraft] = useState<Rec>(initial);
   const [busy, setBusy] = useState(false);
@@ -62,7 +70,7 @@ function Inner({ name, initial, onClose, subtitle }: { name: string; initial: Re
           )}
           <div className="ml-auto flex items-center gap-2">
             <Button variant="ghost" onClick={onClose} disabled={busy}>
-              Cancel
+              {canWrite ? "Cancel" : "Close"}
             </Button>
             {canWrite && (
               <Button onClick={onSave} disabled={busy}>
@@ -79,15 +87,16 @@ function Inner({ name, initial, onClose, subtitle }: { name: string; initial: Re
         </p>
       )}
       {!canWrite && <p className="mb-4 rounded border border-graphite/15 bg-paper-200/50 px-3 py-2 text-sm text-charcoal">You can view this but not change it.</p>}
+      {extra?.(draft)}
       <RecordForm def={def} value={draft} onChange={setDraft} disabled={!canWrite || busy} />
     </Drawer>
   );
 }
 
 /** Generic create / edit drawer for any HQ collection. Pass `initial` (null = closed); remounts per record. */
-export function RecordDrawer({ name, initial, onClose, subtitle }: { name: string; initial: Rec | null; onClose: () => void; subtitle?: React.ReactNode }) {
+export function RecordDrawer({ initial, ...rest }: Props & { initial: Rec | null }) {
   if (!initial) return null;
-  return <Inner key={String(initial.id ?? `new-${String(initial.date ?? "")}-${String(initial.title ?? "")}`)} name={name} initial={initial} onClose={onClose} subtitle={subtitle} />;
+  return <Inner key={String(initial.id ?? `new-${String(initial.date ?? "")}-${String(initial.title ?? "")}`)} initial={initial} {...rest} />;
 }
 
 /** Defaults for a brand-new record of a collection (field defaults + overrides). */

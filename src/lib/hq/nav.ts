@@ -36,10 +36,14 @@ export const hqNav: HqNavGroup[] = [
     items: [
       { label: "Workshops", href: "/hq/workshops", icon: "CalendarRange", roles: ALL, description: "Calendar, run sheets, checklists" },
       { label: "Travel & Transport", href: "/hq/travel", icon: "Truck", roles: OPS_TRAINER, description: "Trips, vehicles, travel costs" },
-      { label: "Media Studio", href: "/hq/media", icon: "Clapperboard", roles: MEDIA_SIDE, description: "Reels, films, drone & content calendar" },
+      { label: "Media Studio", href: "/hq/media", icon: "Clapperboard", roles: MEDIA_SIDE, description: "Reels, films, drone shots promised to schools" },
       { label: "Certificates", href: "/hq/certificates", icon: "Award", roles: DELIVERY_SIDE, description: "Bulk-issue & verify certificates" },
       { label: "Feedback & Testimonials", href: "/hq/reputation", icon: "MessageSquareHeart", roles: MEDIA_SIDE, description: "Feedback, testimonials, case studies" },
     ],
+  },
+  {
+    title: "Brand & Social",
+    items: [{ label: "Social Studio", href: "/hq/social", icon: "Megaphone", roles: MEDIA_SIDE, description: "Designs to download, content plan, captions" }],
   },
   {
     title: "Money",
