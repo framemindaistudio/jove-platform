@@ -3,8 +3,9 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, CheckCheck, Loader2, MessageCircle, Pencil, Phone, RotateCcw, School, ShieldX, Trash2, X } from "lucide-react";
+import { ArrowRight, CheckCheck, FileSignature, Loader2, MessageCircle, Pencil, Phone, RotateCcw, School, ShieldX, Trash2, X } from "lucide-react";
 import { getCollection, type BaseRecord } from "@/lib/hq/collections";
+import { cleanEstimate } from "@/lib/estimate";
 import { can } from "@/lib/hq/roles";
 import { Badge, statusTone } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -19,10 +20,11 @@ import { cn, formatDate, formatDateTime, formatNumber, isoDate } from "@/lib/uti
 import { introMessage, introSubject, phoneDigits, telHref, whatsappHref } from "./contact";
 import { addDays, isWithinDays, relativeDay, str, todayIso } from "./crm";
 import { ContactButtons, Notice } from "./bits";
-import { packageName } from "./pricing";
+import { packageName, proposalFromEstimate } from "./pricing";
 import { useToday } from "./useToday";
 
 const leadsDef = getCollection("leads")!;
+const proposalHref = (schoolId: string, leadId: string) => `/hq/proposals/new?school=${encodeURIComponent(schoolId)}&lead=${encodeURIComponent(leadId)}`;
 const KIND_OPTIONS = leadsDef.fields.find((f) => f.key === "kind")?.options ?? [];
 const STATUS_OPTIONS = leadsDef.fields.find((f) => f.key === "status")?.options ?? [];
 const BAND_OPTIONS = leadsDef.fields.find((f) => f.key === "gradeBands")?.options ?? [];
@@ -215,7 +217,8 @@ function LeadDrawer({ leadId, onClose }: { leadId: string | null; onClose: () =>
   const canWrite = can(user, leadsDef.write) && store.writable;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [converting, setConverting] = useState(false);
+  const router = useRouter();
+  const [converting, setConverting] = useState<false | "school" | "proposal">(false);
 
   async function setStatus(status: string) {
     if (!lead) return;
@@ -246,6 +249,8 @@ function LeadDrawer({ leadId, onClose }: { leadId: string | null; onClose: () =>
 
   const status = str(lead?.status) || "new";
   const canConvert = !!lead && lead.kind !== "trainer" && status !== "converted";
+  const hasEstimate = !!lead && lead.kind === "workshop" && !!cleanEstimate(lead.estimate);
+  const canProposal = can(user, getCollection("proposals")!.write);
 
   return (
     <>
@@ -284,8 +289,13 @@ function LeadDrawer({ leadId, onClose }: { leadId: string | null; onClose: () =>
                   )
                 )}
                 {canConvert && (
-                  <Button size="sm" onClick={() => setConverting(true)} disabled={busy}>
+                  <Button size="sm" variant={hasEstimate ? "secondary" : "primary"} onClick={() => setConverting("school")} disabled={busy}>
                     <School className="size-4" aria-hidden /> Convert to school
+                  </Button>
+                )}
+                {hasEstimate && canProposal && (
+                  <Button size="sm" onClick={() => (status === "converted" && lead?.schoolId ? router.push(proposalHref(str(lead.schoolId), str(lead.id))) : setConverting("proposal"))} disabled={busy}>
+                    <FileSignature className="size-4" aria-hidden /> Make the proposal
                   </Button>
                 )}
               </div>
@@ -296,7 +306,7 @@ function LeadDrawer({ leadId, onClose }: { leadId: string | null; onClose: () =>
         {lead && <LeadDetail key={lead.id} lead={lead} canWrite={canWrite} />}
         {error && <Notice tone="bad" className="mt-4">{error}</Notice>}
       </Drawer>
-      {lead && converting && <ConvertModal lead={lead} onClose={() => setConverting(false)} />}
+      {lead && converting && <ConvertModal lead={lead} then={converting} onClose={() => setConverting(false)} />}
     </>
   );
 }
@@ -428,7 +438,7 @@ const norm = (s: unknown) =>
     .replace(/\b(the|school|public|international|vidyalaya|high|english|medium|cbse|icse)\b/g, "")
     .replace(/[^a-z0-9]/g, "");
 
-function ConvertModal({ lead, onClose }: { lead: BaseRecord; onClose: () => void }) {
+function ConvertModal({ lead, then, onClose }: { lead: BaseRecord; then: "school" | "proposal"; onClose: () => void }) {
   const router = useRouter();
   const { user } = useHq();
   const schools = useCollection("schools");
@@ -439,6 +449,8 @@ function ConvertModal({ lead, onClose }: { lead: BaseRecord; onClose: () => void
   const [students, setStudents] = useState(Number(lead.students) > 0 ? String(lead.students) : "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const estimate = cleanEstimate(lead.estimate);
+  const bandCounts = estimate ? Object.fromEntries(Object.entries(proposalFromEstimate(estimate)).filter(([k]) => k.startsWith("students"))) : {};
 
   const matches = useMemo(() => {
     const digits = phoneDigits(lead.phone);
@@ -473,7 +485,7 @@ function ConvertModal({ lead, onClose }: { lead: BaseRecord; onClose: () => void
       by: user.name,
     });
     await leads.save({ ...lead, status: "converted", schoolId });
-    router.push(`/hq/crm/${schoolId}`);
+    router.push(then === "proposal" ? proposalHref(schoolId, lead.id) : `/hq/crm/${schoolId}`);
   }
 
   async function create() {
@@ -495,6 +507,7 @@ function ConvertModal({ lead, onClose }: { lead: BaseRecord; onClose: () => void
         phone: str(lead.phone),
         email: str(lead.email),
         studentsTotal: Number(students) > 0 ? Number(students) : "",
+        ...bandCounts,
         interestedIn: lead.package && PACKAGE_VALUES.includes(str(lead.package)) ? [str(lead.package)] : [],
         source: "Website",
         owner: user.name,
@@ -532,13 +545,14 @@ function ConvertModal({ lead, onClose }: { lead: BaseRecord; onClose: () => void
             Cancel
           </Button>
           <Button size="sm" onClick={create} disabled={busy}>
-            {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <School className="size-4" aria-hidden />} Create school &amp; open
+            {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <School className="size-4" aria-hidden />} {then === "proposal" ? "Create school & make the proposal" : "Create school & open"}
           </Button>
         </>
       }
     >
       <p className="text-sm text-charcoal">
         Creates a school in the CRM at stage <strong>Contacted</strong> with {str(lead.name) || "this contact"} as the key contact, a follow-up for tomorrow, and the enquiry logged on its timeline.
+        {then === "proposal" ? " Then a new proposal opens, filled in from the school's website estimate." : ""}
       </p>
       <div className="mt-5 grid gap-4 sm:grid-cols-6">
         <div className="sm:col-span-6">

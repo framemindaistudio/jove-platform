@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { upsertRecord } from "@/lib/hq/records";
 import { apiError, clientIp, rateLimit } from "@/lib/hq/api";
 import { StoreReadOnlyError } from "@/lib/store";
+import { cleanEstimate } from "@/lib/estimate";
 
 /**
  * Public website forms → HQ "Website Leads" (data/leads.json).
- * POST { kind, name, phone, email, organisation, role, city, students, gradeBands[], package, preferredDate, message, page, website(honeypot) }
+ * POST { kind, name, phone, email, organisation, role, city, students, gradeBands[], package, preferredDate, message, page, estimate (workshop estimator choices), website(honeypot) }
  */
 const KINDS = ["workshop", "trainer", "contact", "kits", "studio", "partner"];
 
@@ -58,6 +59,7 @@ export async function POST(req: Request) {
         preferredDate: /^\d{4}-\d{2}-\d{2}$/.test(str("preferredDate")) ? str("preferredDate") : undefined,
         message: str("message", 3000),
         page: str("page", 120),
+        estimate: kind === "workshop" ? cleanEstimate(body.estimate) : undefined,
       },
       "Website",
     );

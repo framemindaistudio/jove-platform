@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Copy, ExternalLink, Loader2, Printer, Save, Send, Sparkles, Trash2 } from "lucide-react";
 import { getCollection, type BaseRecord } from "@/lib/hq/collections";
+import { cleanEstimate } from "@/lib/estimate";
 import { can } from "@/lib/hq/roles";
 import { addOns, gradeBands, joveDayRules, mediaPack } from "@/lib/content/business";
 import { Badge, statusTone } from "@/components/ui/Badge";
@@ -14,7 +15,7 @@ import { Checkbox, Input, Label, Select, Textarea } from "@/components/ui/form";
 import { nextNumber, useCollection, useHq } from "@/components/hq/data";
 import { LineItemsEditor } from "@/components/hq/fields";
 import { EmptyState, Loading, PageHeader, Panel } from "@/components/hq/ui";
-import { cn, formatINR, formatNumber } from "@/lib/utils";
+import { cn, formatDate, formatINR, formatNumber } from "@/lib/utils";
 import { BackLink, Notice } from "./bits";
 import { addDays, BAND_FIELDS, schoolStudents, str, todayIso } from "./crm";
 import {
@@ -25,6 +26,7 @@ import {
   defaultAddOnQty,
   PACKAGE_CHOICES,
   priceProposal,
+  proposalFromEstimate,
   TAKE_HOME_KITS_MIN,
   unitLabel,
   YEAR_SMM_DISCOUNT_PERCENT,
@@ -53,8 +55,9 @@ function spreadTotal(total: number): Record<string, number> {
   return Object.fromEntries(BAND_KEYS.map((k, i) => [k, Math.max(0, parts[i])]));
 }
 
-function blankProposal(school?: BaseRecord): Record<string, unknown> {
+function blankProposal(school?: BaseRecord, lead?: BaseRecord): Record<string, unknown> {
   const today = todayIso();
+  const estimate = cleanEstimate(lead?.estimate);
   const counts = school ? Object.fromEntries(BAND_KEYS.map((k) => [k, num(school[k])])) : Object.fromEntries(BAND_KEYS.map((k) => [k, 0]));
   const hasSplit = BAND_KEYS.some((k) => num(counts[k]) > 0);
   const total = school ? num(school.studentsTotal) : 0;
@@ -72,16 +75,24 @@ function blankProposal(school?: BaseRecord): Record<string, unknown> {
     addOnRate: {},
     extraItems: [],
     notes: "",
+    ...(estimate
+      ? {
+          ...proposalFromEstimate(estimate),
+          leadId: lead?.id,
+          notes: lead?.preferredDate ? `Preferred date from the website request: ${formatDate(str(lead.preferredDate))}.` : "",
+        }
+      : {}),
   };
 }
 
 /* ─────────────────────────── loader / not-found ─────────────────────────── */
 
-export function ProposalBuilder({ id, schoolId, created }: { id?: string; schoolId?: string; created?: boolean }) {
+export function ProposalBuilder({ id, schoolId, leadId, created }: { id?: string; schoolId?: string; leadId?: string; created?: boolean }) {
   const proposals = useCollection("proposals");
   const schools = useCollection("schools");
+  const leads = useCollection("leads");
 
-  if (proposals.loading || schools.loading) return <Loading label="Loading proposal…" />;
+  if (proposals.loading || schools.loading || (leadId && leads.loading)) return <Loading label="Loading proposal…" />;
   const existing = id ? proposals.records.find((r) => r.id === id) : undefined;
   if (id && !existing) {
     return (
@@ -100,12 +111,12 @@ export function ProposalBuilder({ id, schoolId, created }: { id?: string; school
       </div>
     );
   }
-  return <BuilderForm key={existing?.id ?? "new"} initial={existing ?? null} presetSchool={schoolId ? schools.records.find((s) => s.id === schoolId) : undefined} created={created} />;
+  return <BuilderForm key={existing?.id ?? "new"} initial={existing ?? null} presetSchool={schoolId ? schools.records.find((s) => s.id === schoolId) : undefined} presetLead={leadId ? leads.records.find((l) => l.id === leadId) : undefined} created={created} />;
 }
 
 /* ─────────────────────────── the builder ─────────────────────────── */
 
-function BuilderForm({ initial, presetSchool, created }: { initial: BaseRecord | null; presetSchool?: BaseRecord; created?: boolean }) {
+function BuilderForm({ initial, presetSchool, presetLead, created }: { initial: BaseRecord | null; presetSchool?: BaseRecord; presetLead?: BaseRecord; created?: boolean }) {
   const router = useRouter();
   const { user, store } = useHq();
   const proposals = useCollection("proposals");
@@ -113,12 +124,12 @@ function BuilderForm({ initial, presetSchool, created }: { initial: BaseRecord |
   const activities = useCollection("activities");
   const canWrite = can(user, proposalsDef.write) && store.writable;
 
-  const [form, setForm] = useState<Record<string, unknown>>(() => (initial ? { ...initial } : blankProposal(presetSchool)));
+  const [form, setForm] = useState<Record<string, unknown>>(() => (initial ? { ...initial } : blankProposal(presetSchool, presetLead)));
   const [snapshot, setSnapshot] = useState(() => JSON.stringify(initial ?? null));
   const [persistedStatus, setPersistedStatus] = useState<string>(() => str(initial?.status));
   const [saving, setSaving] = useState<"save" | "pdf" | "send" | null>(null);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState(created ? "Proposal created." : "");
+  const [notice, setNotice] = useState(created ? "Proposal created." : !initial && cleanEstimate(presetLead?.estimate) ? "Filled in from the school's website estimate. Check the numbers, then save." : "");
 
   const set = (patch: Record<string, unknown>) => {
     setForm((f) => ({ ...f, ...patch }));

@@ -239,7 +239,7 @@ export function QuoteEstimator({ whatsappBase }: { whatsappBase: string | null }
   }
 
   /* send-me-this-quote form */
-  const [form, setForm] = useState<Record<FormKey | "website", string>>({ name: "", school: "", phone: "", email: "", website: "" });
+  const [form, setForm] = useState<Record<FormKey | "website" | "date", string>>({ name: "", school: "", phone: "", email: "", website: "", date: "" });
   const [errors, setErrors] = useState<Partial<Record<FormKey, string>>>({});
   const [status, setStatus] = useState<"idle" | "sending" | "error">("idle");
   const [serverError, setServerError] = useState("");
@@ -283,6 +283,8 @@ export function QuoteEstimator({ whatsappBase }: { whatsappBase: string | null }
           gradeBands: quote.bandLines.map((l) => l.band),
           package: quote.pkg,
           message: quoteMessage(quote),
+          preferredDate: form.date,
+          estimate: { ...input, total: quote.total },
           page: "/packages#estimate",
           website: form.website,
         }),
@@ -646,7 +648,7 @@ export function QuoteEstimator({ whatsappBase }: { whatsappBase: string | null }
                     </a>
                   )}
                   <a href={`#${uid}-send`} className="inline-flex h-9 items-center gap-1.5 rounded-[var(--radius-sm)] bg-graphite px-3 text-xs font-semibold text-paper transition-colors hover:bg-ink">
-                    <Send className="size-3.5" aria-hidden /> Send me this quote
+                    <Send className="size-3.5" aria-hidden /> Request the proposal
                   </a>
                 </div>
                 <p className="mt-4 text-[11px] leading-relaxed text-blueprint">
@@ -664,7 +666,7 @@ export function QuoteEstimator({ whatsappBase }: { whatsappBase: string | null }
             <CornerMarks className="m-3 text-graphite/40" />
             <div className="relative grid gap-8 lg:grid-cols-12">
               <div className="lg:col-span-4">
-                <p className="annot text-blueprint">04 · Send me this quote</p>
+                <p className="annot text-blueprint">04 · Request the proposal</p>
                 <h3 className="mt-3 text-2xl font-bold tracking-tight text-graphite sm:text-3xl">Get it in writing.</h3>
                 <p className="mt-3 text-sm leading-relaxed text-charcoal">
                   We&apos;ll check dates, batches and travel, then send a formal proposal for{" "}
@@ -680,7 +682,7 @@ export function QuoteEstimator({ whatsappBase }: { whatsappBase: string | null }
                   {sent ? (
                     <motion.div key="sent" role="status" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex h-full flex-col justify-center rounded-[var(--radius-md)] bg-graphite p-6 text-paper">
                       <CheckCircle2 className="size-8" strokeWidth={1.5} aria-hidden />
-                      <p className="mt-4 text-xl font-bold tracking-tight">Thank you, {sent.name.split(" ")[0]} — your quote is with the JOVE team.</p>
+                      <p className="mt-4 text-xl font-bold tracking-tight">Thank you, {sent.name.split(" ")[0]}. Your request is with the JOVE team.</p>
                       <p className="mt-2 text-sm leading-relaxed text-paper/70">
                         {sent.pkg} · {formatNumber(sent.students)} students · {formatINR(sent.total)} estimated. We aim to reply with a formal proposal within one working day.
                       </p>
@@ -689,7 +691,7 @@ export function QuoteEstimator({ whatsappBase }: { whatsappBase: string | null }
                       </button>
                     </motion.div>
                   ) : (
-                    <motion.form key="form" onSubmit={send} noValidate initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid gap-4 sm:grid-cols-2" aria-label="Send me this quote">
+                    <motion.form key="form" onSubmit={send} noValidate initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid gap-4 sm:grid-cols-2" aria-label="Request the proposal">
                       <Field label="Your name" htmlFor={`${uid}-f-name`} required error={errors.name}>
                         <Input {...field("name")} autoComplete="name" maxLength={120} />
                       </Field>
@@ -702,6 +704,9 @@ export function QuoteEstimator({ whatsappBase }: { whatsappBase: string | null }
                       <Field label="Email" htmlFor={`${uid}-f-email`} error={errors.email}>
                         <Input {...field("email")} type="email" autoComplete="email" maxLength={160} />
                       </Field>
+                      <Field label="Preferred date (optional)" htmlFor={`${uid}-f-date`} help="We confirm the date with you before booking">
+                        <Input id={`${uid}-f-date`} type="date" value={form.date} onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} />
+                      </Field>
                       {/* honeypot */}
                       <div aria-hidden className="absolute -left-[9999px] h-px w-px overflow-hidden">
                         <label htmlFor={`${uid}-website`}>Website</label>
@@ -709,7 +714,7 @@ export function QuoteEstimator({ whatsappBase }: { whatsappBase: string | null }
                       </div>
                       <div className="flex flex-wrap items-center gap-4 sm:col-span-2">
                         <Button type="submit" size="lg" disabled={status === "sending" || !quote.totalStudents}>
-                          {status === "sending" ? "Sending…" : "Send me this quote"}
+                          {status === "sending" ? "Sending…" : "Request the proposal"}
                           <Send className="size-4" aria-hidden />
                         </Button>
                         <p className="text-xs text-blueprint">{quote.totalStudents ? "Your full breakdown is attached automatically." : "Add students to your estimate first."}</p>

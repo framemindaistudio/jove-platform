@@ -13,6 +13,7 @@
  */
 import { addOns, gradeBands, joveDayRules, kits, mediaPack, packages, type AddOn, type GradeBand, type GradeBandId, type PackageId } from "@/lib/content/business";
 import type { LineItem } from "@/lib/hq/collections";
+import type { LeadEstimate } from "@/lib/estimate";
 import { formatINR, formatNumber } from "@/lib/utils";
 import { BAND_FIELDS } from "./crm";
 
@@ -182,6 +183,33 @@ function mapOf(v: unknown): Record<string, number> {
 }
 
 /** Number of months for a JOVE Club proposal (defaults to 1). */
+/**
+ * The proposal fields for a website estimate (src/lib/estimate.ts): package, students per grade group, months and
+ * add-ons. Prices are not copied; the proposal prices everything again from the price book.
+ */
+export function proposalFromEstimate(e: LeadEstimate): Record<string, unknown> {
+  const ids: string[] = [];
+  const qty: Record<string, number> = {};
+  if (e.smm !== "none" && addOnById(e.smm)) {
+    ids.push(e.smm);
+    qty[e.smm] = Math.max(1, e.smmMonths);
+  }
+  for (const f of e.films) if (addOnById(f)) ids.push(f);
+  if (e.teacherTraining) {
+    ids.push("teacher-training");
+    qty["teacher-training"] = Math.max(TEACHER_TRAINING_MIN, e.teachers);
+  }
+  if (e.takeHomeKits) ids.push("take-home-kits");
+  if (e.labSetup) ids.push("lab-setup");
+  return {
+    packageId: e.pkg,
+    ...Object.fromEntries(gradeBands.map((b) => [BAND_FIELDS[b.id], e.students[b.id] ?? 0])),
+    months: e.pkg === "jove-club" ? Math.max(1, e.clubMonths) : 1,
+    addOns: ids,
+    addOnQty: qty,
+  };
+}
+
 export function clubMonths(p: Record<string, unknown>) {
   return Math.max(1, Math.round(num(p.months)) || 1);
 }
