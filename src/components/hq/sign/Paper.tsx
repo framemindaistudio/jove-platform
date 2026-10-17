@@ -82,7 +82,7 @@ function Signature({ block, ink }: { block: SignBlock; ink?: string }) {
         {ink && (
           // a saved signature, printed as it was written: an <img>, so the print keeps it sharp at any size
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={ink} alt={`Signature of ${block.name}`} className="absolute bottom-[0.4mm] left-0 max-h-[12.6mm] max-w-[52mm] object-contain object-left-bottom" />
+          <img src={ink} alt={`Signature of ${block.name}`} className="absolute bottom-[0.4mm] left-0 max-h-[12.6mm] max-w-full object-contain object-left-bottom" />
         )}
         {block.seal && (
           <span aria-hidden className="absolute bottom-[1mm] right-0 grid size-[12mm] place-items-center rounded-full border-[0.25mm] border-dashed border-graphite/45 text-[5.6pt] uppercase tracking-[0.14em] text-blueprint">
