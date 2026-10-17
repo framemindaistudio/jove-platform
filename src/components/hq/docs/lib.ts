@@ -411,7 +411,8 @@ export function numberedFileName(title: string, folder: TreeNode | undefined) {
 
 /* ───────────────────────────── vault ───────────────────────────── */
 
-export const VAULT_FOLDERS = ["receipts", "consent-forms", "agreements", "school-letters", "photos", "certificates", "misc"] as const;
+/** "signed", "hr" and "safeguarding" open for founders and admins only, "agreements" for the roles that see Finance (lib/hq/access.ts). */
+export const VAULT_FOLDERS = ["receipts", "consent-forms", "agreements", "school-letters", "photos", "certificates", "signed", "hr", "safeguarding", "misc"] as const;
 export const VAULT_MAX_BYTES = 4 * 1024 * 1024;
 
 /** Mirror of the server-side folder sanitiser in /api/hq/files. */

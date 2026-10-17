@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { apiEditor, apiUser } from "@/lib/hq/auth";
 import { apiError } from "@/lib/hq/api";
 import { store } from "@/lib/store";
+import { canReadPath } from "@/lib/hq/access";
 import { OPS, OPS_MEDIA, STAFF } from "@/lib/hq/roles";
 
 /**
@@ -13,13 +14,14 @@ import { OPS, OPS_MEDIA, STAFF } from "@/lib/hq/roles";
 const MAX = 4 * 1024 * 1024;
 
 export async function GET(req: Request) {
-  const { error } = await apiUser(STAFF);
+  const { user, error } = await apiUser(STAFF);
   if (error) return error;
   const dir = new URL(req.url).searchParams.get("dir") || "vault";
   if (dir !== "vault" && !dir.startsWith("vault/")) return NextResponse.json({ error: "Only the file vault can be listed here" }, { status: 400 });
   try {
     const entries = await store.tree(dir);
-    return NextResponse.json({ entries: entries.filter((e) => e.type === "file") });
+    // a role sees only the files it may open (signed papers are for leadership)
+    return NextResponse.json({ entries: entries.filter((e) => e.type === "file" && canReadPath(user.role, e.path)) });
   } catch (e) {
     return apiError(e);
   }

@@ -55,6 +55,10 @@ export const hqNav: HqNavGroup[] = [
     ],
   },
   {
+    title: "Legal",
+    items: [{ label: "Documents to Sign", href: "/hq/sign", icon: "Signature", roles: LEADERSHIP, description: "Offer letters, agreements, permissions: print, sign, track" }],
+  },
+  {
     title: "Product",
     items: [
       { label: "Kits & BOM", href: "/hq/kits", icon: "Cpu", roles: OPS_TRAINER, description: "Kit designs, bills of materials, costs" },

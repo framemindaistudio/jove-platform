@@ -42,6 +42,16 @@ export const VIEWER_HIDDEN_FILES = [
   "06_ROBOTICS_KITS/KIT_BOM",
 ];
 
+/**
+ * File Vault folders that are not for everyone on staff.
+ * "signed" is where Documents to Sign keeps signed scans (offer letters carry pay); "hr" holds identity and
+ * verification copies; "safeguarding" holds incident and safeguarding records: founders and admins only.
+ * "agreements" holds signed school agreements with the amounts agreed: the roles that see Finance.
+ */
+export const SIGNED_VAULT_FOLDER = "signed";
+export const LEADERSHIP_VAULT_FOLDERS = [SIGNED_VAULT_FOLDER, "hr", "safeguarding"];
+export const OPS_VAULT_FOLDERS = ["agreements"];
+
 function segments(path: string) {
   return path.replace(/\\/g, "/").split("/").filter((p) => p && p !== ".");
 }
@@ -60,6 +70,8 @@ export function canReadPath(role: Role, path: string): boolean {
       return !VIEWER_HIDDEN_FILES.some((hidden) => inFolder.startsWith(hidden.toUpperCase()));
     }
     case "vault":
+      if (LEADERSHIP_VAULT_FOLDERS.includes((parts[1] ?? "").toLowerCase())) return LEADERSHIP.includes(role);
+      if (OPS_VAULT_FOLDERS.includes((parts[1] ?? "").toLowerCase())) return OPS.includes(role);
       return STAFF.includes(role);
     case "data":
       return LEADERSHIP.includes(role);
