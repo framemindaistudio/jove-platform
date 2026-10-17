@@ -8,6 +8,7 @@ import { Field, Input, Textarea } from "@/components/ui/form";
 import type { CompanySettings } from "@/lib/hq/settings";
 import { cn, formatDateTime, formatINR } from "@/lib/utils";
 import { SettingsSection, Subhead } from "./shared";
+import { DigestPanel } from "./DigestPanel";
 
 type Errors = Partial<Record<keyof CompanySettings, string>>;
 
@@ -47,6 +48,11 @@ function validate(s: CompanySettings): Errors {
   if (!Number.isFinite(s.monthlyRevenueTarget) || s.monthlyRevenueTarget < 0) e.monthlyRevenueTarget = "Enter an amount, 0 or more";
   if (!Number.isInteger(s.workshopsPerMonthTarget) || s.workshopsPerMonthTarget < 0) e.workshopsPerMonthTarget = "Whole number, 0 or more";
   if (!Number.isFinite(s.fuelCostPerKm) || s.fuelCostPerKm < 0) e.fuelCostPerKm = "Enter an amount, 0 or more";
+  const bad = String(s.digestEmails ?? "")
+    .split(/[\s,;]+/)
+    .filter(Boolean)
+    .find((x) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x));
+  if (bad) e.digestEmails = `"${bad}" is not an email address`;
   return e;
 }
 
@@ -291,6 +297,17 @@ export function SettingsForm({ children }: { children?: React.ReactNode }) {
             {text("baseLocation", "Base location", { help: "Where trips start from: a city, area or address.", placeholder: "e.g. Bengaluru" })}
             {num("fuelCostPerKm", "Fuel cost per km (₹)", { step: 0.5, help: "Update this when fuel prices change." })}
           </div>
+        </SettingsSection>
+
+        {/* 06 */}
+        <SettingsSection
+          id="digest"
+          index="06"
+          title="Morning email"
+          description="Every morning at about 7 am, the founders get one email with what is overdue, what is for today and what is coming up: the same list as Today on the Command Center."
+        >
+          {text("digestEmails", "Send the morning email to", { help: "Email addresses, separated by commas. Leave empty to stop the email.", placeholder: "founder@example.com, cofounder@example.com", inputMode: "email", maxLength: 400 })}
+          <DigestPanel unsaved={value.digestEmails !== settings.digestEmails} />
         </SettingsSection>
 
       </form>

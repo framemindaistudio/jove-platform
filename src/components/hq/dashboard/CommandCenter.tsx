@@ -13,6 +13,7 @@ import { useDashboard } from "./useDashboard";
 import { DashboardHero, type Attention } from "./DashboardHero";
 import { GettingStarted, type SetupStep } from "./GettingStarted";
 import { QuickActions } from "./QuickActions";
+import { TodayReminders } from "./Reminders";
 import { Widget } from "./Widget";
 import { FollowUps, LowStock, MediaDue, MyTasks, Receivables, RecentLeads, UpcomingWorkshops } from "./widgets";
 
@@ -217,6 +218,8 @@ export function CommandCenter({ denied }: { denied?: boolean }) {
               ))
             : Array.from({ length: 5 }, (_, i) => <div key={i} className="h-[132px] animate-pulse rounded-[var(--radius-md)] border border-graphite/10 bg-paper-50" aria-hidden />)}
         </motion.div>
+
+        {d && <TodayReminders index="00" today={today} />}
 
         {d && (
           <div className="grid gap-6 lg:grid-cols-12">

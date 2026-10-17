@@ -36,6 +36,8 @@ export interface CompanySettings {
   monthlyRevenueTarget: number;
   workshopsPerMonthTarget: number;
   fuelCostPerKm: number;
+  /** who receives the morning email, separated by commas (empty: no email) */
+  digestEmails: string;
   updatedAt?: string;
   updatedBy?: string;
 }
@@ -78,6 +80,7 @@ export const defaultSettings: CompanySettings = {
   monthlyRevenueTarget: 400000,
   workshopsPerMonthTarget: 4,
   fuelCostPerKm: 9,
+  digestEmails: "",
 };
 
 export const SETTINGS_PATH = "data/settings.json";
