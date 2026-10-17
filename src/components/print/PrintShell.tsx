@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Printer } from "lucide-react";
@@ -33,7 +33,7 @@ function usePaperFit(widthMm: number) {
  */
 export function PrintShell({ title, back, children, toolbar, landscape, paper }: { title: string; back?: string; children: React.ReactNode; toolbar?: React.ReactNode; landscape?: boolean; paper?: Paper }) {
   const size = paper ?? (landscape ? "A4 landscape" : undefined);
-  const fit = usePaperFit(paper ? PAPER_WIDTH_MM[paper] : 0);
+  const fit = usePaperFit(paper ? PAPER_WIDTH_MM[paper] : 210);
   return (
     <div className="min-h-dvh bg-paper-300/60 print:bg-white">
       {size && <style>{`@page { size: ${size}; margin: 0; }`}</style>}
@@ -51,7 +51,7 @@ export function PrintShell({ title, back, children, toolbar, landscape, paper }:
           </Button>
         </div>
       </div>
-      <div className={cn("flex flex-col items-center gap-6 px-2 py-8 print:block print:p-0", paper && "paper-fit")} style={fit < 1 ? ({ "--paper-fit": fit } as React.CSSProperties) : undefined}>
+      <div className="paper-fit flex flex-col items-center gap-6 px-2 py-8 print:block print:p-0" style={fit < 1 ? ({ "--paper-fit": fit } as React.CSSProperties) : undefined}>
         {children}
       </div>
     </div>
@@ -59,16 +59,91 @@ export function PrintShell({ title, back, children, toolbar, landscape, paper }:
 }
 
 /** One A4 sheet (210×297mm, or 297×210 landscape). */
-export function A4Page({ children, className, landscape, padded = true }: { children: React.ReactNode; className?: string; landscape?: boolean; padded?: boolean }) {
+/**
+ * The size a sheet is laid out at: a hair under the paper, so that rounding in the print engine never pushes a sheet
+ * onto a second page.
+ */
+const SHEET_MM = { portrait: { w: 210, h: 296.6 }, landscape: { w: 297, h: 209.6 } };
+/** A sheet's content is never shrunk below this. Past it, the sheet runs on to more pages rather than turn hard to read. */
+const MIN_FIT = 0.8;
+
+/**
+ * Makes a sheet exactly one page. When its content is taller than the paper, the whole sheet is laid out larger and
+ * scaled down to the paper (CSS zoom), so the page keeps its full size and its edge-to-edge background, and only the
+ * content gets a little smaller: no extra page, no white border, nothing cut off. The shrink is written to
+ * data-fit ("1" when it fits as it is, "overflow" when it is too long to shrink).
+ */
+function useOnePage(ref: React.RefObject<HTMLDivElement | null>, size: { w: number; h: number }, enabled: boolean) {
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!enabled || !el) return;
+    let frame = 0;
+    const fit = () => {
+      // measure at full size with the sheet free to grow; height against width, so a zoomed screen does not matter
+      el.style.zoom = "";
+      el.style.width = "";
+      el.style.height = "auto";
+      el.style.minHeight = `${size.h}mm`;
+      el.style.removeProperty("page");
+      delete el.dataset.pages;
+      const needMm = (el.scrollHeight * size.w) / Math.max(1, el.offsetWidth);
+      // when content must shrink it is aimed 1 mm short of the foot, so a line laid out a hair taller by the printer
+      // than on screen is never cut off
+      const z = needMm <= size.h + 0.3 ? 1 : Math.floor(((size.h - 1) / needMm) * 1000) / 1000;
+      el.style.minHeight = "";
+      if (z === 1) {
+        el.style.height = "";
+        el.dataset.fit = "1";
+      } else if (z >= MIN_FIT) {
+        el.style.zoom = String(z);
+        el.style.width = `${size.w / z}mm`;
+        el.style.height = `${size.h / z}mm`;
+        el.dataset.fit = String(z);
+      } else {
+        // too long to shrink: it runs on to the following pages, as a long list must, with a margin at the top and
+        // foot of every page (the "sheet-long" page in globals.css), and the screen says how many pages it prints on
+        el.style.height = "auto";
+        el.style.minHeight = `${size.h}mm`;
+        el.style.setProperty("page", "sheet-long");
+        el.dataset.fit = "overflow";
+        el.dataset.pages = String(Math.ceil((needMm + 26) / (size.h + 0.4 - 26)));
+      }
+    };
+    const again = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(fit);
+    };
+    fit();
+    // text and pictures arriving later change the height: fonts, images, data that loads after the first paint
+    const watch = new MutationObserver(again);
+    watch.observe(el, { childList: true, subtree: true, characterData: true });
+    el.addEventListener("load", again, true);
+    void document.fonts?.ready.then(again);
+    return () => {
+      cancelAnimationFrame(frame);
+      watch.disconnect();
+      el.removeEventListener("load", again, true);
+    };
+  }, [ref, size, enabled]);
+}
+
+/**
+ * One sheet of paper: A4 portrait (210 × 297 mm) or, with `landscape`, A4 landscape. It is always exactly one page:
+ * see useOnePage. `flow` is for long documents that run over as many pages as they need (library documents, papers
+ * to sign): they set their own page margins and are not fitted.
+ */
+export function A4Page({ children, className, landscape, padded = true, flow = false }: { children: React.ReactNode; className?: string; landscape?: boolean; padded?: boolean; flow?: boolean }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useOnePage(ref, landscape ? SHEET_MM.landscape : SHEET_MM.portrait, !flow);
   return (
     <div
+      ref={ref}
       className={cn(
         "print-page relative overflow-hidden bg-white text-graphite shadow-[0_10px_40px_-12px_rgb(0_0_0/0.35)]",
-        landscape ? "h-[210mm] w-[297mm]" : "min-h-[297mm] w-[210mm]",
+        flow ? (landscape ? "min-h-[210mm] w-[297mm]" : "min-h-[297mm] w-[210mm]") : landscape ? "h-[209.6mm] w-[297mm]" : "h-[296.6mm] w-[210mm]",
         padded && "px-[16mm] py-[14mm]",
         className,
       )}
-      style={{ maxWidth: "100%" }}
     >
       {children}
     </div>

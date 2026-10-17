@@ -224,6 +224,17 @@ html.lenis, html.lenis body { height: auto; }
 @media screen {
   .paper-fit { zoom: var(--paper-fit, 1); }
 }
+/* a sheet too long for one page (a purchase order with many lines) runs on with a margin at the top and foot of
+   every page; on screen it says how many pages it prints on (see A4Page in components/print/PrintShell.tsx) */
+@page sheet-long { size: A4; margin: 12mm 0 14mm; }
+@media screen {
+  .print-page[data-fit="overflow"]::after {
+    content: "Longer than one page: prints on " attr(data-pages) " A4 pages";
+    position: absolute; top: 3mm; right: 3mm; z-index: 50;
+    padding: 1mm 2.4mm; border-radius: 999px;
+    background: #2b2b2b; color: #f5f1e8; font-size: 9px; font-weight: 600; letter-spacing: 0.04em;
+  }
+}
 @media print {
   html, body { background: #fff !important; }
   .no-print, nav, header.site-header, footer.site-footer { display: none !important; }

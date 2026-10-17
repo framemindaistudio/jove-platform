@@ -145,7 +145,7 @@ export function PrintDocs({ paths, folders, title, back }: { paths: string[]; fo
       ) : (
         <>
           {isPack && (
-            <A4Page padded={false} className="print:min-h-0 print:w-full print:overflow-visible">
+            <A4Page flow padded={false} className="print:min-h-0 print:w-full print:overflow-visible">
               <div className="px-[16mm] py-[20mm] print:p-0 print:pt-[20mm]">
                 <Image src="/brand/jove-wordmark.png" alt="JOVE" width={1400} height={669} className="h-auto w-44" priority />
                 <div className="mt-14 border-l-4 border-graphite pl-5">
@@ -169,7 +169,7 @@ export function PrintDocs({ paths, folders, title, back }: { paths: string[]; fo
             </A4Page>
           )}
           {docs.map((d) => (
-            <A4Page key={d.path} padded={false} className="print:min-h-0 print:w-full print:overflow-visible">
+            <A4Page flow key={d.path} padded={false} className="print:min-h-0 print:w-full print:overflow-visible">
               <div className="px-[16mm] py-[14mm] print:p-0">
                 <header className="mb-6 border-b-2 border-graphite pb-3">
                   <div className="flex items-center justify-between gap-4">

@@ -84,7 +84,7 @@ export function SignPrint({ ids, blank, copies, back }: { ids: string[]; blank: 
         <>
           {missing > 0 && <p className="no-print rounded border border-warn/30 bg-warn/10 px-3 py-2 text-sm text-charcoal">{missing === 1 ? "One document" : `${missing} documents`} in this link could not be found and {missing === 1 ? "is" : "are"} left out.</p>}
           {papers.map((p, i) => (
-            <A4Page key={p.key} padded={false} className="print:min-h-0 print:w-full print:overflow-visible">
+            <A4Page flow key={p.key} padded={false} className="print:min-h-0 print:w-full print:overflow-visible">
               {/* `page` names this document's page type: see pageCss */}
               <div className="px-[16mm] pb-[17mm] pt-[13mm] print:p-0" style={{ page: `sd${i}` } as React.CSSProperties}>
                 <Paper doc={p} />

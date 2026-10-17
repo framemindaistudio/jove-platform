@@ -154,7 +154,8 @@ function Ready({ po, vendor, settings }: { po: Rec; vendor?: Rec; settings: Comp
           </tbody>
         </table>
 
-        <div className="mt-4 flex items-start justify-between gap-8">
+        {/* the totals stay together when a long order runs on to a second page */}
+        <div className="mt-4 flex break-inside-avoid items-start justify-between gap-8">
           <p className="max-w-[95mm] text-[10px] leading-relaxed text-charcoal">
             <span className="annot mr-1 text-[9px] text-blueprint">Amount in words</span>
             <br />
@@ -177,7 +178,7 @@ function Ready({ po, vendor, settings }: { po: Rec; vendor?: Rec; settings: Comp
         </div>
 
         {str(po.notes) && (
-          <section className="mt-6 text-xs">
+          <section className="mt-6 break-inside-avoid text-xs">
             <p className="annot mb-1 text-[9px] text-blueprint">Notes</p>
             <p className="whitespace-pre-line text-charcoal">{str(po.notes)}</p>
           </section>
