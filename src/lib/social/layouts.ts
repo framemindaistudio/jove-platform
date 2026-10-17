@@ -12,6 +12,7 @@
  *   thumb    a video thumbnail or cover: very few, very large words
  *   collage  two to four pictures under a title
  */
+import QRCode from "qrcode";
 import { C, type Painter, type Rect } from "./canvas";
 import type { Picture } from "./types";
 
@@ -126,6 +127,53 @@ function bulletsBlock(p: Painter, bullets: string[], x: number, w: number, o: { 
   };
 }
 
+/**
+ * A QR code on its own light square (so it scans on the graphite tone too) and, beside it, the call to action with
+ * a mono note under it, such as "Scan, or visit jove.website/careers".
+ */
+export interface QrCta {
+  url: string;
+  note: string;
+}
+
+function qrCtaBlock(p: Painter, label: string, qr: QrCta, x: number, w: number): Block {
+  const side = p.s(p.tall ? 210 : 184);
+  const gapX = p.s(34);
+  const noteSize = p.s(19);
+  return (y, dry) => {
+    const pill = p.pill(0, 0, label, { dry: true });
+    const textW = Math.max(p.s(120), w - side - gapX);
+    const note = p.text({ text: qr.note, x: 0, y: 0, w: textW, size: noteSize, mono: true, upper: true, track: 0.1, lh: 1.45, maxLines: 2, dry: true });
+    const right = pill.h + p.s(18) + note.h;
+    const h = Math.max(side, right);
+    if (!dry) {
+      const code = QRCode.create(qr.url, { errorCorrectionLevel: "M" });
+      const n = code.modules.size;
+      const quiet = p.s(14);
+      const cell = (side - quiet * 2) / n;
+      const top = y + (h - side) / 2;
+      const c = p.ctx;
+      c.save();
+      c.fillStyle = C.paper50;
+      c.fillRect(x, top, side, side);
+      c.fillStyle = C.ink;
+      for (let r = 0; r < n; r++)
+        for (let k = 0; k < n; k++) {
+          // each dark module, drawn a hair wider so no seams show between neighbours
+          if (code.modules.get(r, k)) c.fillRect(x + quiet + k * cell, top + quiet + r * cell, cell + 0.6, cell + 0.6);
+        }
+      c.restore();
+      p.roundRect({ x, y: top, w: side, h: side }, 0, { stroke: p.pal.line, weight: p.s(1.5) });
+      const tx = x + side + gapX;
+      const ty = y + (h - right) / 2;
+      if (pill.w <= textW) p.pill(tx, ty, label);
+      else p.pill(tx, ty, label, { size: p.s(24) });
+      p.text({ text: qr.note, x: tx, y: ty + pill.h + p.s(18), w: textW, size: noteSize, mono: true, upper: true, track: 0.1, lh: 1.45, color: p.pal.faint, maxLines: 2 });
+    }
+    return h;
+  };
+}
+
 function ctaBlock(p: Painter, label: string, x: number, o: { align?: "left" | "right" | "center"; w?: number } = {}): Block {
   return (y, dry) => {
     const m = p.pill(0, 0, label, { dry: true });
@@ -180,6 +228,8 @@ export interface PosterContent extends Chrome {
   facts?: Fact[];
   bullets?: string[];
   cta?: string;
+  /** a QR code beside the call to action */
+  qr?: QrCta;
   picture?: Picture | null;
   hero?: Hero | null;
 }
@@ -220,7 +270,8 @@ export function poster(p: Painter, c: PosterContent) {
     const most = (p.tall ? 4 : pic ? 3 : 4) - (pressure >= 5 ? 1 : 0);
     if (hasBullets) lower.push(bulletsBlock(p, c.bullets ?? [], col.x, col.w, { max: Math.max(2, most) }));
     if (hasFacts) lower.push(factsBlock(p, c.facts ?? [], col.x, col.w));
-    if (c.cta) lower.push(ctaBlock(p, c.cta, col.x));
+    if (c.cta && c.qr) lower.push(qrCtaBlock(p, c.cta, c.qr, col.x, col.w));
+    else if (c.cta) lower.push(ctaBlock(p, c.cta, col.x));
     const lowerH = stackHeight(lower, gap);
 
     const upperH = col.h - (lower.length ? lowerH + p.s(50) : 0);

@@ -57,13 +57,16 @@ const TOPIC: Record<IntroKind, string> = {
 };
 
 /** A warm, short first message — used for WhatsApp and email bodies. */
-export function introMessage({ kind, name, organisation, sender }: { kind: string; name?: unknown; organisation?: unknown; sender: string }) {
+/** `applyingFor` is the role an applicant chose on the careers form, such as "Video Editor / Media Intern". */
+export function introMessage({ kind, name, organisation, sender, applyingFor }: { kind: string; name?: unknown; organisation?: unknown; sender: string; applyingFor?: string }) {
   const k = (kind in TOPIC ? kind : "contact") as IntroKind;
   const hello = firstName(name) ? `Namaste ${firstName(name)},` : "Namaste,";
   const org = String(organisation ?? "").trim();
   const me = `this is ${sender} from JOVE — Journey of Visionation & Excellence.`;
   switch (k) {
     case "trainer":
+      if (applyingFor)
+        return `${hello} ${me} Thank you for applying for the ${applyingFor} role at JOVE. I have read your application and would like to know a little more about you and your work. Could we set up a short call this week?`;
       return `${hello} ${me} Thank you for applying to join JOVE as a trainer. We'd love to know more about your experience with robotics, coding or teaching. Could we set up a short call this week?`;
     case "kits":
       return `${hello} ${me} Thank you for your enquiry about JOVE robotics kits${org ? ` for ${org}` : ""}. I can share kit options by grade, bulk school pricing and delivery timelines. When would be a good time for a quick call?`;
@@ -83,7 +86,7 @@ export function introSubject(kind: string, organisation?: unknown) {
   const org = String(organisation ?? "").trim();
   switch (kind) {
     case "trainer":
-      return "Your trainer application — JOVE";
+      return "Your application to JOVE";
     case "kits":
       return "JOVE robotics kits — your enquiry";
     case "studio":

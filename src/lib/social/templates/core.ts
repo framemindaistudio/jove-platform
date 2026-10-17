@@ -89,6 +89,16 @@ const ROLES: Record<string, { label: string; line: string }> = {
   other: { label: "Another role (type it below)", line: "Help bring full-day Robotics and AI workshops, and their films, to schools." },
 };
 
+/** The careers page the hiring QR code opens: the box on the design, else the JOVE careers page. */
+const CAREERS = "https://www.jove.website/careers";
+function careersLink(v: Record<string, string>) {
+  const typed = val(v, "link");
+  if (!typed) return CAREERS;
+  return /^https?:\/\//i.test(typed) ? typed : `https://${typed}`;
+}
+/** "https://www.jove.website/careers" → "jove.website/careers" */
+const shown = (url: string) => url.replace(/^https?:\/\//i, "").replace(/^www\./i, "").replace(/\/+$/, "");
+
 const hiring: TemplateDef = {
   id: "hiring",
   name: "We are hiring",
@@ -104,13 +114,15 @@ const hiring: TemplateDef = {
     { key: "by", label: "Apply by", kind: "date" },
     { key: "line", label: "About the role (optional)", kind: "textarea", rows: 2, placeholder: "Leave empty for the standard line", max: 150 },
     { key: "points", label: "What we look for (one per line, up to 3)", kind: "textarea", rows: 3, max: 70 },
-    { key: "apply", label: "How to apply", kind: "text", placeholder: "careers email or WhatsApp number", max: 44 },
+    { key: "apply", label: "How to apply (optional)", kind: "text", placeholder: "Leave empty for the careers page", max: 44 },
+    { key: "link", label: "QR code opens", kind: "text", placeholder: "https://www.jove.website/careers", max: 80 },
   ],
   sample: { role: "trainer", title: "", kind: "Freelance", place: "Karnataka", by: "2026-11-30", line: "", points: "Comfortable teaching children from Grade 1 to 10\nBasic electronics or Arduino\nKannada and English", apply: "" },
   draw(p, { values: v, facts }) {
     const role = choice(ROLES, val(v, "role")) ?? ROLES.trainer;
     const title = val(v, "role") === "other" ? val(v, "title") || "Role name" : role.label;
-    const apply = val(v, "apply") || facts.email || facts.phone;
+    const link = careersLink(v);
+    const apply = val(v, "apply");
     poster(p, {
       tag: "We are hiring",
       index: val(v, "kind"),
@@ -124,18 +136,19 @@ const hiring: TemplateDef = {
         { label: "Where", value: val(v, "place") },
         { label: "Apply by", value: shortDate(val(v, "by")) },
       ],
-      cta: apply ? `Apply: ${apply}` : "Apply: message us",
+      cta: apply ? `Apply: ${apply}` : "Apply now",
+      qr: { url: link, note: `Scan, or visit ${shown(link)}` },
     });
   },
-  caption(v, facts) {
+  caption(v) {
     const role = choice(ROLES, val(v, "role")) ?? ROLES.trainer;
     const title = val(v, "role") === "other" ? val(v, "title") || "[role]" : role.label;
-    const apply = val(v, "apply") || facts.email || facts.phone || "[how to apply]";
+    const apply = val(v, "apply") || shown(careersLink(v));
     const by = shortDate(val(v, "by"));
     return caption({
       hook: `We are hiring: ${title}.`,
       body: [val(v, "line") || role.line, [val(v, "kind"), val(v, "place")].filter(Boolean).join(" · "), ...linesOf(v, "points").slice(0, 3).map((l) => `· ${l}`)],
-      cta: `To apply, write to ${apply}${by ? ` by ${by}` : ""}.`,
+      cta: `To apply: ${apply}${by ? ` by ${by}` : ""}.`,
       tags: hashtags("hiring", "robotics"),
     });
   },

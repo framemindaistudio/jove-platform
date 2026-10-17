@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, CheckCheck, FileSignature, Loader2, MessageCircle, Pencil, Phone, RotateCcw, School, ShieldX, Trash2, X } from "lucide-react";
-import { getCollection, type BaseRecord } from "@/lib/hq/collections";
+import { getCollection, type BaseRecord, type CollectionDef } from "@/lib/hq/collections";
+import { appliedFor, cleanApplication, type Application } from "@/lib/content/careers";
 import { cleanEstimate } from "@/lib/estimate";
 import { can } from "@/lib/hq/roles";
 import { Badge, statusTone } from "@/components/ui/Badge";
@@ -28,6 +29,35 @@ const proposalHref = (schoolId: string, leadId: string) => `/hq/proposals/new?sc
 const KIND_OPTIONS = leadsDef.fields.find((f) => f.key === "kind")?.options ?? [];
 const STATUS_OPTIONS = leadsDef.fields.find((f) => f.key === "status")?.options ?? [];
 const BAND_OPTIONS = leadsDef.fields.find((f) => f.key === "gradeBands")?.options ?? [];
+/**
+ * The boxes each type of lead has. The website asks a school about students and dates, and an applicant about
+ * experience, so an application never shows empty school boxes (and the other way round).
+ */
+const KIND_FIELDS: Record<string, string[]> = {
+  workshop: ["organisation", "role", "phone", "email", "city", "students", "gradeBands", "package", "preferredDate", "schoolId"],
+  trainer: ["role", "phone", "email", "city"],
+  kits: ["organisation", "role", "phone", "email", "city", "students", "schoolId"],
+  studio: ["organisation", "role", "phone", "email", "city", "schoolId"],
+  partner: ["organisation", "role", "phone", "email", "city"],
+  contact: ["organisation", "role", "phone", "email", "city", "schoolId"],
+};
+const LABELS: Record<string, Record<string, string>> = {
+  trainer: { role: "Current role / college" },
+  partner: { organisation: "Organisation" },
+  kits: { students: "Approx. kits" },
+};
+function leadDefFor(kind: unknown): CollectionDef {
+  const k = KIND_FIELDS[str(kind)] ? str(kind) : "contact";
+  const keep = new Set(["kind", "status", "name", ...KIND_FIELDS[k], "message", "page"]);
+  return { ...leadsDef, fields: leadsDef.fields.filter((f) => keep.has(f.key)).map((f) => (LABELS[k]?.[f.key] ? { ...f, label: LABELS[k][f.key] } : f)) };
+}
+const applyingForOf = (lead: BaseRecord) => {
+  const app = lead.kind === "trainer" ? cleanApplication(lead.application) : undefined;
+  return app && app.role !== "other" ? appliedFor(app) : app?.roleOther || undefined;
+};
+/** Before the careers form, an applicant's years of experience were kept in the "students" box. */
+const experienceOf = (lead: BaseRecord, app?: Application) => (app ? app.experience : Number(lead.students) || 0);
+
 const PACKAGE_VALUES = (getCollection("schools")!.fields.find((f) => f.key === "interestedIn")?.options ?? []).map((o) => o.value);
 
 type KindTab = "all" | "workshop" | "kits" | "studio" | "partner" | "contact" | "trainer";
@@ -120,7 +150,10 @@ export function LeadsInbox() {
         sortValue: (r) => Number(r.students) || 0,
         render: (r) => (
           <span className="block min-w-[9rem] text-xs text-charcoal">
-            {[r.city, Number(r.students) > 0 ? `${formatNumber(Number(r.students))} students` : "", r.package ? packageName(r.package) : ""].filter(Boolean).map(String).join(" · ") || "—"}
+            {(r.kind === "trainer" ? applicantLine(r) : [r.city, Number(r.students) > 0 ? `${formatNumber(Number(r.students))} ${r.kind === "kits" ? "kits" : "students"}` : "", r.package ? packageName(r.package) : ""])
+              .filter(Boolean)
+              .map(String)
+              .join(" · ") || "—"}
           </span>
         ),
       },
@@ -188,7 +221,7 @@ function useMarkInProgress() {
 
 function RowQuickActions({ lead, sender }: { lead: BaseRecord; sender: string }) {
   const mark = useMarkInProgress();
-  const text = introMessage({ kind: str(lead.kind), name: lead.name, organisation: lead.organisation, sender });
+  const text = introMessage({ kind: str(lead.kind), name: lead.name, organisation: lead.organisation, sender, applyingFor: applyingForOf(lead) });
   const tel = telHref(lead.phone);
   const wa = whatsappHref(lead.phone, text);
   const cls = "grid size-8 place-items-center rounded-[var(--radius-sm)] border border-graphite/15 text-charcoal transition-colors hover:border-graphite hover:bg-graphite hover:text-paper focus-visible:outline-2 focus-visible:outline-graphite";
@@ -315,25 +348,34 @@ function LeadDetail({ lead, canWrite }: { lead: BaseRecord; canWrite: boolean })
   const { user } = useHq();
   const { save } = useCollection("leads");
   const mark = useMarkInProgress();
-  const [message, setMessage] = useState(() => introMessage({ kind: str(lead.kind), name: lead.name, organisation: lead.organisation, sender: user.name }));
+  const [message, setMessage] = useState(() => introMessage({ kind: str(lead.kind), name: lead.name, organisation: lead.organisation, sender: user.name, applyingFor: applyingForOf(lead) }));
   const [editing, setEditing] = useState<Record<string, unknown> | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   const status = str(lead.status) || "new";
   const bands = Array.isArray(lead.gradeBands) ? (lead.gradeBands as string[]).map((b) => BAND_OPTIONS.find((o) => o.value === b)?.label ?? b) : [];
-  const facts: [string, React.ReactNode][] = [
-    ["Organisation", str(lead.organisation)],
-    ["Role", str(lead.role)],
-    ["City", str(lead.city)],
-    ["Phone", lead.phone ? <span className="tabular">{str(lead.phone)}</span> : ""],
-    ["Email", lead.email ? <span className="break-all">{str(lead.email)}</span> : ""],
-    ["Approx. students", Number(lead.students) > 0 ? formatNumber(Number(lead.students)) : ""],
-    ["Grade groups", bands.join(", ")],
-    ["Interested in", lead.package ? packageName(lead.package) : ""],
-    ["Preferred date", lead.preferredDate ? formatDate(str(lead.preferredDate)) : ""],
-    ["Submitted from", str(lead.page)],
-  ];
+  const def = leadDefFor(lead.kind);
+  const label = (key: string) => def.fields.find((f) => f.key === key)?.label ?? key;
+  const shown = new Set(def.fields.map((f) => f.key));
+  const app = lead.kind === "trainer" ? cleanApplication(lead.application) : undefined;
+  const facts: [string, React.ReactNode][] = (
+    [
+      ["organisation", str(lead.organisation)],
+      ["role", str(lead.role)],
+      ["city", str(lead.city)],
+      ["phone", lead.phone ? <span className="tabular">{str(lead.phone)}</span> : ""],
+      ["email", lead.email ? <span className="break-all">{str(lead.email)}</span> : ""],
+      ["students", Number(lead.students) > 0 ? formatNumber(Number(lead.students)) : ""],
+      ["gradeBands", bands.join(", ")],
+      ["package", lead.package ? packageName(lead.package) : ""],
+      ["preferredDate", lead.preferredDate ? formatDate(str(lead.preferredDate)) : ""],
+      ["page", str(lead.page)],
+    ] as [string, React.ReactNode][]
+  )
+    .filter(([k]) => shown.has(k))
+    .map(([k, v]) => [label(k), v]);
+  if (lead.kind === "trainer" && !app && experienceOf(lead) > 0) facts.push(["Experience (years)", formatNumber(experienceOf(lead))]);
 
   async function onSave() {
     if (!editing) return;
@@ -387,6 +429,8 @@ function LeadDetail({ lead, canWrite }: { lead: BaseRecord; canWrite: boolean })
         />
       </section>
 
+      {app && <ApplicationFacts app={app} lead={lead} />}
+
       <section aria-labelledby="lead-facts">
         <div className="mb-2 flex items-center justify-between">
           <h3 id="lead-facts" className="annot text-charcoal">
@@ -400,7 +444,7 @@ function LeadDetail({ lead, canWrite }: { lead: BaseRecord; canWrite: boolean })
         </div>
         {editing ? (
           <div className="rounded-[var(--radius-md)] border border-graphite/12 bg-paper-50 p-4">
-            <RecordForm def={leadsDef} value={editing} onChange={setEditing} />
+            <RecordForm def={leadDefFor(editing.kind)} value={editing} onChange={setEditing} />
             {error && <Notice tone="bad" className="mt-4">{error}</Notice>}
             <div className="mt-5 flex justify-end gap-2">
               <Button variant="ghost" size="sm" onClick={() => setEditing(null)}>
@@ -427,6 +471,64 @@ function LeadDetail({ lead, canWrite }: { lead: BaseRecord; canWrite: boolean })
         <Notice tone="info">Trainer applications are not schools — reply, then add promising candidates in Team &amp; Payroll.</Notice>
       )}
     </div>
+  );
+}
+
+/** One line for the table: the role applied for, the experience and the city. */
+function applicantLine(r: BaseRecord): string[] {
+  const app = cleanApplication(r.application);
+  const years = experienceOf(r, app);
+  return [app ? appliedFor(app) : "", years > 0 ? `${formatNumber(years)} yr${years === 1 ? "" : "s"}` : "", str(r.city)];
+}
+
+/** What the careers form asked, as the applicant answered it. */
+function ApplicationFacts({ app, lead }: { app: Application; lead: BaseRecord }) {
+  const links = app.links.split(/\s+/).filter(Boolean);
+  const rows: [string, React.ReactNode][] = [
+    ["Applying for", <strong key="r">{appliedFor(app)}</strong>],
+    [app.student ? "Student at" : "Does now", app.current || str(lead.role)],
+    ["Experience", `${formatNumber(app.experience)} year${app.experience === 1 ? "" : "s"}`],
+    ["Skills", app.skills.join(", ")],
+    ["Languages", app.languages.join(", ")],
+    ["Free on", app.availability.join(", ")],
+    ["Travel", app.travel],
+    ["Can start", app.startFrom ? formatDate(app.startFrom) : ""],
+    ["Heard about JOVE", app.heardFrom],
+    [
+      "Links",
+      links.length ? (
+        <span key="l" className="flex flex-col items-end gap-1">
+          {links.map((l) =>
+            /^https?:\/\//i.test(l) ? (
+              <a key={l} href={l} target="_blank" rel="noopener noreferrer nofollow" className="break-all underline underline-offset-2">
+                {l}
+              </a>
+            ) : (
+              <span key={l} className="break-all">
+                {l}
+              </span>
+            ),
+          )}
+        </span>
+      ) : (
+        ""
+      ),
+    ],
+  ];
+  return (
+    <section aria-labelledby="lead-app">
+      <h3 id="lead-app" className="annot mb-2 text-charcoal">
+        Application
+      </h3>
+      <dl className="rounded-[var(--radius-md)] border border-graphite/12 bg-paper-50 px-4 py-2">
+        {rows.map(([k, v]) => (
+          <div key={k} className="flex items-start justify-between gap-4 border-b border-dashed border-graphite/10 py-2 text-sm last:border-0">
+            <dt className="shrink-0 text-blueprint">{k}</dt>
+            <dd className="text-right font-medium text-graphite">{v || <span className="text-blueprint/60">—</span>}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   );
 }
 
