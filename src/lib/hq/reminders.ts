@@ -149,7 +149,7 @@ export function buildReminders(data: ReminderData, today: string, o: { signsOf?:
     if (!d) continue;
     const title = s(w.title) || "Workshop";
     if (d === today || d === in1) {
-      add({ key: `ws:${w.id}`, area: "workshops", level: d === today ? "today" : "soon", title: `${d === today ? "Today" : "Tomorrow"}: ${title}`, detail: [w.startTime ? `Team reports at ${s(w.startTime)}` : "", status === "tentative" ? "still tentative" : ""].filter(Boolean).join(" · "), href: `/hq/workshops/${w.id}`, date: d });
+      add({ key: `ws:${w.id}`, area: "workshops", level: d === today ? "today" : "soon", title: `${d === today ? "Today" : "Tomorrow"}: ${title}`, detail: [w.startTime ? `Team reports at ${s(w.startTime)}` : "", status === "tentative" ? "still tentative" : "", d === today ? "opens in day mode" : ""].filter(Boolean).join(" · "), href: d === today ? `/hq/workshops/${w.id}/day` : `/hq/workshops/${w.id}`, date: d });
     }
     if (status === "tentative" && d >= today && d <= addDaysIso(today, 14) && !(Number(w.advanceReceived) > 0)) {
       add({ key: `adv:${w.id}`, area: "workshops", level: d <= addDaysIso(today, 7) ? "overdue" : "soon", title: `Advance not received: ${title}`, detail: `Workshop ${whenLabel(d, today)}; the date is confirmed when the advance arrives`, href: `/hq/workshops/${w.id}`, date: d });

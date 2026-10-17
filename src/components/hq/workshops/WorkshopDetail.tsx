@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ClipboardCheck, ClipboardList, Pencil, Printer, Users } from "lucide-react";
+import { ArrowLeft, ClipboardCheck, ClipboardList, Pencil, Printer, Smartphone, Users } from "lucide-react";
 import { can, OPS, OPS_MEDIA } from "@/lib/hq/roles";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/form";
@@ -133,6 +133,9 @@ export function WorkshopDetail({ id, initialTab }: { id: string; initialTab?: st
         </div>
 
         <div className="relative mt-6 flex flex-wrap items-center gap-2 border-t border-paper/15 pt-4">
+          <Button size="sm" variant={str(w.date) === today ? "light" : "outline-light"} href={`/hq/workshops/${w.id}/day`}>
+            <Smartphone className="size-4" aria-hidden /> Day mode
+          </Button>
           {canWrite && (
             <Button size="sm" variant="light" onClick={() => setDraft({ ...w })}>
               <Pencil className="size-4" aria-hidden /> Edit
@@ -150,6 +153,7 @@ export function WorkshopDetail({ id, initialTab }: { id: string; initialTab?: st
           <p className="ml-auto text-xs text-paper/60" role="status" aria-live="polite">
             {state === "saving" && "Saving…"}
             {state === "saved" && "All changes saved"}
+            {state === "offline" && "No network: saved on this device, sends when back"}
           </p>
         </div>
       </header>

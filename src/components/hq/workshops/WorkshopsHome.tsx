@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus, Smartphone } from "lucide-react";
 import { can, OPS, OPS_MEDIA, OPS_TRAINER } from "@/lib/hq/roles";
 import { Button } from "@/components/ui/Button";
 import { Tabs } from "@/components/ui/Tabs";
@@ -126,6 +126,20 @@ export function WorkshopsHome({ initialNew, initialSchool }: { initialNew?: bool
         <Loading label="Loading workshops…" />
       ) : (
         <>
+          {workshops
+            .filter((w) => str(w.date) === today && !isCancelled(w))
+            .map((w) => (
+              <div key={w.id} className="mb-6 flex flex-wrap items-center gap-4 rounded-[var(--radius-md)] bg-graphite px-5 py-4 text-paper" data-today-workshop>
+                <div className="min-w-0 flex-1">
+                  <p className="annot text-paper/60">Today</p>
+                  <p className="mt-0.5 text-lg font-bold leading-snug">{str(w.title) || "Workshop"}</p>
+                  {str(w.startTime) && <p className="text-sm text-paper/70">Team reports at {str(w.startTime)}</p>}
+                </div>
+                <Button href={`/hq/workshops/${w.id}/day`} variant="light" size="lg">
+                  <Smartphone className="size-4" aria-hidden /> Open day mode
+                </Button>
+              </div>
+            ))}
           {stats && (
             <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
               <StatCard label="This month" value={stats.monthCount} sub={`${formatNumber(stats.monthStudents)} students`} />
