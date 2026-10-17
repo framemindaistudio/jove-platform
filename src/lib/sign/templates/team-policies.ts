@@ -159,7 +159,7 @@ export const ndaIp: SignTemplate = {
 
 export const backgroundVerificationConsent: SignTemplate = {
   id: "background-verification-consent",
-  version: "1.0",
+  version: "1.1",
   title: "Consent for Background Verification",
   name: "Verification consent",
   group: "joining",
@@ -173,8 +173,7 @@ export const backgroundVerificationConsent: SignTemplate = {
   keep: "Engagement + 3 years, with the verification copies",
   requiredFor: [...ALL_BUT_FOUNDERS],
   lawyer: [
-    "Copies kept for 3 years after the engagement is the bracketed figure in the privacy policy. The retention schedule says 8 years for HR files and lets identity copies go earlier: settle one rule.",
-    "The library disagrees with itself on the police check. The safeguarding policy wants it for everyone before the first workshop, the trainer agreement says 'where JOVE asks', and the hiring SOP accepts an application that has been started. The paper says 'where JOVE asks' and keeps the person to shadowing until the checks are complete: decide the rule.",
+    "Identity and verification copies are kept 3 years after the engagement ends (the privacy policy and the retention schedule now agree). Confirm with the advocate.",
     "Who pays the fee for a police verification certificate is not stated anywhere: decide, and tell the person.",
     "The statements about convictions, pending cases and removal from work with children are usual practice for work with children, not wording from the library. Confirm they are fair and lawful to ask, and what JOVE does when a box is left unticked.",
     "If a person offers an Aadhaar card as the identity document, take a masked copy and never write the number down: confirm the practice.",
@@ -197,7 +196,7 @@ export const backgroundVerificationConsent: SignTemplate = {
         items: [
           `${b("Identity.")} I will show one government identity document in original and give ${J} a copy of it.`,
           `${b("References.")} ${J} may contact the two people I name below and ask them about my work, my conduct and my suitability to work with children.`,
-          `${b("Police verification or character certificate.")} Where ${J} asks for one, I will apply for a police verification certificate, or obtain a character certificate, and give ${J} a copy.`,
+          `${b("Police verification.")} Before I work with students on my own, I will give ${J} a copy of a police verification certificate. Until it arrives, I only shadow under a founder and am never alone with students.`,
         ],
       },
       { t: "p", text: "I understand that until these checks are complete I do not work with students. At most I may shadow a workshop alongside the team, where a founder allows it." },
@@ -241,7 +240,7 @@ export const backgroundVerificationConsent: SignTemplate = {
         rows: [
           ["Identity document seen in original on", ""],
           ["References spoken to on", ""],
-          ["Police verification or character certificate received on", ""],
+          ["Police verification certificate received on", ""],
           ["Checked by (name and initials)", ""],
         ],
       },
@@ -274,7 +273,7 @@ export const joiningDetails: SignTemplate = {
   requiredFor: [...ALL_BUT_FOUNDERS],
   lawyer: [
     "This form carries a full bank account number, and the privacy policy says HQ holds only the last four digits. Keep the signed paper in the locked file, and cover the account number before a scan goes into the File Vault.",
-    "Kept for 3 years after the engagement is the bracketed figure in the privacy policy, while the retention schedule says 8 years for HR files and payroll: settle the figure.",
+    "The form is kept 3 years after the engagement ends, as the privacy policy now says for identity details. Payout and tax details that payroll needs are kept with the pay records (8 years). Confirm with the CA.",
     "The safety box may hold health information, which is optional and sensitive: confirm how it is stored and who may see it.",
     "Ask the CA what else must be collected from an employee once salary TDS, PF or ESI apply. This form does not ask for PF or ESI numbers.",
   ],
@@ -387,7 +386,6 @@ export const codeOfConductAck: SignTemplate = {
   requiredFor: [...EVERYONE],
   lawyer: [
     "Consequences (clause 8): for employees, confirm the steps a fair disciplinary process needs before a warning, a suspension or a dismissal.",
-    "The 8 years for HR files is still in brackets in the retention schedule: confirm it.",
   ],
   fields: [{ key: "mediaLead", label: "Official channels are run by", kind: "text", default: "Chinmay R M", half: true, help: "The Code of Conduct names who runs JOVE's official social media channels." }],
   build(ctx) {
@@ -460,7 +458,7 @@ export const codeOfConductAck: SignTemplate = {
 
 export const childProtectionDeclaration: SignTemplate = {
   id: "child-protection-declaration",
-  version: "1.0",
+  version: "1.1",
   title: "Child Protection and Safeguarding Declaration",
   name: "Child protection declaration",
   group: "policies",
@@ -476,11 +474,8 @@ export const childProtectionDeclaration: SignTemplate = {
   lawyer: [
     "Reporting under the Protection of Children from Sexual Offences Act, 2012: confirm the wording of the duty to report, and who at JOVE makes the report.",
     "The statements about convictions, pending cases and removal from work with children are usual practice for work with children, not wording from the library. Confirm they are fair and lawful to ask of every team member, and what JOVE does when a box is left unticked.",
-    "The library differs on who tells the school about a concern: the team member (the policy and the Trainer Manual) or the Safeguarding Lead (SOP-13). The paper says the school is told the same day without naming who: decide.",
     "The library asks for this policy to be aligned with each school's own child-protection policy and with any state or board guidelines.",
-    "Hot tools (rule 8): the policy lets trainers use glue guns and soldering irons, while the safeguarding SOP allows none in a hall with students. The paper says only that children do not use them: decide the rule.",
     "A person is taken off work with children while a concern about them is looked into. Whether an employee is paid during that time is not stated anywhere: decide.",
-    "The 8 years for HR files is still in brackets in the retention schedule: confirm it.",
   ],
   fields: [
     { key: "dsl", label: "Designated Safeguarding Lead", kind: "text", default: "Shivaprasad Reddy S S, Founder & CEO", help: "The founder every safeguarding concern is reported to, as the policy names." },
@@ -498,13 +493,13 @@ export const childProtectionDeclaration: SignTemplate = {
         ordered: true,
         items: [
           `${b("Never alone with a child.")} I work in open, visible areas with a member of the school's staff present. No closed doors, no one-to-one in an empty room, no private transport. I do not take a child out of the supervised area.`,
-          `${b("Physical contact.")} Only what the activity or a child's safety needs, and only when the child is comfortable with it. A high-five or a pat on the shoulder is the limit, and I ask first. I do not hug, carry, tickle or sit a child on my lap.`,
+          `${b("Physical contact.")} A high-five or a pat on the shoulder is the limit, and I ask first. I guide with words or by showing on a spare kit, and touch a child's hand only to keep the child safe. I do not hug, carry, tickle or sit a child on my lap.`,
           `${b("No private contact.")} I do not ask for or share a child's phone number, social media handle or address. I do not add or message a child online. All communication goes through the school.`,
           `${b("Photographs and video.")} Only the ${J} media team photographs or films children, and only those whose parents have given signed consent. I never photograph or film a child on my own phone. No child is filmed in a toilet, a changing area or a medical area, or in a way that could embarrass the child.`,
           `${b("Respect and dignity.")} I treat every child equally and speak respectfully. No physical punishment, shouting, shaming, sarcasm, comparing of children, favouritism, threats or discriminatory remarks.`,
           `${b("No gifts and no secrets.")} I do not give a child gifts, money, sweets or favours, and I never promise a child secrecy.`,
           `${b("Fit for work.")} I am never under the influence of alcohol or drugs, and I do not smoke or chew tobacco on a school campus. I wear the ${J} ID badge and uniform.`,
-          `${b("Tools and kits.")} I use only the kits and tools ${J} has approved. I do not let children use hot tools, cutting blades or mains-powered equipment.`,
+          `${b("Tools and kits.")} I use only the kits and tools ${J} has approved. Children never use hot tools, cutting blades or mains-powered equipment; hot tools are used only by the team, away from students.`,
         ],
       },
       { t: "h", text: "If I have a concern" },
@@ -513,8 +508,8 @@ export const childProtectionDeclaration: SignTemplate = {
         ordered: true,
         items: [
           "If a child tells me something troubling, I listen calmly. I do not promise secrecy, question the child for detail or investigate. As soon as I can, I write down the child's own words, the time, the place and who was present.",
-          `The same day I tell the Designated Safeguarding Lead of ${J}: ${b(fill(ctx, "dsl", 70))}. If the concern involves the Lead, I tell the deputy: ${b(fill(ctx, "deputy", 60))}. The school's principal or designated child-protection person is also told the same day.`,
-          "If I see inappropriate behaviour towards a child by anyone, a colleague included, I make the child safe and report it to the Lead the same day. A report made in good faith never leads to a penalty.",
+          `At once I tell the Designated Safeguarding Lead of ${J}: ${b(fill(ctx, "dsl", 70))}. If the concern involves the Lead, or the Lead cannot be reached, I tell the deputy: ${b(fill(ctx, "deputy", 60))}. The Lead tells the school's principal or designated child-protection person the same day; if I cannot reach either of them, I tell the school's designated person myself.`,
+          "If I see inappropriate behaviour towards a child by anyone, a colleague included, I make the child safe and report it to the Lead at once. A report made in good faith never leads to a penalty.",
           "I keep a concern confidential. I put the facts in a private note to the Lead, not in a group chat, and share them only with those who need to know.",
           "Indian law, including the Protection of Children from Sexual Offences Act, 2012, requires a person who knows of certain offences against a child to report them to the police or the Special Juvenile Police Unit. The child helpline is 1098.",
           `If a concern is raised about me, I understand that ${J} will take me off work with children at once while it is looked into, will inform the school, and will report to the authorities where the law requires.`,
@@ -527,7 +522,7 @@ export const childProtectionDeclaration: SignTemplate = {
         items: [
           `I have read the ${J} Child Protection and Safeguarding Policy and the rules above, and I will follow them.`,
           ...cleanRecord(J),
-          `I will complete the safety and child-protection briefing before my first school visit, and each refresher ${J} holds.`,
+          `I will complete the safety and child-protection briefing before my first school visit, and a refresher every 6 months.`,
           `I understand that breaking these rules can end my engagement with ${J} and can be reported to the authorities.`,
         ],
       },
@@ -649,10 +644,8 @@ export const dataPrivacyUndertaking: SignTemplate = {
   requiredFor: [...EVERYONE],
   lawyer: [
     "The Digital Personal Data Protection Act, 2023 and its rules are being phased in. Confirm the current duties: notice, verifiable consent of a parent, and reporting a breach to the Data Protection Board with its timelines.",
-    "The privacy policy says shared passwords are not allowed, while the interns share one view-only HQ login. The paper says only that no one passes a password on: bring the policy wording in line.",
     "Reporting a suspected breach to a founder 'within the hour' follows the policy's rule to contain a breach within the hour. Confirm it is the standard you want every team member held to.",
     "The grievance contact (name and email) is still blank in the privacy policy, and the times for answering a request are in brackets.",
-    "The 8 years for HR files is still in brackets in the retention schedule: confirm it.",
   ],
   fields: [],
   build(ctx) {

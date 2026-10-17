@@ -8,7 +8,7 @@ import type { SignTemplate } from "../types";
 
 export const trainerAgreement: SignTemplate = {
   id: "freelance-trainer-agreement",
-  version: "1.0",
+  version: "1.1",
   title: "Freelance Trainer Agreement and Non-Disclosure Agreement",
   name: "Trainer agreement and NDA",
   group: "joining",
@@ -28,7 +28,6 @@ export const trainerAgreement: SignTemplate = {
     "Non-solicitation (clause 8): broad restraints after an engagement ends are hard to enforce in India; confirm the wording and the period.",
     "Stamp duty in Karnataka and whether the agreement should be on stamp paper.",
     "TDS (section 194J or 194C) on trainer fees: confirm with the CA.",
-    "Payment within 7 days (clause 2.3) is the agreement draft's figure; the hiring SOP says within 3 working days. Choose one and set the box.",
     "Insurance (clause 9): JOVE has no public liability insurance yet. Decide what happens if a trainer is hurt, or causes harm, at a workshop before a policy is in force.",
     "Seat of arbitration and courts: set in the box, confirm the choice.",
   ],
@@ -80,14 +79,14 @@ export const trainerAgreement: SignTemplate = {
         items: [
           `The Trainer will arrive at the reporting time in ${J} branded wear, follow the ${J} Day On-Site SOP and the Trainer Manual, and use only kits and tools approved by ${J}.`,
           `The Trainer will follow the ${J} Child Protection and Safeguarding Policy at all times: never be alone with a child, have no private contact with students, and take no photographs or video of students. Only the ${J} media team films.`,
-          "The Trainer will not use alcohol or tobacco on duty, and will report any accident or concern to the founder on site at once.",
+          "The Trainer will not use alcohol or tobacco on duty, will report any accident to the founder on site at once, and will report any concern about a child to the Safeguarding Lead at once.",
         ],
       },
       {
         t: "clause",
         title: "Verification and training",
         items: [
-          `Before the first assignment the Trainer will pass the demo class, give a copy of a government identity document and, where ${J} asks, a police verification or character certificate, and complete the safety and child-protection briefing.`,
+          `Before the first assignment the Trainer will pass the demo class, give a copy of a government identity document and a police verification certificate, and complete the safety and child-protection briefing. Until the certificate arrives, a documented application is enough for the Trainer to shadow under a founder, never alone with students.`,
           `${J} may suspend assignments while a complaint or concern is looked into.`,
         ],
       },

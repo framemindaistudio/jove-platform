@@ -277,7 +277,7 @@ export const mutualNda: SignTemplate = {
 
 export const vendorSupplyTerms: SignTemplate = {
   id: "vendor-supply-terms",
-  version: "1.0",
+  version: "1.1",
   title: "Supply Terms",
   name: "Vendor supply terms",
   group: "partners",
@@ -291,8 +291,6 @@ export const vendorSupplyTerms: SignTemplate = {
   keep: "Term + 3 years",
   initials: true,
   lawyer: [
-    "Acceptance rule: SOP-19 rejects a batch when more than 5% of the tested pieces fail; the Quality Control Checklist sets a different limit for each kind of part. The paper uses the SOP's 5% in a box. Settle one rule.",
-    "SOP-19 raises a replacement within 48 hours; the Quality Control Checklist tells the vendor the same day. The paper promises 48 hours in a box.",
     "Late delivery: the library only says that the backup vendor is used. The right to cancel what is undelivered and to have the advance returned (clause 5.2) is a usual term added here. Confirm it.",
     "Left out because the library is silent: when ownership and risk in the goods pass, a warranty period (there is an optional box), price changes, and the Supplier's liability if an unsafe part harms a child. Ask the advocate which to add.",
     "A supplier registered as a micro or small enterprise must be paid within the time the MSMED Act, 2006 allows (an agreed period of at most 45 days from acceptance of the goods, or 15 days where none is agreed). Check the payment terms in the box against it with the CA.",
@@ -306,7 +304,7 @@ export const vendorSupplyTerms: SignTemplate = {
     { key: "gstin", label: "Supplier's GSTIN (if registered)", kind: "text", from: "vendor.gstin", placeholder: "29ABCDE1234F1Z5", half: true },
     { key: "paymentTerms", label: "Payment terms", kind: "text", from: "vendor.paymentTerms", default: "on delivery, after inspection", help: "SOP-19: on delivery, unless an advance is agreed for a custom job." },
     { key: "reportHours", label: "Defects are reported within (hours of delivery)", kind: "number", default: "48", half: true },
-    { key: "rejectPercent", label: "Batch rejected when more than (% of tested pieces) fail", kind: "number", default: "5", half: true },
+    { key: "rejectPercent", label: "For a part without its own limit: batch rejected above (% failing)", kind: "number", default: "5", half: true, help: "The kit quality check sets a pass limit for each kind of part; this figure is for the rest (SOP-19)." },
     { key: "replaceDays", label: "Replacement arrives within (days, optional)", kind: "number", half: true, help: "Left empty, the paper says 'without delay'." },
     { key: "laterDays", label: "Defects found later are covered for (days, optional)", kind: "number", half: true, help: "Left empty, the paper covers only what is found on arrival." },
     { key: "confidentialYears", label: "Designs stay confidential (years after the last order)", kind: "number", default: "3", half: true },
@@ -373,7 +371,7 @@ export const vendorSupplyTerms: SignTemplate = {
           `${J} inspects each delivery on arrival: it counts the goods against the order and the delivery challan, checks them for damage and tests a sample.`,
           `${J} reports a shortfall or a defect in writing, with photographs, within ${fill(ctx, "reportHours", 10)} hours of the delivery.`,
           `The Supplier replaces every defective or missing item ${val(ctx, "replaceDays") || ctx.blank ? `within ${fill(ctx, "replaceDays", 10)} days of being told` : "without delay"}, or gives a credit note for it where ${J} agrees, at no cost to ${J}.`,
-          `${J} may reject the whole batch where more than ${fill(ctx, "rejectPercent", 10)}% of the pieces it tests fail.`,
+          `${J} tests each batch against the pass limit its quality check sets for that kind of part, and may reject the whole batch that fails it. For a part without its own limit, ${J} may reject the whole batch where more than ${fill(ctx, "rejectPercent", 10)}% of the pieces it tests fail.`,
           ...(later ? [`A defect that could not be found on arrival, and that shows within ${fill(ctx, "laterDays", 10)} days of the delivery, is reported when it is found and replaced in the same way.`] : []),
         ],
       },

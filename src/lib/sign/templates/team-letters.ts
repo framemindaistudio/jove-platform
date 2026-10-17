@@ -150,7 +150,7 @@ export const internshipOffer: SignTemplate = {
 
 export const appointmentLetter: SignTemplate = {
   id: "appointment-letter",
-  version: "1.0",
+  version: "1.1",
   title: "Letter of Appointment",
   name: "Appointment letter",
   group: "joining",
@@ -170,7 +170,6 @@ export const appointmentLetter: SignTemplate = {
     "Ending the employment (clause 11): check it against section 39 of the Karnataka Shops and Commercial Establishments Act, 1961 (notice, reasonable cause, and an inquiry for misconduct once an employee has six months of service). Pay in place of notice is not written in.",
     "Courts (clause 12): the box is filled with the town of your office. Parties can only choose a court that already has jurisdiction: confirm the choice.",
     "Working hours, the weekly day off and overtime on rostered workshop days (clause 3) under the Karnataka Shops and Commercial Establishments Act.",
-    "Expense claims within 7 days (clause 2) follow the pay policy; the Trainer Manual says two working days. Choose one rule for everyone.",
     "PF, ESI and professional tax (clause 4): confirm with the CA which apply at this salary.",
     "Leave (clause 5) points to the Leave and Attendance Policy, whose figures are still marked to confirm. Settle them before the first employee joins.",
     "Other work (clause 9) asks only that it is declared. Decide whether a full-time employee needs written approval first.",
@@ -259,7 +258,7 @@ export const appointmentLetter: SignTemplate = {
         items: [
           `You will follow the ${J} Code of Conduct, the Child Protection and Safeguarding Policy, the POSH and Workplace Policy and the Data Privacy Policy, as in force. ${J} gives you a copy of each, and you sign the declarations that go with them.`,
           `Everyone at ${J} works around children. You will never be alone with a child and will have no private contact with students. Photographs and video of students are taken only by the ${J} media team, under the consent rules.`,
-          "Your employment depends on a satisfactory background verification. You will complete the safety and child-protection briefing before your first school visit, and each refresher after it.",
+          "Your employment depends on a satisfactory background verification. You will complete the safety and child-protection briefing before your first school visit, and a refresher every 6 months.",
           `${J} does not tolerate sexual harassment, discrimination or bullying. You can raise a concern with either founder, and no one is treated badly for raising a concern in good faith.`,
           `Workshops are filmed. How ${J} may photograph, film and record you at work is set out in the Media Release (Team), which you sign separately. You will not post about ${J}, schools or students on personal accounts without the approval of the media team.`,
         ],
@@ -609,7 +608,7 @@ export const exitClearance: SignTemplate = {
     "Point 2 of the declaration says the settlement does not take away anything the law gives the person (for example gratuity, PF or bonus, where they apply). Confirm the wording.",
     "Time limit for paying an employee's final dues: confirm with the CA.",
     "The TDS certificate (Form 16 or 16A) is still owed to the person after the exit.",
-    "How long HR papers are kept: the retention schedule says employment plus 8 years (still to confirm), and the internal Data Privacy Policy says engagement plus 3 years for team records. Settle one figure.",
+    "How long HR papers are kept: the library now says contracts, pay and tax records for employment plus 8 years, and identity copies for 3 years after the end. Confirm the 8 years with the CA.",
   ],
   fields: [
     { key: "lastDay", label: "Last working day", kind: "date", required: true, half: true },

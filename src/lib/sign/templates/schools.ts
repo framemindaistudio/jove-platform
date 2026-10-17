@@ -713,7 +713,7 @@ export const consentConfirmation: SignTemplate = {
   requiredForSchools: true,
   lawyer: [
     "The Service Agreement makes the School responsible for verifiable parental consent. Confirm that this signed confirmation, with the parent forms, is enough under the rules in force under the Digital Personal Data Protection Act, 2023.",
-    "The safeguarding SOP says the company shares a template for consent to take part. The library has only the media consent form. Decide whether a participation consent template is needed, or whether the School's own form is relied on.",
+    "The School collects consent to take part on its own form (SOP-13); only the media consent is on JOVE's form. Confirm with the advocate that this confirmation, with the School's own form, is enough.",
     "The paper names children. It is kept for 3 years after the workshop and then destroyed, like the parent forms. The retention schedule has no line of its own for it: confirm.",
     "The paper says students without media consent still take part in full and get their certificates, as the parent form promises. Make sure the crew briefing and the wristband or seating plan are in place before it is signed.",
   ],
