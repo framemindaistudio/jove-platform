@@ -2,6 +2,7 @@ import "server-only";
 import { listRecords } from "@/lib/hq/records";
 import { kits } from "@/lib/content/business";
 import type { BaseRecord } from "@/lib/hq/collections";
+import { site } from "@/lib/site";
 
 /** Data the PUBLIC website reads from the repo store (cached for 5 minutes). */
 
@@ -106,5 +107,53 @@ export async function findCertificate(code: string) {
     };
   } catch {
     return null;
+  }
+}
+
+/* ── the team on the About page ── */
+
+export interface PublicMember {
+  id: string;
+  name: string;
+  role: string;
+  line?: string;
+  /** /api/public/team-photo/<id>?v=…, or nothing for initials */
+  photo?: string;
+}
+
+const ROLE_ORDER = ["Lead Trainer", "Trainer", "Freelance Trainer", "Media / Editor", "Operations", "Intern"];
+const isFounder = (name: unknown) => site.founders.some((f) => f.name.toLowerCase() === String(name ?? "").trim().toLowerCase());
+const photoUrl = (m: BaseRecord) =>
+  typeof m.photo === "string" && m.photo ? `/api/public/team-photo/${encodeURIComponent(m.id)}?v=${encodeURIComponent(String(m.photoUpdatedAt ?? "1").replace(/\D/g, "").slice(-12) || "1")}` : undefined;
+
+/**
+ * Everyone in Team & Payroll who agreed to be shown ("Show on the website") and is active, founders aside (they have
+ * their own cards). Only the name, role, photo and the one line go out: nothing else from the record.
+ */
+export async function getPublicTeam(): Promise<PublicMember[]> {
+  try {
+    const rows = await listRecords("team", { revalidate: REVALIDATE });
+    return rows
+      .filter((m) => m.showOnWebsite === true && String(m.status ?? "active") === "active" && !isFounder(m.name) && String(m.name ?? "").trim())
+      .sort((a, b) => (ROLE_ORDER.indexOf(String(a.role)) + 99) % 99 - ((ROLE_ORDER.indexOf(String(b.role)) + 99) % 99) || String(a.joinDate ?? "").localeCompare(String(b.joinDate ?? "")) || String(a.name).localeCompare(String(b.name)))
+      .map((m) => ({ id: m.id, name: String(m.name).trim(), role: String(m.role ?? "Team"), line: typeof m.webLine === "string" && m.webLine.trim() ? m.webLine.trim().slice(0, 110) : undefined, photo: photoUrl(m) }));
+  } catch {
+    return [];
+  }
+}
+
+/** A founder's photo from their Team & Payroll record, by founder id ("shivaprasad"), when one is saved. */
+export async function getFounderPhotos(): Promise<Record<string, string>> {
+  try {
+    const rows = await listRecords("team", { revalidate: REVALIDATE });
+    const out: Record<string, string> = {};
+    for (const f of site.founders) {
+      const m = rows.find((r) => String(r.name ?? "").trim().toLowerCase() === f.name.toLowerCase());
+      const url = m && photoUrl(m);
+      if (url) out[f.id] = url;
+    }
+    return out;
+  } catch {
+    return {};
   }
 }

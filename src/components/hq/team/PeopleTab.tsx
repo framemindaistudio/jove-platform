@@ -10,13 +10,14 @@ import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Overlay";
 import { can, LEADERSHIP } from "@/lib/hq/roles";
 import { cn, formatDate } from "@/lib/utils";
-import { initials, memberWorkshops, ONBOARDING, onboardingProgress, onboardingState, str, useTodayIso, type OnboardingState, type Rec } from "./team";
+import { MemberPhoto } from "./MemberPhoto";
+import { memberWorkshops, ONBOARDING, onboardingProgress, onboardingState, str, useTodayIso, type OnboardingState, type Rec } from "./team";
 
 const STATUS_ORDER: Record<string, number> = { active: 0, onboarding: 1, inactive: 2 };
 
 export function PeopleTab() {
   const { user, store } = useHq();
-  const { records: team, loading, error, save } = useCollection<Rec>("team");
+  const { records: team, loading, error, save, refresh } = useCollection<Rec>("team");
   const { records: workshops } = useCollection<Rec>("workshops");
   const today = useTodayIso();
   const year = today?.slice(0, 4) ?? "";
@@ -60,7 +61,7 @@ export function PeopleTab() {
         <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label="Team directory">
           {members.map((m) => (
             <li key={m.id}>
-              <MemberCard member={m} workshops={workshops} year={year} today={today} canEdit={canEdit} onEdit={() => setOpenId(m.id)} onChecklist={() => setChecklistId(m.id)} />
+              <MemberCard member={m} workshops={workshops} year={year} today={today} canEdit={canEdit} onEdit={() => setOpenId(m.id)} onChecklist={() => setChecklistId(m.id)} onPhoto={() => void refresh()} />
             </li>
           ))}
         </ul>
@@ -98,7 +99,7 @@ export function PeopleTab() {
 
 /* ───────────────────────── member card ───────────────────────── */
 
-function MemberCard({ member, workshops, year, today, canEdit, onEdit, onChecklist }: { member: Rec; workshops: Rec[]; year: string; today: string | null; canEdit: boolean; onEdit: () => void; onChecklist: () => void }) {
+function MemberCard({ member, workshops, year, today, canEdit, onEdit, onChecklist, onPhoto }: { member: Rec; workshops: Rec[]; year: string; today: string | null; canEdit: boolean; onEdit: () => void; onChecklist: () => void; onPhoto: () => void }) {
   const name = str(member.name);
   const mine = useMemo(() => memberWorkshops(member, workshops), [member, workshops]);
   const done = year ? mine.filter((w) => str(w.status) === "completed" && str(w.date).startsWith(year)).length : 0;
@@ -119,9 +120,7 @@ function MemberCard({ member, workshops, year, today, canEdit, onEdit, onCheckli
     <article className="relative flex h-full flex-col overflow-hidden rounded-[var(--radius-md)] border border-graphite/12 bg-paper-50 shadow-[var(--shadow-paper)] transition-shadow hover:shadow-[var(--shadow-lift)]">
       <div className="hatch-light pointer-events-none absolute inset-x-0 top-0 h-16 opacity-70" aria-hidden />
       <div className="relative flex items-start gap-4 p-5 pb-4">
-        <span aria-hidden className="grid size-14 shrink-0 place-items-center rounded-full border-2 border-graphite bg-paper font-mono text-lg font-bold text-graphite shadow-[var(--shadow-paper)]">
-          {initials(name)}
-        </span>
+        <MemberPhoto member={member} canEdit={canEdit} onChanged={onPhoto} />
         <div className="min-w-0 flex-1 pt-1">
           <h3 className="truncate text-[17px] font-bold leading-tight tracking-tight">{name}</h3>
           <p className="truncate text-sm text-charcoal">{str(member.role) || "Role not set"}</p>
@@ -130,6 +129,7 @@ function MemberCard({ member, workshops, year, today, canEdit, onEdit, onCheckli
             <Badge tone={statusTone(status)} dot>
               {status}
             </Badge>
+            {member.showOnWebsite === true && <Badge tone="dark">On the website</Badge>}
           </div>
         </div>
       </div>

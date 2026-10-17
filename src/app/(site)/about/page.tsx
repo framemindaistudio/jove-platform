@@ -16,6 +16,8 @@ import { ValueFigure } from "@/components/site/about/ValueFigure";
 import { brandValues } from "@/components/site/about/values";
 import { ModelLoop, type LoopNode } from "@/components/site/about/ModelLoop";
 import { FounderAvatar } from "@/components/site/about/FounderAvatar";
+import { TeamGrid } from "@/components/site/about/TeamGrid";
+import { getFounderPhotos, getPublicTeam } from "@/lib/public-data";
 import { Roadmap, type RoadmapStep } from "@/components/site/about/Roadmap";
 
 export const metadata: Metadata = {
@@ -167,7 +169,11 @@ const roadmap: RoadmapStep[] = [
   },
 ];
 
-export default function AboutPage() {
+/** The team comes from HQ (Team & Payroll), read again at most every five minutes. */
+export const revalidate = 300;
+
+export default async function AboutPage() {
+  const [team, founderPhotos] = await Promise.all([getPublicTeam(), getFounderPhotos()]);
   return (
     <>
       {/* 01 — HERO */}
@@ -537,7 +543,7 @@ export default function AboutPage() {
                   <CornerMarks />
                   <header className="relative flex flex-col gap-6 border-b border-graphite/10 p-6 sm:flex-row sm:items-center sm:p-8">
                     <div aria-hidden className="hatch-dense pointer-events-none absolute inset-y-0 right-0 w-1/3 opacity-[0.18] [mask-image:linear-gradient(to_left,black,transparent)]" />
-                    <FounderAvatar name={f.name} initials={f.initials} photo={f.photo} />
+                    <FounderAvatar name={f.name} initials={f.initials} photo={founderPhotos[f.id] ?? f.photo} />
                     <div className="relative">
                       <p className="annot text-blueprint">
                         <span className="font-mono">F-0{i + 1}</span> · {i === 0 ? "Operations & growth" : "Studio, brand & technology"}
@@ -567,6 +573,8 @@ export default function AboutPage() {
               </Reveal>
             ))}
           </div>
+
+          <TeamGrid members={team} />
 
           <Reveal delay={0.1}>
             <div className="mt-6 flex flex-col items-start justify-between gap-5 rounded-[var(--radius-md)] border border-dashed border-graphite/30 bg-paper/70 px-6 py-5 sm:flex-row sm:items-center">

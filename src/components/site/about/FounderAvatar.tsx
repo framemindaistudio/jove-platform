@@ -20,6 +20,15 @@ function hasPublicFile(src?: string) {
  * otherwise a blueprint monogram. Never a stock or generated face.
  */
 export function FounderAvatar({ name, initials, photo, className }: { name: string; initials: string; photo?: string; className?: string }) {
+  // a photo saved in HQ (Team & Payroll), served as a small JPEG
+  if (photo?.startsWith("/api/public/team-photo/")) {
+    return (
+      <span className={cn("relative block size-36 shrink-0 overflow-hidden rounded-full border border-graphite/15 shadow-[var(--shadow-paper)] sm:size-44", className)}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={photo} alt={`Portrait of ${name}`} className="size-full object-cover grayscale" />
+      </span>
+    );
+  }
   if (hasPublicFile(photo)) {
     return (
       <span className={cn("relative block size-36 shrink-0 overflow-hidden rounded-full border border-graphite/15 shadow-[var(--shadow-paper)] sm:size-44", className)}>

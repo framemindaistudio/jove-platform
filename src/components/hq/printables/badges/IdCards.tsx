@@ -8,6 +8,7 @@ import { Mark, Sheet, Tile, Wordmark } from "../PrintBits";
 import { chunk, csv, initialsOf, str, type Q } from "../util";
 import type { BaseRecord } from "@/lib/hq/collections";
 import { site } from "@/lib/site";
+import { memberPhotoHref } from "@/components/hq/team/MemberPhoto";
 
 /** Deterministic card number from the record id (same person → same number every print). */
 function cardNo(id: string) {
@@ -34,11 +35,16 @@ function Front({ m, valid }: { m: BaseRecord; valid: string }) {
         <span className="text-[5.4pt] font-semibold uppercase tracking-[0.24em] text-paper/80">Workshop team</span>
       </div>
 
-      {/* photo placeholder with monogram */}
-      <div className="hatch-light absolute left-[4mm] top-[12.6mm] grid place-items-center border border-graphite/60 bg-paper" style={{ width: "21mm", height: "26.5mm" }}>
-        <span className="text-[18pt] font-bold tracking-[-0.03em] text-graphite/80">{initialsOf(name) || "JV"}</span>
-        <span className="absolute inset-x-0 bottom-[0.8mm] text-center text-[4.6pt] uppercase tracking-[0.22em] text-blueprint">photo</span>
-      </div>
+      {/* the photo from Team & Payroll, else a box with the initials to paste a photo on */}
+      {memberPhotoHref(m) ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={memberPhotoHref(m)} alt={`Photo of ${name}`} className="absolute left-[4mm] top-[12.6mm] border border-graphite/60 object-cover" style={{ width: "21mm", height: "26.5mm" }} />
+      ) : (
+        <div className="hatch-light absolute left-[4mm] top-[12.6mm] grid place-items-center border border-graphite/60 bg-paper" style={{ width: "21mm", height: "26.5mm" }}>
+          <span className="text-[18pt] font-bold tracking-[-0.03em] text-graphite/80">{initialsOf(name) || "JV"}</span>
+          <span className="absolute inset-x-0 bottom-[0.8mm] text-center text-[4.6pt] uppercase tracking-[0.22em] text-blueprint">photo</span>
+        </div>
+      )}
 
       <div className="absolute left-[28mm] right-[4mm] top-[12.6mm]">
         <p className="text-[10.5pt] font-bold leading-[1.1] tracking-[-0.02em]">{name}</p>
