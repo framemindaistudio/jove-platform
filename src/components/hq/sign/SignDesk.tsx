@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { FilePlus2 } from "lucide-react";
+import { FilePlus2, PenLine } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Tabs } from "@/components/ui/Tabs";
 import { Loading, PageHeader, StatCard } from "@/components/hq/ui";
@@ -11,6 +11,7 @@ import { memberGroup, progressOf, type SignDoc } from "@/lib/sign/context";
 import { templateOf } from "./bits";
 import { str, useDesk } from "./desk";
 import { DocDrawer } from "./DocDrawer";
+import { OurSignatures } from "./OurSignatures";
 import { NewDoc, type Preset } from "./NewDoc";
 import { OthersTab } from "./OthersTab";
 import { tally } from "./PaperSet";
@@ -41,6 +42,7 @@ export function SignDesk() {
   // ?doc=<id> opens that paper (links from the Today reminders)
   const [openId, setOpenId] = useState<string | null>(() => params.get("doc"));
   const [preset, setPreset] = useState<Preset | null>(null);
+  const [inkOpen, setInkOpen] = useState(false);
 
   // the address changed (a link, or back from the print view): follow it
   const [synced, setSynced] = useState(query);
@@ -97,11 +99,16 @@ export function SignDesk() {
         title="Documents to Sign"
         description="Offer letters, agreements, declarations and permissions for the team, schools and partners. HQ fills in the names, you print and sign, then tick who has signed."
         actions={
-          desk.canEdit ? (
-            <Button size="sm" onClick={() => setPreset({})}>
-              <FilePlus2 className="size-3.5" aria-hidden /> New document
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="secondary" onClick={() => setInkOpen(true)}>
+              <PenLine className="size-3.5" aria-hidden /> Our signatures
             </Button>
-          ) : undefined
+            {desk.canEdit && (
+              <Button size="sm" onClick={() => setPreset({})}>
+                <FilePlus2 className="size-3.5" aria-hidden /> New document
+              </Button>
+            )}
+          </div>
         }
       />
 
@@ -140,6 +147,7 @@ export function SignDesk() {
       )}
 
       <DocDrawer desk={desk} doc={openDoc} tab={tab} onClose={() => setOpenId(null)} />
+      <OurSignatures open={inkOpen} onClose={() => setInkOpen(false)} canEdit={desk.canEdit} onChanged={desk.reloadInks} />
       <NewDoc
         desk={desk}
         preset={preset}

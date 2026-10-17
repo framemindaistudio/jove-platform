@@ -54,6 +54,8 @@ export interface SignDoc extends BaseRecord {
   share?: unknown;
   /** signed copies they uploaded from the link, not yet checked (src/lib/sign/share.ts) */
   received?: unknown;
+  /** print the founders' saved signatures on it (src/lib/sign/ink.ts); unset: on for all but agreements */
+  ink?: boolean;
 }
 
 /* ───────────────────────────── the company and who signs for it ───────────────────────────── */

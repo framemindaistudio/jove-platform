@@ -7,6 +7,8 @@ import { canEdit } from "@/lib/hq/roles";
 import { getCollection, type BaseRecord } from "@/lib/hq/collections";
 import type { CompanySettings } from "@/lib/hq/settings";
 import { templateById } from "@/lib/sign/catalog";
+import { withInkTick, type Inks } from "@/lib/sign/ink";
+import { useInks } from "./useInks";
 import { companyOf, nextRef, prefill, progressOf, SIGN_DOCS, signatoriesFor, type SignDoc, type Sources } from "@/lib/sign/context";
 import type { Company, Party, SignTemplate } from "@/lib/sign/types";
 
@@ -43,6 +45,10 @@ export interface Desk {
   /** locks drafts as printed today (the wording and the company's details are kept as they are now) */
   issue: (docs: SignDoc[]) => Promise<SignDoc[]>;
   remove: (id: string) => Promise<void>;
+  /** the founders' saved signatures, by name (src/lib/sign/ink.ts) */
+  inks: Inks;
+  /** reads the signatures again after one is saved */
+  reloadInks: () => Promise<void>;
   /** reads the papers again (after the server changed one, as sending does) */
   refresh: () => Promise<unknown>;
 }
@@ -77,6 +83,7 @@ export function useDesk(): Desk {
   const vendors = useCollection<Rec>("vendors");
   const workshops = useCollection<Rec>("workshops");
   const proposals = useCollection<Rec>("proposals");
+  const { inks, ready: inksReady, reload: reloadInks } = useInks();
 
   const company = useMemo(() => companyOf(settings), [settings]);
   const mayEdit = canEdit(user, getCollection(SIGN_DOCS)?.write) && store.writable;
@@ -159,13 +166,14 @@ export function useDesk(): Desk {
     async (list: SignDoc[]) => {
       const drafts = list.filter((d) => d.status !== "issued" && d.status !== "void");
       if (!drafts.length) return list;
-      const saved = (await saveMany(drafts.map((d) => ({ ...d, status: "issued", issuedOn: d.issuedOn || today, company })))) as SignDoc[];
+      // printed with the saved signatures, JOVE's side counts as signed today
+      const saved = (await saveMany(drafts.map((d) => withInkTick({ ...d, status: "issued", issuedOn: d.issuedOn || today, company }, templateById(d.template) ?? { kind: "agreement", signs: "both" }, inks, today)))) as SignDoc[];
       return list.map((d) => saved.find((s) => s.id === d.id) ?? d);
     },
-    [saveMany, today, company],
+    [saveMany, today, company, inks],
   );
 
-  const loading = docs.loading || team.loading || schools.loading || vendors.loading || workshops.loading || proposals.loading || settingsLoading;
+  const loading = docs.loading || team.loading || schools.loading || vendors.loading || workshops.loading || proposals.loading || settingsLoading || !inksReady;
   return {
     ready: !loading,
     error: docs.error,
@@ -184,5 +192,7 @@ export function useDesk(): Desk {
     issue,
     remove,
     refresh,
+    inks,
+    reloadInks,
   };
 }

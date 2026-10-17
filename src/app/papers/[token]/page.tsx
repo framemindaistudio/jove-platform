@@ -10,6 +10,7 @@ import { linkLive, receivedOf, shareOf } from "@/lib/sign/share";
 import { plainDate } from "@/lib/sign/text";
 import { site } from "@/lib/site";
 import { paperOfDoc } from "@/components/hq/sign/papers";
+import { readInks } from "@/lib/hq/signatures";
 import { PublicPaper } from "@/components/sign/PublicPaper";
 
 /** Never in search results, and the preview a messaging app shows names no one. */
@@ -59,7 +60,7 @@ export default async function PaperPage({ params }: { params: Promise<{ token: s
 
   const { settings } = await readSettings();
   const company = doc.company ?? companyOf(settings);
-  const paper = paperOfDoc(doc, template, company);
+  const paper = paperOfDoc(doc, template, company, await readInks());
   const due = doc.dueBy ? plainDate(doc.dueBy) : "";
   const steps = [
     "Print the paper on A4, or choose Save as PDF and print it later.",

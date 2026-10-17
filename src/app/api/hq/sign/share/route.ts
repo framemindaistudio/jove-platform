@@ -11,6 +11,8 @@ import { templateById } from "@/lib/sign/catalog";
 import { companyOf, type SignDoc } from "@/lib/sign/context";
 import { expiryFor, linkLive, newToken, shareOf, type Share } from "@/lib/sign/share";
 import { site } from "@/lib/site";
+import { readInks } from "@/lib/hq/signatures";
+import { withInkTick } from "@/lib/sign/ink";
 
 /**
  * Sending a paper from Documents to Sign. Founders only (papers carry pay and agreed terms).
@@ -65,7 +67,8 @@ export async function POST(req: Request) {
     if (!["link", "whatsapp", "email"].includes(action)) return NextResponse.json({ error: "Unknown action" }, { status: 400 });
 
     // sending locks the wording, as printing does, so HQ keeps exactly what went out
-    if (next.status !== "issued") next = { ...next, status: "issued", issuedOn: next.issuedOn || today, company };
+    // sending with the saved signatures on it counts as JOVE's signature, the day it goes out
+    if (next.status !== "issued") next = withInkTick({ ...next, status: "issued", issuedOn: next.issuedOn || today, company }, template, await readInks(), today);
     // a link that was switched off or has run out is replaced by a new one
     if (!share || !linkLive(next, today)) share = { token: newToken(randomBytes(24)), createdOn: today, expiresOn: expiryFor(today, next.dueBy), via: [], remind: true, reminders: [] };
     const url = paperUrl(share.token);

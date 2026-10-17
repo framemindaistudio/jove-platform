@@ -17,6 +17,7 @@ import { printHref, ticked, type Desk } from "./desk";
 import { Paper } from "./Paper";
 import { paperOfDoc } from "./papers";
 import { receivedOf } from "@/lib/sign/share";
+import { inkReady, wantsInk, withInkTick } from "@/lib/sign/ink";
 import { SendPanel } from "./SendPanel";
 
 const A4_PX = 794; // 210 mm on screen
@@ -104,7 +105,7 @@ function Editor({ desk, saved, template, tab, onClose }: { desk: Desk; saved: Si
   const locked = d.status === "issued" || d.status === "void" || !desk.canEdit;
   const missing = missingFields(template, values);
   const words = PARTY_WORDS[party.kind];
-  const paper = useMemo(() => paperOfDoc({ ...d, party, values }, template, desk.company), [d, party, values, template, desk.company]);
+  const paper = useMemo(() => paperOfDoc({ ...d, party, values }, template, desk.company, desk.inks), [d, party, values, template, desk.company, desk.inks]);
   const who = party.kind === "team" ? party.name.split(" ")[0] || "them" : party.name || "them";
   const signers = listAnd((d.signatories ?? []).map((s) => s.name.split(" ")[0]));
   const staleWording = d.status === "issued" && !!d.templateVersion && d.templateVersion !== template.version;
@@ -138,7 +139,8 @@ function Editor({ desk, saved, template, tab, onClose }: { desk: Desk; saved: Si
 
   /** The first print locks the wording, so HQ keeps exactly what went out to be signed. */
   async function print() {
-    const cur = d.status === "draft" ? await store({ ...d, status: "issued", issuedOn: d.issuedOn || desk.today, company: desk.company }, "print") : dirty ? await store(d, "print") : d;
+    // with the saved signatures on it, JOVE's side counts as signed the day it is printed
+    const cur = d.status === "draft" ? await store(withInkTick({ ...d, status: "issued", issuedOn: d.issuedOn || desk.today, company: desk.company }, template, desk.inks, desk.today), "print") : dirty ? await store(d, "print") : d;
     if (cur) router.push(printHref([cur.id], tab));
   }
 
@@ -287,6 +289,24 @@ function Editor({ desk, saved, template, tab, onClose }: { desk: Desk; saved: Si
                 <option value="both">Both founders</option>
               </Select>
             </Field>
+          )}
+          {template.signs !== "party" && (
+            <div className="sm:col-span-2" data-ink>
+              <Checkbox
+                checked={wantsInk(d, template)}
+                disabled={locked}
+                onChange={(e) => edit({ ink: e.target.checked })}
+                label={<span className="font-semibold">Print our saved signatures on it</span>}
+              />
+              <p className="mt-1 pl-6 text-xs leading-relaxed text-blueprint">
+                {!inkReady(d, desk.inks)
+                  ? "Save the signature of everyone signing for JOVE first, under Our signatures at the top of Documents to Sign. Until then a line is left to sign by hand."
+                  : wantsInk(d, template)
+                    ? "JOVE's side is then ticked as signed when you print or send it. They only sign and send it back."
+                    : "Left off, the founders sign it by hand."}
+                {template.kind === "agreement" && " For an agreement, your advocate may prefer signatures by hand or Aadhaar eSign; a printed signature picture is not a Digital Signature Certificate."}
+              </p>
+            </div>
           )}
           {template.fields.map((f) => (
             <Box key={f.key} spec={f} value={values[f.key] ?? ""} disabled={locked} onChange={(v) => setValue(f.key, v)} />

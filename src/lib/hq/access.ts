@@ -45,11 +45,12 @@ export const VIEWER_HIDDEN_FILES = [
 /**
  * File Vault folders that are not for everyone on staff.
  * "signed" is where Documents to Sign keeps signed scans (offer letters carry pay); "hr" holds identity and
- * verification copies; "safeguarding" holds incident and safeguarding records: founders and admins only.
+ * verification copies; "safeguarding" holds incident and safeguarding records; "signatures" holds the founders'
+ * saved signatures for papers: founders and admins only.
  * "agreements" holds signed school agreements with the amounts agreed: the roles that see Finance.
  */
 export const SIGNED_VAULT_FOLDER = "signed";
-export const LEADERSHIP_VAULT_FOLDERS = [SIGNED_VAULT_FOLDER, "hr", "safeguarding"];
+export const LEADERSHIP_VAULT_FOLDERS = [SIGNED_VAULT_FOLDER, "hr", "safeguarding", "signatures"];
 export const OPS_VAULT_FOLDERS = ["agreements"];
 
 function segments(path: string) {

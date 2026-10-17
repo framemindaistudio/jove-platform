@@ -8,6 +8,7 @@ import { templateById } from "@/lib/sign/catalog";
 import { companyOf, fileNameOf, SIGN_DOCS, signatoriesFor, type SignDoc } from "@/lib/sign/context";
 import { Paper, type PaperDoc } from "./Paper";
 import { blankPaper, paperOfDoc } from "./papers";
+import { useInks } from "./useInks";
 
 /** A CSS string: what a page's foot prints. */
 const cssText = (s: string) => `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/[\r\n]+/g, " ")}"`;
@@ -36,6 +37,7 @@ export function pageCss(papers: PaperDoc[]) {
 export function SignPrint({ ids, blank, copies, back }: { ids: string[]; blank: string[]; copies: number; back: string }) {
   const { records, loading, error } = useCollection<SignDoc>(SIGN_DOCS);
   const { settings, loading: settingsLoading } = useSettings();
+  const { inks, ready: inksReady } = useInks();
 
   const { papers, missing } = useMemo(() => {
     const company = companyOf(settings);
@@ -44,7 +46,7 @@ export function SignPrint({ ids, blank, copies, back }: { ids: string[]; blank: 
     for (const id of ids) {
       const doc = records.find((r) => r.id === id);
       const template = templateById(doc?.template);
-      if (doc && template) out.push(paperOfDoc(doc, template, company));
+      if (doc && template) out.push(paperOfDoc(doc, template, company, inks));
       else missing += 1;
     }
     const signatories = signatoriesFor("", settings);
@@ -54,9 +56,9 @@ export function SignPrint({ ids, blank, copies, back }: { ids: string[]; blank: 
       else for (let c = 0; c < copies; c++) out.push(blankPaper(`${id}-${c}`, template, company, signatories));
     }
     return { papers: out, missing };
-  }, [records, settings, ids, blank, copies]);
+  }, [records, settings, ids, blank, copies, inks]);
 
-  const ready = !loading && !settingsLoading;
+  const ready = !loading && !settingsLoading && inksReady;
   const first = ids.length ? records.find((r) => r.id === ids[0]) : undefined;
   const heading = !ready ? "Preparing…" : papers.length === 1 ? `${papers[0].name}${first?.partyName ? ` · ${first.partyName}` : blank.length ? " · blank copy" : ""}` : `${papers.length} documents to sign`;
 

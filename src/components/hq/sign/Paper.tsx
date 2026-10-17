@@ -21,6 +21,8 @@ export interface PaperDoc {
   blocks: Block[];
   /** set for agreements: the words of the initials line at the foot of every page */
   initials?: string;
+  /** the founders' saved signatures to print above their names (name → picture), when the paper carries them */
+  inks?: Record<string, string>;
 }
 
 /* ───────────────────────────── text with its two marks ───────────────────────────── */
@@ -72,11 +74,16 @@ function Letterhead({ company }: { company: Company }) {
 
 /* ───────────────────────────── signatures ───────────────────────────── */
 
-function Signature({ block }: { block: SignBlock }) {
+function Signature({ block, ink }: { block: SignBlock; ink?: string }) {
   return (
     <div className="min-w-0 break-inside-avoid">
       <p className="text-[6.6pt] font-semibold uppercase tracking-[0.16em] text-blueprint">{block.heading}</p>
       <div className="relative h-[13.5mm] border-b-[0.3mm] border-graphite">
+        {ink && (
+          // a saved signature, printed as it was written: an <img>, so the print keeps it sharp at any size
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={ink} alt={`Signature of ${block.name}`} className="absolute bottom-[0.4mm] left-0 max-h-[12.6mm] max-w-[52mm] object-contain object-left-bottom" />
+        )}
         {block.seal && (
           <span aria-hidden className="absolute bottom-[1mm] right-0 grid size-[12mm] place-items-center rounded-full border-[0.25mm] border-dashed border-graphite/45 text-[5.6pt] uppercase tracking-[0.14em] text-blueprint">
             Seal
@@ -113,7 +120,7 @@ function Signature({ block }: { block: SignBlock }) {
 
 /* ───────────────────────────── the blocks ───────────────────────────── */
 
-function Blocks({ blocks }: { blocks: Block[] }) {
+function Blocks({ blocks, inks }: { blocks: Block[]; inks?: Record<string, string> }) {
   // the number of each clause, worked out before anything is drawn (0 for a block that is not a clause)
   const clauseNo = blocks.reduce<number[]>((acc, b) => [...acc, b.t === "clause" ? acc.filter(Boolean).length + 1 : 0], []);
   return (
@@ -266,7 +273,7 @@ function Blocks({ blocks }: { blocks: Block[] }) {
             return (
               <div key={i} className={cn("mt-[4.4mm] grid break-inside-avoid gap-x-[12mm] gap-y-[5mm]", block.blocks.length === 1 ? "grid-cols-2" : block.blocks.length === 3 ? "grid-cols-3" : "grid-cols-2")}>
                 {block.blocks.map((s, j) => (
-                  <Signature key={j} block={s} />
+                  <Signature key={j} block={s} ink={s.heading.startsWith("For ") ? inks?.[s.name] : undefined} />
                 ))}
               </div>
             );
@@ -298,7 +305,7 @@ export function Paper({ doc }: { doc: PaperDoc }) {
           Date: {doc.date ? <span className="font-semibold">{doc.date}</span> : <WriteIn mm={34} />}
         </span>
       </div>
-      <Blocks blocks={doc.blocks} />
+      <Blocks blocks={doc.blocks} inks={doc.inks} />
     </article>
   );
 }
