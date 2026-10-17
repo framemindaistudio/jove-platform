@@ -16,6 +16,7 @@ import { StandingBadge, templateOf, useFit } from "./bits";
 import { printHref, ticked, type Desk } from "./desk";
 import { Paper } from "./Paper";
 import { paperOfDoc } from "./papers";
+import { receivedOf } from "@/lib/sign/share";
 import { SendPanel } from "./SendPanel";
 
 const A4_PX = 794; // 210 mm on screen
@@ -293,6 +294,38 @@ function Editor({ desk, saved, template, tab, onClose }: { desk: Desk; saved: Si
         </div>
 
         <Heading n="03" title="Signatures" note="Tick each side when the signed paper is in your hands. A tick is saved at once." />
+        {receivedOf(d).length > 0 && (
+          <div className={cn("mb-3 rounded-[var(--radius-sm)] border p-4", d.partySigned === true ? "border-graphite/15 bg-paper-50" : "border-warn/40 bg-warn/[0.08]")} data-received>
+            <p className="text-sm font-semibold text-graphite">
+              {d.partySigned === true ? "Signed copy sent from the link" : `${who} sent back a signed copy from the link`}
+            </p>
+            {d.partySigned !== true && <p className="mt-1 text-xs text-charcoal">Open each file and check every page is there and signed. Reminders are paused meanwhile.</p>}
+            <ul className="mt-2 space-y-1">
+              {receivedOf(d).map((r) => (
+                <li key={r.path}>
+                  <a href={rawHref(r.path)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold text-graphite underline underline-offset-2">
+                    <ExternalLink className="size-3.5" aria-hidden /> {r.name || r.path.split("/").pop()} <span className="font-normal text-blueprint">· {shortDate(r.at.slice(0, 10))}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+            {desk.canEdit && d.partySigned !== true && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button size="sm" disabled={!!busy} onClick={() => void store({ ...ticked(d, "party", true, desk), scan: d.scan || receivedOf(d)[0].path }, "tick", "Marked as signed. The copy is kept in the File Vault.")}>
+                  <Check className="size-3.5" aria-hidden /> Looks right, mark as signed
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={!!busy}
+                  onClick={() => window.confirm("Set these files aside and wait for a new copy? They stay in the File Vault. Tell them what is missing; reminders start again.") && void store({ ...d, received: [], notes: [d.notes, `Copy sent on ${shortDate(receivedOf(d).at(-1)!.at.slice(0, 10))} was not right; asked again.`].filter(Boolean).join("\n") }, "void", "Set aside. Reminders start again.")}
+                >
+                  <Undo2 className="size-3.5" aria-hidden /> Not right, ask again
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
         <div className="space-y-3 rounded-[var(--radius-sm)] border border-graphite/15 bg-paper-50 p-4">
           {template.signs !== "jove" && (
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2">

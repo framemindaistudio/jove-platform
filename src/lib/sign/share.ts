@@ -26,7 +26,29 @@ export interface Share {
   reminders: string[];
 }
 
+/** A signed copy they uploaded from the link, waiting for a founder to check it. */
+export interface Received {
+  /** where it is kept: vault/signed/... (founders only) */
+  path: string;
+  /** the file's own name, as they sent it */
+  name: string;
+  /** ISO time */
+  at: string;
+  size: number;
+}
+
 export const LINK_DAYS = 30;
+/** files one person can upload to one paper (a photo per page) */
+export const MAX_UPLOADS = 12;
+export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+
+export function receivedOf(doc: { received?: unknown } | null | undefined): Received[] {
+  const r = doc?.received;
+  return Array.isArray(r) ? r.filter((x): x is Received => !!x && typeof x.path === "string" && typeof x.at === "string").map((x) => ({ path: x.path, name: String(x.name ?? ""), at: x.at, size: Number(x.size) || 0 })) : [];
+}
+
+/** They uploaded a signed copy that nobody has checked yet. */
+export const awaitingCheck = (doc: { received?: unknown; partySigned?: boolean; status?: string }) => doc.status === "issued" && doc.partySigned !== true && receivedOf(doc).length > 0;
 export const MAX_REMINDERS = 3;
 export const REMIND_EVERY_DAYS = 4;
 
@@ -82,6 +104,8 @@ export function reminderDue(doc: SignDoc, template: Pick<SignTemplate, "signs"> 
   const s = shareOf(doc);
   if (!s || !s.sentTo || !s.remind || !linkLive(doc, today) || !waitingForThem(doc, template)) return false;
   if (s.reminders.length >= MAX_REMINDERS || s.reminders.includes(today)) return false;
+  // they have sent a signed copy back: no more reminders while a founder checks it
+  if (receivedOf(doc as { received?: unknown }).length) return false;
   const last = s.reminders.at(-1) || s.sentOn || "";
   if (!last || last === today) return false;
   const due = day(doc.dueBy);

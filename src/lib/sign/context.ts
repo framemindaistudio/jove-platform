@@ -52,6 +52,8 @@ export interface SignDoc extends BaseRecord {
   proposalId?: string;
   /** the private link it was sent with (src/lib/sign/share.ts) */
   share?: unknown;
+  /** signed copies they uploaded from the link, not yet checked (src/lib/sign/share.ts) */
+  received?: unknown;
 }
 
 /* ───────────────────────────── the company and who signs for it ───────────────────────────── */

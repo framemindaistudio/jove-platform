@@ -187,6 +187,13 @@ export function buildReminders(data: ReminderData, today: string, o: { signsOf?:
   /* papers waiting for a signature */
   for (const doc of data.signDocs ?? []) {
     if (s(doc.status) !== "issued") continue;
+    // they uploaded a signed copy from the link: a founder checks it and marks it signed
+    const got = Array.isArray(doc.received) ? (doc.received as { at?: string }[]) : [];
+    if (got.length && doc.partySigned !== true) {
+      const at = day(got.at(-1)?.at) || today;
+      add({ key: `paper-in:${doc.id}`, area: "papers", level: "today", title: `Signed copy received: ${s(doc.title).split(" · ")[0] || "paper"} for ${s(doc.partyName) || "someone"}`, detail: `${got.length === 1 ? "1 file" : `${got.length} files`} sent ${whenLabel(at, today)}; check it and mark it signed`, href: `/hq/sign?tab=${doc.partyKind === "team" ? "team" : doc.partyKind === "school" ? "schools" : "others"}&doc=${encodeURIComponent(doc.id)}`, date: at });
+      continue;
+    }
     const signs = o.signsOf?.(s(doc.template)) ?? "both";
     const needsParty = signs !== "jove" && doc.partySigned !== true;
     const needsJove = signs !== "party" && doc.joveSigned !== true;

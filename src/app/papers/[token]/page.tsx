@@ -6,7 +6,7 @@ import { listRecords, readSettings } from "@/lib/hq/records";
 import { indiaToday } from "@/lib/hq/reminders";
 import { templateById } from "@/lib/sign/catalog";
 import { companyOf, fileNameOf, type SignDoc } from "@/lib/sign/context";
-import { linkLive, shareOf } from "@/lib/sign/share";
+import { linkLive, receivedOf, shareOf } from "@/lib/sign/share";
 import { plainDate } from "@/lib/sign/text";
 import { site } from "@/lib/site";
 import { paperOfDoc } from "@/components/hq/sign/papers";
@@ -64,7 +64,7 @@ export default async function PaperPage({ params }: { params: Promise<{ token: s
   const steps = [
     "Print the paper on A4, or choose Save as PDF and print it later.",
     template.initials ? "Sign the last page and initial every page." : "Sign where your name is printed.",
-    `Return it${due ? ` by ${due}` : ""}: hand it to JOVE, or send a clear scan or photo of every page to us.`,
+    `Send it back${due ? ` by ${due}` : ""}: upload it below (a PDF, or a photo of every page), or hand it to JOVE.`,
   ];
   return (
     <PublicPaper
@@ -73,6 +73,8 @@ export default async function PaperPage({ params }: { params: Promise<{ token: s
       fileName={fileNameOf(["JOVE", template.name, doc.partyName, doc.date])}
       steps={steps}
       contact={{ email: settings.email || site.contact.email, phone: settings.phone || site.contact.phone, whatsapp: site.contact.whatsapp }}
+      received={receivedOf(doc).length}
+      signed={doc.partySigned === true}
     />
   );
 }

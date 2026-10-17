@@ -26,7 +26,7 @@ export function renderPaperMail(doc: SignDoc, template: SignTemplate, o: { url: 
   const steps = [
     "Open the paper with the button below and print it on A4 (or save it as a PDF).",
     template.initials ? "Sign the last page and initial every page." : "Sign where your name is printed.",
-    `Return it${due ? ` by ${due}` : ""}: hand it to us, or send a clear scan or photo of every page by reply to this email${site.contact.whatsapp ? " or on WhatsApp" : ""}.`,
+    `Send it back${due ? ` by ${due}` : ""}: upload the signed copy on the same page (a PDF, or a photo of every page), reply to this email with it, or hand it to us.`,
   ];
   const paras = [opening, ...cover.split(/\n{2,}/)].filter(Boolean);
 
