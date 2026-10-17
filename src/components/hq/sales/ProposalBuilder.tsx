@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Copy, ExternalLink, Loader2, Printer, Save, Send, Sparkles, Trash2 } from "lucide-react";
+import { AlertTriangle, CalendarCheck, Copy, ExternalLink, Loader2, Printer, Save, Send, Sparkles, Trash2 } from "lucide-react";
 import { getCollection, type BaseRecord } from "@/lib/hq/collections";
 import { cleanEstimate } from "@/lib/estimate";
 import { can } from "@/lib/hq/roles";
@@ -17,6 +17,8 @@ import { LineItemsEditor } from "@/components/hq/fields";
 import { EmptyState, Loading, PageHeader, Panel } from "@/components/hq/ui";
 import { cn, formatDate, formatINR, formatNumber } from "@/lib/utils";
 import { BackLink, Notice } from "./bits";
+import { BookingLinks, BookingModal, bookingOf, type Booking } from "./BookingModal";
+import { SESSIONS } from "./booking";
 import { addDays, BAND_FIELDS, schoolStudents, str, todayIso } from "./crm";
 import {
   addOnListRate,
@@ -79,6 +81,7 @@ function blankProposal(school?: BaseRecord, lead?: BaseRecord): Record<string, u
       ? {
           ...proposalFromEstimate(estimate),
           leadId: lead?.id,
+          preferredDate: str(lead?.preferredDate),
           notes: lead?.preferredDate ? `Preferred date from the website request: ${formatDate(str(lead.preferredDate))}.` : "",
         }
       : {}),
@@ -129,6 +132,7 @@ function BuilderForm({ initial, presetSchool, presetLead, created }: { initial: 
   const [persistedStatus, setPersistedStatus] = useState<string>(() => str(initial?.status));
   const [saving, setSaving] = useState<"save" | "pdf" | "send" | null>(null);
   const [error, setError] = useState("");
+  const [booking, setBooking] = useState(false);
   const [notice, setNotice] = useState(created ? "Proposal created." : !initial && cleanEstimate(presetLead?.estimate) ? "Filled in from the school's website estimate. Check the numbers, then save." : "");
 
   const set = (patch: Record<string, unknown>) => {
@@ -290,6 +294,13 @@ function BuilderForm({ initial, presetSchool, presetLead, created }: { initial: 
     return notes.length ? ` ${notes.join("; ")}.` : "";
   }
 
+  /** What "Book it" made is kept on the proposal, so the same proposal cannot be booked twice. */
+  async function recordBooking(made: Booking) {
+    const saved = await proposals.save({ ...form, booking: made });
+    setForm(saved);
+    setSnapshot(JSON.stringify(saved));
+  }
+
   async function saveAndOpenPdf() {
     const saved = dirty ? await persist({}, "pdf") : form;
     const id = str(saved?.id);
@@ -325,6 +336,7 @@ function BuilderForm({ initial, presetSchool, presetLead, created }: { initial: 
   }
 
   const status = str(form.status) || "draft";
+  const booked = bookingOf(form as BaseRecord);
   const splitCount = BAND_KEYS.reduce((s, k) => s + num(form[k]), 0);
   const schoolTotalOnly = !!school && !BAND_KEYS.some((k) => num(school[k]) > 0) && num(school.studentsTotal) > 0;
   const busy = saving !== null;
@@ -587,6 +599,12 @@ function BuilderForm({ initial, presetSchool, presetLead, created }: { initial: 
         {/* ── live summary ── */}
         <aside className="min-w-0 xl:sticky xl:top-4 xl:self-start">
           <PriceSummary pricing={pricing} />
+          {booked && (
+            <div className="mt-4 rounded-[var(--radius-md)] border border-ok/30 bg-ok/5 p-4" data-booked>
+              <p className="annot mb-2 text-charcoal">Booked on {formatDate(booked.bookedOn)}</p>
+              <BookingLinks booking={booked} />
+            </div>
+          )}
           <div className="mt-4 flex flex-col gap-2.5">
             {canWrite && (
               <>
@@ -612,6 +630,14 @@ function BuilderForm({ initial, presetSchool, presetLead, created }: { initial: 
                     Mark accepted — school won
                   </Button>
                 )}
+                {status === "accepted" && !isNew && !booked && (
+                  <div className="rounded-[var(--radius-md)] border border-graphite/15 bg-paper-50 p-3">
+                    <Button className="h-11 w-full" onClick={() => setBooking(true)} disabled={busy || dirty} title={dirty ? "Save the changes first" : undefined}>
+                      <CalendarCheck className="size-4" aria-hidden /> Book it
+                    </Button>
+                    <p className="mt-2 text-[11px] leading-snug text-blueprint">{dirty ? "Save the changes first. " : ""}Makes the workshop date{SESSIONS[packageId] > 1 ? "s" : ""}, the draft invoice with the advance, and the school&apos;s papers to sign, in one go.</p>
+                  </div>
+                )}
                 {!isNew && (
                   <div className="flex items-center justify-between gap-2 pt-1">
                     <button type="button" onClick={duplicate} disabled={busy} className="inline-flex items-center gap-1.5 rounded px-2 py-1.5 text-xs font-semibold text-charcoal hover:bg-graphite/5 focus-visible:outline-2 focus-visible:outline-graphite disabled:opacity-50">
@@ -627,6 +653,7 @@ function BuilderForm({ initial, presetSchool, presetLead, created }: { initial: 
           </div>
         </aside>
       </div>
+      {booking && !isNew && <BookingModal proposal={form as BaseRecord} pricing={pricing} school={school} onClose={() => setBooking(false)} onBooked={recordBooking} />}
     </div>
   );
 }
