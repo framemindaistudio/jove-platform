@@ -194,7 +194,7 @@ export function buildReminders(data: ReminderData, today: string, o: { signsOf?:
     const due = day(doc.dueBy);
     const issued = day(doc.issuedOn);
     const waiting = needsParty && needsJove ? "both signatures" : needsParty ? `${s(doc.partyName) || "their"} signature` : "JOVE's signature";
-    const tab = doc.partyKind === "team" ? "team" : doc.partyKind === "school" ? "schools" : "others";
+    const tab = `${doc.partyKind === "team" ? "team" : doc.partyKind === "school" ? "schools" : "others"}&doc=${encodeURIComponent(doc.id)}`;
     if (due && due <= in3) add({ key: `paper:${doc.id}`, area: "papers", level: levelFor(due, today), title: `${s(doc.title).split(" · ")[0] || "Paper"} for ${s(doc.partyName) || "someone"}`, detail: `Waiting for ${waiting}; to be returned ${whenLabel(due, today)}`, href: `/hq/sign?tab=${tab}`, date: due });
     else if (!due && issued && issued <= addDaysIso(today, -7)) add({ key: `paper:${doc.id}`, area: "papers", level: "soon", title: `${s(doc.title).split(" · ")[0] || "Paper"} for ${s(doc.partyName) || "someone"}`, detail: `Waiting for ${waiting} since ${whenLabel(issued, today)}`, href: `/hq/sign?tab=${tab}`, date: issued });
   }

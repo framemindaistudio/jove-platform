@@ -11,16 +11,16 @@
 import "server-only";
 import { templateById } from "@/lib/sign/catalog";
 import { site } from "@/lib/site";
+import { esc, mailFrom, sendMail } from "./mail";
 import { listRecords, readSettings } from "./records";
 import { AREA_LABEL, AREA_SOURCE, buildReminders, countByLevel, type Reminder, type ReminderData, type ReminderLevel } from "./reminders";
 
-export const DEFAULT_FROM = "JOVE HQ <onboarding@resend.dev>";
 
 export function digestSetup() {
   return {
     key: !!process.env.RESEND_API_KEY,
     cron: !!process.env.CRON_SECRET,
-    from: process.env.DIGEST_FROM || DEFAULT_FROM,
+    from: mailFrom(),
   };
 }
 
@@ -46,7 +46,6 @@ export async function loadReminders(today: string): Promise<Reminder[]> {
   return buildReminders(data as ReminderData, today, { signsOf: (id) => templateById(id)?.signs ?? "both" });
 }
 
-const esc = (v: string) => v.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 const LONG = new Intl.DateTimeFormat("en-IN", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
 
 const HEADS: Record<ReminderLevel, string> = { overdue: "Overdue", today: "For today", soon: "Coming up" };
@@ -109,19 +108,8 @@ export function renderDigest(list: Reminder[], today: string, baseUrl = site.url
 /** Sends through Resend. Throws with Resend's own message when it refuses. */
 /** `once` makes Resend send a given key only once a day, so a repeated morning call cannot send twice. */
 export async function sendDigest(to: string[], mail: { subject: string; html: string; text: string }, once?: string) {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) throw new Error("The email service is not connected yet (RESEND_API_KEY is missing).");
   if (!to.length) throw new Error("Nobody is set to receive the morning email. Add an address in Settings → Morning email.");
-  // RESEND_API_URL only points the local tests at a stand-in; Vercel never sets it
-  const res = await fetch(process.env.RESEND_API_URL || "https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...(once ? { "Idempotency-Key": once } : {}) },
-    body: JSON.stringify({ from: process.env.DIGEST_FROM || DEFAULT_FROM, to, subject: mail.subject, html: mail.html, text: mail.text }),
-    cache: "no-store",
-  });
-  const body = (await res.json().catch(() => ({}))) as { id?: string; message?: string };
-  if (!res.ok) throw new Error(`The email service refused the message: ${body.message || res.status}`);
-  return body.id ?? "";
+  return sendMail({ to, ...mail, once });
 }
 
 /** Everything for one morning: who gets it, and the email itself. */

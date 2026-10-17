@@ -43,6 +43,8 @@ export interface Desk {
   /** locks drafts as printed today (the wording and the company's details are kept as they are now) */
   issue: (docs: SignDoc[]) => Promise<SignDoc[]>;
   remove: (id: string) => Promise<void>;
+  /** reads the papers again (after the server changed one, as sending does) */
+  refresh: () => Promise<unknown>;
 }
 
 /**
@@ -79,7 +81,7 @@ export function useDesk(): Desk {
   const company = useMemo(() => companyOf(settings), [settings]);
   const mayEdit = canEdit(user, getCollection(SIGN_DOCS)?.write) && store.writable;
 
-  const { records: all, save: saveOne, saveMany, remove } = docs;
+  const { records: all, save: saveOne, saveMany, remove, refresh } = docs;
   const { records: members, save: saveMember } = team;
 
   /** A fully signed agreement also ticks "Agreement / NDA signed" in Team & Payroll, so the two never disagree. */
@@ -181,5 +183,6 @@ export function useDesk(): Desk {
     save,
     issue,
     remove,
+    refresh,
   };
 }

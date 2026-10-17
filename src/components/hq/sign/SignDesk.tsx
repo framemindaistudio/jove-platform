@@ -38,7 +38,8 @@ export function SignDesk() {
   const query = params.toString();
   const desk = useDesk();
   const [tab, setTab] = useState<Tab>(() => asTab(params.get("tab")));
-  const [openId, setOpenId] = useState<string | null>(null);
+  // ?doc=<id> opens that paper (links from the Today reminders)
+  const [openId, setOpenId] = useState<string | null>(() => params.get("doc"));
   const [preset, setPreset] = useState<Preset | null>(null);
 
   // the address changed (a link, or back from the print view): follow it
@@ -46,6 +47,7 @@ export function SignDesk() {
   if (synced !== query) {
     setSynced(query);
     setTab(asTab(params.get("tab")));
+    if (params.get("doc")) setOpenId(params.get("doc"));
   }
 
   function go(next: Tab) {

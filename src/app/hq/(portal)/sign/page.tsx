@@ -8,7 +8,7 @@ import { SignDesk } from "@/components/hq/sign/SignDesk";
 export const metadata: Metadata = { title: "Documents to Sign" };
 
 /**
- * /hq/sign  ·  ?tab=team|schools|others|all|templates
+ * /hq/sign  ·  ?tab=team|schools|others|all|templates  ·  &doc=<id> opens one paper
  * Founders and admins only: offer letters carry pay, and agreements carry the terms agreed with a school.
  */
 export default async function SignPage() {

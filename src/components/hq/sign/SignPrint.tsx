@@ -16,7 +16,7 @@ const cssText = (s: string) => `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
  * Page rules for the print dialog. Each document gets a page type of its own, so its foot carries its own reference
  * and its pages count from 1 again: a pack of five documents prints as five papers, not one long one.
  */
-function pageCss(papers: PaperDoc[]) {
+export function pageCss(papers: PaperDoc[]) {
   const foot = "font-family: Arial, Helvetica, sans-serif; font-size: 6.8pt; color: #6b6b6b;";
   const single = papers.length === 1;
   return [

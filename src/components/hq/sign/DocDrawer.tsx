@@ -16,6 +16,7 @@ import { StandingBadge, templateOf, useFit } from "./bits";
 import { printHref, ticked, type Desk } from "./desk";
 import { Paper } from "./Paper";
 import { paperOfDoc } from "./papers";
+import { SendPanel } from "./SendPanel";
 
 const A4_PX = 794; // 210 mm on screen
 
@@ -338,6 +339,25 @@ function Editor({ desk, saved, template, tab, onClose }: { desk: Desk; saved: Si
             <Textarea rows={2} value={d.notes ?? ""} disabled={!desk.canEdit} onChange={(e) => edit({ notes: e.target.value })} />
           </Field>
         </div>
+
+        {desk.canEdit && template.signs !== "jove" && d.status !== "void" && (
+          <>
+            <Heading n="04" title="Send it to sign" note="A private link to this paper, by email or WhatsApp. They open it, print it and sign it." />
+            <SendPanel
+              doc={d}
+              party={party}
+              template={template}
+              today={desk.today}
+              cover={template.cover?.({ company: desk.company, party, signatories: d.signatories ?? [], date: d.date ?? "", ref: d.ref ?? "", v: values, blank: false }) ?? ""}
+              beforeSend={async () => (dirty ? await store(d, "save") : d)}
+              onSent={(doc) => {
+                setD(doc);
+                setDirty(false);
+                void desk.refresh();
+              }}
+            />
+          </>
+        )}
 
         {desk.canEdit && (
           <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-graphite/10 pt-4">
