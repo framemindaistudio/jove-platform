@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { AREAS } from "@/lib/content/areas";
 import { labs } from "@/lib/content/labs";
 import { getPublicProducts } from "@/lib/public-data";
 import { site } from "@/lib/site";
@@ -16,6 +17,7 @@ const STATIC_ROUTES: { path: string; priority: number; changeFrequency: Entry["c
   { path: "/shop", priority: 0.8, changeFrequency: "weekly" },
   { path: "/about", priority: 0.7, changeFrequency: "monthly" },
   { path: "/contact", priority: 0.8, changeFrequency: "yearly" },
+  { path: "/areas", priority: 0.7, changeFrequency: "monthly" },
   { path: "/testimonials", priority: 0.5, changeFrequency: "weekly" },
   { path: "/careers", priority: 0.5, changeFrequency: "monthly" },
   { path: "/verify", priority: 0.3, changeFrequency: "yearly" },
@@ -33,6 +35,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     changeFrequency: r.changeFrequency,
     priority: r.priority,
   }));
+
+  for (const a of AREAS) {
+    entries.push({ url: url(`/areas/${a.slug}`), changeFrequency: "monthly", priority: 0.6 });
+  }
 
   for (const lab of labs) {
     entries.push({ url: url(`/labs/${lab.slug}`), changeFrequency: "monthly", priority: 0.7 });

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { ChevronDown, MapPin } from "lucide-react";
 import { CornerMarks, SectionLabel } from "@/components/brand/Blueprint";
@@ -72,7 +73,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
                       Based in {site.location}
                     </h2>
                     <p className="mt-2 text-sm leading-relaxed text-charcoal">
-                      Our team brings the whole JOVE Day to your campus. If your school is far from our base, we will cover travel and logistics in your proposal, so there are no surprises later.
+                      Our team brings the whole JOVE Day to your campus. If your school is far from our base, we will cover travel and logistics in your proposal, so there are no surprises later. <Link href="/areas" className="font-semibold text-graphite underline underline-offset-4">See where we work</Link>.
                     </p>
                   </div>
                 </div>

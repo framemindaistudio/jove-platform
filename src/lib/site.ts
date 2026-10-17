@@ -14,7 +14,7 @@ export const site = {
     "JOVE brings full-day Robotics, AI & Machine Learning workshops to schools — Grades 1 to 10 — and is the first school workshop company with its own in-house cinematic film studio. Every workshop ships with reels, a full-day film and drone shots for your school.",
   // the live domain is the default in production, so links, QR codes and share previews are right even if the env var is missing
   url: (process.env.NEXT_PUBLIC_SITE_URL || (process.env.NODE_ENV === "production" ? "https://www.jove.website" : "http://localhost:3000")).replace(/\/+$/, ""),
-  location: process.env.NEXT_PUBLIC_LOCATION || "India",
+  location: process.env.NEXT_PUBLIC_LOCATION || "Bagalkot, Karnataka",
   contact: {
     email: process.env.NEXT_PUBLIC_CONTACT_EMAIL || "",
     phone: process.env.NEXT_PUBLIC_CONTACT_PHONE || "",
@@ -72,6 +72,7 @@ export const footerNav: { title: string; items: NavItem[] }[] = [
       { label: "Packages & Pricing", href: "/packages" },
       { label: "Media Studio", href: "/studio" },
       { label: "Book a Workshop", href: "/contact" },
+      { label: "Where We Work", href: "/areas" },
       { label: "Testimonials", href: "/testimonials" },
     ],
   },
