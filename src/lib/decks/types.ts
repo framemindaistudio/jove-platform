@@ -13,12 +13,85 @@ export type IconName =
   | "RotateCw" | "Bug" | "Wrench" | "Car" | "Sun" | "Flashlight" | "Cpu" | "Code" | "Radar" | "Waves" | "Camera" | "Scan" | "Target"
   | "Users" | "Trophy" | "ShieldCheck" | "Film" | "Clapperboard" | "Plane" | "School" | "GraduationCap" | "CalendarDays" | "IndianRupee"
   | "Handshake" | "Mic" | "Clock" | "ListChecks" | "Heart" | "MessageCircle" | "Scale" | "Lock" | "Globe" | "Rocket" | "Package"
-  | "Gauge" | "Sliders" | "Layers" | "Puzzle" | "Smile" | "Megaphone" | "Phone" | "Shirt" | "ClipboardList" | "Search" | "Volume2";
+  | "Gauge" | "Sliders" | "Layers" | "Puzzle" | "Smile" | "Megaphone" | "Phone" | "Shirt" | "ClipboardList" | "Search" | "Volume2"
+  | "Cable" | "Plug" | "Usb" | "Upload" | "Monitor" | "Wifi" | "Ruler" | "Scissors" | "BookOpen" | "Flag" | "Laptop" | "Music" | "Hammer" | "Navigation" | "Thermometer" | "Activity" | "Move" | "Box";
 
 export interface Card {
   icon: IconName;
   title: string;
   text?: string;
+}
+
+/* ── Wiring pictures (drawn by src/components/hq/decks/Wiring.tsx) ─────────────────────────── */
+
+export type WireColour = "red" | "black" | "yellow" | "blue" | "green" | "orange" | "white" | "purple" | "brown" | "grey";
+export type PinSide = "top" | "bottom" | "left" | "right";
+
+/** One part in a wiring picture, drawn to look like the one in the kit. Pins are named as on the real part. */
+export interface PartSpec {
+  id: string;
+  type: "battery" | "switch" | "led" | "resistor" | "motor" | "buzzer" | "ldr" | "transistor" | "servo" | "ultrasonic" | "breadboard" | "board";
+  x: number;
+  y: number;
+  label?: string;
+  /** where the label goes (left edge, baseline), relative to the part; default centred under it */
+  labelAt?: [number, number];
+  /** LED colour, fan colour or board colour */
+  color?: string;
+  /** battery: number of AA cells (pins "+" and "-") */
+  /** battery: leads on the left instead of the right */
+  flip?: boolean;
+  cells?: number;
+  /** LED glows, motor spins, buzzer sounds, switch is on */
+  on?: boolean;
+  /** motor: a fan on the shaft */
+  fan?: boolean;
+  /** motor: "geared" is the yellow BO motor with a wheel */
+  variant?: "geared";
+  /** resistor: value printed above it, and its colour bands; transistor or servo: the printed name */
+  value?: string;
+  bands?: string[];
+  /** board: size, title, the pins along each side, and what is drawn on it */
+  w?: number;
+  h?: number;
+  title?: string;
+  titleSize?: number;
+  pins?: Partial<Record<PinSide, string[]>>;
+  pinSize?: number;
+  chip?: boolean;
+  usb?: boolean;
+  camera?: boolean;
+  screen?: string;
+  /** breadboard: number of columns and the columns shown as joined */
+  cols?: number;
+  highlight?: number[];
+}
+
+export interface Wire {
+  /** "partId.pin" */
+  from: string;
+  to: string;
+  color?: WireColour;
+  /** corner points to pass through, when the automatic route is not tidy */
+  via?: [number, number][];
+  label?: string;
+  labelAt?: [number, number];
+  dashed?: boolean;
+}
+
+export interface Diagram {
+  /** drawing size in its own units; it is scaled to fit the slide */
+  w: number;
+  h: number;
+  parts: PartSpec[];
+  wires: Wire[];
+  /** sticky notes on the picture; "
+" breaks a line */
+  notes?: { x: number; y: number; text: string; color?: string }[];
+  /** dashed boxes that group parts ("Left eye → right motor") */
+  zones?: { x: number; y: number; w: number; h: number; label: string; color?: string }[];
+  /** dots run along the wires while presenting: the current flowing */
+  flow?: boolean;
 }
 
 /** What a slide shows. Every kind takes the same optional extras (see Slide). */
@@ -35,7 +108,30 @@ export type SlideBody =
   | { kind: "table"; title: string; head: string[]; rows: string[][]; foot?: string }
   | { kind: "image"; title: string; src: string; caption?: string; points?: string[] }
   | { kind: "big-number"; number: string; label: string; sub?: string }
-  | { kind: "closing"; title: string; sub?: string; points?: string[] };
+  | { kind: "closing"; title: string; sub?: string; points?: string[] }
+  /** the start of a chapter of the story: "Chapter 2 · Give the robot eyes" */
+  | { kind: "chapter"; n: number; title: string; sub?: string; icon?: IconName }
+  /** what is in the kit: each part drawn, with what it does */
+  | { kind: "parts"; title: string; parts: { name: string; qty?: string; job: string; draw?: Omit<PartSpec, "id" | "x" | "y">; icon?: IconName }[] }
+  /** a wiring picture, with a few notes beside it */
+  | { kind: "circuit"; title: string; diagram: Diagram; points?: string[]; caption?: string }
+  /** one step of the build: what you need, what to do, how to know it worked */
+  | {
+      kind: "build";
+      step: number;
+      of: number;
+      title: string;
+      need?: string[];
+      do: string[];
+      check?: string;
+      tip?: string;
+      warn?: string;
+      diagram?: Diagram;
+      art?: string;
+      icon?: IconName;
+    }
+  /** how it works: boxes joined by arrows, with an optional loop back */
+  | { kind: "flow"; title: string; nodes: { icon: IconName; title: string; text?: string }[]; loop?: string; sub?: string };
 
 export type Slide = SlideBody & {
   /** what to say: shown in the presenter's notes, never on the projected slide */

@@ -1,33 +1,43 @@
 /**
- * AI Innovators (Grades 9–10), "Build an AI that Sees": the classroom deck for the JOVE Day session (180 minutes).
- * Follows OPERATIONS/02_CURRICULUM/G09-10_AI_Innovators/01_JOVE_Day_Session_Plan.md. Real vocabulary, honest
- * measurement (accuracy out of 10), and the responsible-AI questions treated as seriously as the build.
+ * AI Innovators (Grades 9–10), "Build an AI that Sees": the JOVE Day session (180 minutes) as a story in five
+ * chapters, with the AI vision pan-tilt robot as a step-by-step tutorial: the wiring, the board settings, the data,
+ * the training and the browser code that joins the model to the servos. Follows
+ * OPERATIONS/02_CURRICULUM/G09-10_AI_Innovators/01_JOVE_Day_Session_Plan.md, its 08_Code_Library.md (sections 0–3
+ * and 6) and 06_ROBOTICS_KITS/06_Assembly_Instructions_Innovator.md. Real vocabulary, honest measurement, and the
+ * responsible-AI questions treated as seriously as the build.
  */
+import { camCircuit, panTiltCircuit } from "./circuits";
 import type { Deck } from "./types";
+
+const OF = 11;
 
 export const aiDeck: Deck = {
   id: "ai-innovators",
   group: "classroom",
   title: "Build an AI that Sees",
   audience: "Grades 9–10 · AI Innovators · 3 hours",
-  blurb: "How machines learn, the robot arm commander, the AI vision pan-tilt robot, a responsible-AI debate and the mini-hackathon pitch.",
+  blurb: "How machines learn, the robot arm commander, then the AI vision pan-tilt robot built step by step (wiring, camera, data, training, the code that joins model and servos), a responsible-AI debate and the pitch.",
   minutes: 180,
   theme: { accent: "#6b46c1", tint: "#ece6f8", level: 3, palette: ["#6b46c1", "#1c7ed6", "#d6336c", "#2b8a3e", "#e8590c", "#1f8a7a"] },
-  sources: ["02_CURRICULUM/G09-10_AI_Innovators/01_JOVE_Day_Session_Plan.md", "02_CURRICULUM/G09-10_AI_Innovators/08_Code_Library.md", "02_CURRICULUM/G09-10_AI_Innovators/09_Mini_Hackathon_Pitch_Guide.md"],
+  sources: ["02_CURRICULUM/G09-10_AI_Innovators/01_JOVE_Day_Session_Plan.md", "02_CURRICULUM/G09-10_AI_Innovators/08_Code_Library.md", "06_ROBOTICS_KITS/06_Assembly_Instructions_Innovator.md", "02_CURRICULUM/G09-10_AI_Innovators/09_Mini_Hackathon_Pitch_Guide.md"],
   slides: () => [
     { kind: "cover", kicker: "AI Innovators · Grades 9–10", title: "Build an AI that Sees", sub: "Train a model. Connect it to a robot. Argue about what AI should do.", art: "/images/age/age-4.webp", phase: "Wow" },
+
+    /* ── Chapter 1: how machines learn ─────────────────────── */
+    { kind: "chapter", n: 1, title: "How machines learn", sub: "When you cannot write the rule", icon: "Brain", phase: "Wow" },
     { kind: "statement", big: "Muffin or chihuahua?", sub: "Could you write the rule for that in code? Try.", icon: "Search", phase: "Wow", minutes: 5, notes: "Unlock your phone with your face, then the card game. Let them attempt a rule; it breaks quickly." },
     { kind: "compare", title: "Programming vs learning", left: { title: "Traditional code", items: ["Rules + data → answers", "A person writes the rules", "Great when the rule is clear"] }, right: { title: "Machine learning", items: ["Data + answers → rules", "The model learns from examples", "Needed when the rule is hard to write"] }, phase: "Why", minutes: 5, notes: "“Traditional code gets the rules from us. ML gets the rules from examples.”" },
     {
-      kind: "steps",
+      kind: "flow",
       title: "How a model is made",
-      steps: [
-        { title: "Collect data", icon: "Camera" },
-        { title: "Label it", icon: "ClipboardList" },
-        { title: "Train", icon: "Brain" },
-        { title: "Test on new data", icon: "Search" },
-        { title: "Improve", icon: "RotateCw" },
+      nodes: [
+        { icon: "Camera", title: "Collect", text: "examples" },
+        { icon: "ClipboardList", title: "Label", text: "the right answers" },
+        { icon: "Brain", title: "Train", text: "fit the examples" },
+        { icon: "Search", title: "Test", text: "on new data" },
+        { icon: "RotateCw", title: "Improve", text: "fix the weak spots" },
       ],
+      loop: "repeat until it is good enough",
       phase: "Why",
       minutes: 10,
       notes: "Live demo: train two classes on your webcam (thumbs up vs open hand) and show the lab's decision boundary at jove.website/labs/teach-the-machine. “Predict what it says for a thumb halfway. Why does confidence drop?”",
@@ -51,44 +61,171 @@ export const aiDeck: Deck = {
     },
     { kind: "quiz", question: "A model trained only on daytime photos meets a night photo.", options: ["Right", "Wrong", "Can't be sure"], answer: 2, explain: "It never saw night: it may well be wrong, and it cannot tell you.", phase: "Test", notes: "Hands up for each option first." },
     { kind: "quiz", question: "More confident means more correct.", options: ["True", "False"], answer: 1, explain: "Confidence is the model's guess about itself, not proof.", phase: "Test" },
+
+    /* ── Chapter 2: robots that move ───────────────────────── */
+    { kind: "chapter", n: 2, title: "Robots that move", sub: "Joints, angles and the robot arm", icon: "Move", phase: "Build" },
     { kind: "image", title: "Robot arm commander", src: "/images/labs/lab-arm.webp", points: ["Joints and degrees of freedom", "Pick and place with angle sliders", "Record the angles for each pick"], phase: "Build", minutes: 12, notes: "jove.website/labs/robot-arm on the laptops. “How many numbers describe where the hand is?”" },
     { kind: "compare", title: "Two questions about an arm", left: { title: "Forward kinematics", items: ["Given the angles", "Where is the hand?", "Easy to compute"] }, right: { title: "Inverse kinematics", items: ["Given a target", "Which angles?", "Harder: try, then the geometry"] }, phase: "Why", minutes: 6 },
     { kind: "quiz", question: "Joint 1 turns 10°. Does the hand move 10 cm?", options: ["Yes", "No"], answer: 1, explain: "It depends on the length of the arm.", phase: "Test", minutes: 2, notes: "“Your pan-tilt robot has two joints too.” Sets up the build." },
-    { kind: "statement", big: "camera → model → class → command → servo", sub: "Your robot will turn its head toward what it sees.", icon: "Scan", phase: "Why", notes: "Any student should be able to explain this flow by the end of the build." },
+
+    /* ── Chapter 3: build the AI vision robot ──────────────── */
+    { kind: "chapter", n: 3, title: "Build an AI vision robot", sub: "A camera head that turns toward what it recognises", icon: "Scan", phase: "Build" },
     {
-      kind: "steps",
-      title: "Build the AI vision robot",
-      steps: [
-        { title: "Assemble", detail: "Camera on the pan-tilt · servos on GPIO 18 and 19 · 10 min", icon: "Wrench" },
-        { title: "See the stream", detail: "Open the camera's IP · 8 min", icon: "Camera" },
-        { title: "Test the servos", detail: "Which way is left? · 7 min", icon: "RotateCw" },
-        { title: "Collect data", detail: "Left · Centre · Right · Nothing · 20 min", icon: "Layers" },
-        { title: "Train and connect", detail: "Run the browser page · 15 min", icon: "Brain" },
-        { title: "Improve", detail: "Find a failure, add data · 10 min", icon: "Gauge" },
+      kind: "flow",
+      title: "How the whole robot works",
+      nodes: [
+        { icon: "Camera", title: "ESP32-CAM", text: "streams video over Wi-Fi" },
+        { icon: "Laptop", title: "Browser model", text: "Left · Centre · Right · Nothing" },
+        { icon: "Wifi", title: "Command", text: "/nudge?dpan=4" },
+        { icon: "Cpu", title: "ESP32 DevKit", text: "pan-tilt server" },
+        { icon: "RotateCw", title: "Servos", text: "turn the head" },
+      ],
+      loop: "every frame, many times a second",
+      phase: "Why",
+      notes: "Any student should be able to explain this flow by the end of the build. The ML runs on the laptop, not on the ESP32.",
+    },
+    {
+      kind: "parts",
+      title: "Your Innovator AI Kit",
+      parts: [
+        { name: "ESP32-CAM + MB", qty: "1", job: "The eye: camera + Wi-Fi", draw: { type: "board", w: 200, h: 240, color: "#1f1f1f", camera: true, chip: false } },
+        { name: "ESP32 DevKit", qty: "1", job: "Runs the servo server", draw: { type: "board", w: 240, h: 160, color: "#1f1f1f", title: "ESP32", usb: true } },
+        { name: "SG90 servos", qty: "2", job: "Pan and tilt", draw: { type: "servo" } },
+        { name: "Pan-tilt bracket", qty: "1", job: "Holds the camera head", icon: "Move" },
+        { name: "5 V module", qty: "1", job: "Steady power for servos", draw: { type: "board", w: 200, h: 150, color: "#5c3d99", title: "5 V", chip: false } },
+        { name: "OLED 0.96″", qty: "1", job: "Shows what it sees", draw: { type: "board", w: 220, h: 130, color: "#0b3d91", screen: "Left 93%", chip: false } },
+        { name: "Sensors", job: "IMU, HC-SR04, PIR, DHT11", draw: { type: "ultrasonic" } },
+        { name: "Breadboard, jumpers", job: "830-point board", icon: "Cable" },
+        { name: "Acrylic base", job: "With screws", icon: "Box" },
+        { name: "USB cables", qty: "2", job: "Data, not charge-only", icon: "Usb" },
       ],
       phase: "Build",
-      minutes: 70,
-      notes: "Boards are pre-flashed by trainers the night before; students wire, mount, train and tune. Power servos from the 5 V module with a common ground, never the 3.3 V pin. Safety: servos can pinch fingers; boards get warm.",
+      notes: "Count parts against the station card. Boards are pre-flashed by trainers the night before (pan-tilt server on the DevKit, CameraWebServer on the ESP32-CAM); students wire, mount, train and tune.",
+    },
+    {
+      kind: "build",
+      step: 1,
+      of: OF,
+      title: "Set up the laptop",
+      need: ["Arduino IDE 2", "Chrome or Edge"],
+      do: ["Preferences → boards URL for esp32 → install “esp32”", "Libraries: ESP32Servo, Adafruit SSD1306, Adafruit GFX", "No COM port? Install the CH340 / CP210x driver"],
+      check: "Tools → Board lists “AI Thinker ESP32-CAM”",
+      icon: "Laptop",
+      phase: "Build",
+      notes: "Trainers do this the day before; the slide is for checking and for the take-home. Boards URL: https://espressif.github.io/arduino-esp32/package_esp32_index.json",
+    },
+    { kind: "build", step: 2, of: OF, title: "Assemble the pan-tilt head", need: ["Acrylic base", "Bracket", "2 SG90"], do: ["Fit the pan servo into the base", "Fit the tilt servo into the bracket", "Centre both at 90° before the horns go on"], check: "At 90° the head looks straight ahead", warn: "Servos can pinch fingers", icon: "Wrench", phase: "Build", minutes: 10, notes: "Safe travel limits in the code: pan 20–160°, tilt 50–130°. Reduce them if the camera hits the base." },
+    {
+      kind: "build",
+      step: 3,
+      of: OF,
+      title: "Signal wires",
+      do: ["Pan servo's orange wire → GPIO 18", "Tilt servo's orange wire → GPIO 19"],
+      check: "Orange = signal: the ESP32 tells each servo its angle",
+      diagram: panTiltCircuit("signal"),
+      phase: "Build",
+      minutes: 4,
+    },
+    {
+      kind: "build",
+      step: 4,
+      of: OF,
+      title: "Power the servos",
+      do: ["5 V module → the breadboard rail", "Each servo: red → +, brown → −", "ESP32 GND → the rail's − (common ground)"],
+      warn: "Never power servos from the 3.3 V pin: the board resets",
+      diagram: panTiltCircuit("power"),
+      phase: "Build",
+      minutes: 4,
+      notes: "A common ground lets the signal mean the same thing on both sides. Without it the servos jitter or ignore the ESP32.",
+    },
+    {
+      kind: "code",
+      title: "Step 5: test the servos from a browser",
+      code: "// the DevKit runs a little web server (Code Library, section 2)\nhttp://192.168.8.102/move?pan=60&tilt=90   // go to angles\nhttp://192.168.8.102/nudge?dpan=10         // 10° more\nhttp://192.168.8.102/center                // back to 90, 90\n\nvoid handleNudge() {\n  panAngle += server.arg(\"dpan\").toInt();\n  applyAngles();   // keeps it inside PAN_MIN..PAN_MAX\n}",
+      highlight: [3],
+      bullets: ["Which way is “left”?", "Write it down: you need it later", "Your station's IP is on its label"],
+      phase: "Test",
+      minutes: 7,
+      notes: "Laptop and boards must be on the hall router (JOVE-HALL), not the school's Wi-Fi. If left and right are swapped, the browser page has PAN_DIRECTION to flip.",
+    },
+    {
+      kind: "build",
+      step: 6,
+      of: OF,
+      title: "The camera on its programmer",
+      need: ["ESP32-CAM", "MB programmer", "Data cable"],
+      do: ["Seat the ESP32-CAM on the MB board", "USB to the laptop", "Mount the camera on the pan-tilt head"],
+      tip: "The MB board handles boot mode: no GPIO0 jumper needed",
+      diagram: camCircuit(),
+      phase: "Build",
+      minutes: 5,
+      notes: "If the camera resets on Wi-Fi start (“Brownout detector was triggered”): use a short, good cable or the 5 V module, not a weak laptop port.",
+    },
+    {
+      kind: "table",
+      title: "Step 7: the camera's settings (trainer)",
+      head: ["Tools menu", "Value"],
+      rows: [
+        ["Board", "AI Thinker ESP32-CAM"],
+        ["Partition Scheme", "Huge APP (3MB No OTA/1MB SPIFFS)"],
+        ["PSRAM · Flash Mode", "Enabled · QIO"],
+        ["Example", "ESP32 → Camera → CameraWebServer"],
+        ["In the sketch", "only CAMERA_MODEL_AI_THINKER · ssid and password"],
+        ["Frame size", "QVGA (320 × 240): enough for a classifier"],
+      ],
+      foot: "Upload, open the Serial Monitor at 115200, press RST: “Camera Ready! Use http://<IP>”. Open it and press Start Stream.",
+      phase: "Build",
+      minutes: 8,
+      notes: "Trainers pre-flash this; students open the stream. The raw stream for the browser page is http://<IP>:81/stream. “Camera init failed”: reseat the ribbon cable (flip the black latch).",
+    },
+    {
+      kind: "build",
+      step: 8,
+      of: OF,
+      title: "Collect your data",
+      need: ["Teachable Machine", "Your object"],
+      do: ["Image Project → classes: Left, Centre, Right, Nothing", "Hold the object left, centre, right of the frame", "About 40 images per class"],
+      tip: "Vary the light, distance and background",
+      icon: "Camera",
+      phase: "Build",
+      minutes: 20,
+      notes: "Class names exactly as written: the page maps them to actions. “Nothing” is an empty scene. Watch for one class much bigger than the others.",
     },
     { kind: "points", title: "Good data beats more data", points: ["About 40 images per class", "Vary the lighting, distance and background", "Watch for one class that is much bigger than the others"], icon: "Camera", phase: "Build", notes: "“Where is your data weak? Left-heavy? One lighting? One background?” “Is the camera following the object, or the position class you taught it?”" },
+    { kind: "build", step: 9, of: OF, title: "Train and export", do: ["Train Model; test it live in the preview", "Export → TensorFlow.js → Upload; copy the link", "Paste it into the page's CONFIG"], check: "The preview says the right class as you move", tip: "No internet? Download the model into a model/ folder", icon: "Brain", phase: "Build", minutes: 8 },
+    {
+      kind: "code",
+      title: "Step 10: join the model to the servos",
+      code: "// jove_pantilt.html, run from http://localhost:8000\nif (probability < CONFIG.CONFIDENCE) return;   // not sure: do nothing\n\nif (label === \"Left\")\n  sendCommand(\"/nudge?dpan=\" + CONFIG.STEP_DEG);\nif (label === \"Right\")\n  sendCommand(\"/nudge?dpan=\" + (-CONFIG.STEP_DEG));\n// \"Centre\" or \"Nothing\": hold still",
+      highlight: [2],
+      bullets: ["The model guesses a class", "The page turns it into a command", "The servo turns a few degrees"],
+      phase: "Build",
+      minutes: 7,
+      notes: "Serve the page from the laptop: python -m http.server 8000, then http://localhost:8000/jove_pantilt.html (an https page cannot call the boards). Black video panel: set USE_LAPTOP_WEBCAM to true for the session and tell Chinmay.",
+    },
     { kind: "big-number", number: "0.85", label: "Confidence threshold", sub: "Predictions below 85% are ignored. Why?", phase: "Test", notes: "Stretch: try 0.7 and 0.95 and explain what changes." },
+    { kind: "build", step: 11, of: OF, title: "Improve it, and report honestly", do: ["Test 10 positions: v1 = ? out of 10", "Find a failure; add data for it; retrain", "Test again: v2 = ? out of 10, and why"], check: "Your team can say v1, v2 and the reason", icon: "Gauge", phase: "Test", minutes: 10, notes: "Each team states v1 and v2 accuracy as “x out of 10” with a reason. Then a 2-minute water and stretch break." },
     {
       kind: "table",
       title: "When it does not work",
       head: ["Symptom", "Likely cause", "Fix"],
       rows: [
         ["No video in the browser", "No stable 5 V · wrong IP · other network", "Programmer board's USB · check IP · same Wi-Fi"],
-        ["Stream is laggy", "Resolution too high · many cameras", "QVGA or VGA · fewer open tabs"],
         ["Servos jitter, board resets", "Servos on the 3.3 V pin", "5 V module with common ground"],
         ["Turns the wrong way", "Pan direction inverted", "Flip PAN_DIRECTION"],
+        ["Wobbles between Left and Centre", "Unsure near the boundary", "Raise CONFIDENCE · add boundary data"],
         ["Says “Centre” for everything", "Too little or unbalanced data", "Add varied images for the other classes"],
+        ["Works for one person's hand only", "Narrow data: bias", "Add other hands, with consent"],
       ],
       phase: "Test",
     },
-    { kind: "points", title: "Report it honestly", points: ["Test on 10 positions: v1 = ? out of 10", "Add data, retrain: v2 = ? out of 10", "Say why it improved, or why it did not"], icon: "ListChecks", phase: "Test", notes: "Each team states v1 and v2 accuracy as “x out of 10” with a reason. Then a 2-minute water and stretch break." },
+    { kind: "circuit", title: "Bonus: show what it sees on the OLED", diagram: panTiltCircuit("oled"), points: ["SDA → GPIO 21, SCL → GPIO 22", "VCC → 3.3 V, GND → GND", "The page sends “Left 93%” to it"], phase: "Build", notes: "Code Library sections 3 and 4. Address 0x3C on most 0.96″ modules. Fast teams can also add the PIR or DHT11 and show readings." },
+
+    /* ── Chapter 4: responsible AI ─────────────────────────── */
+    { kind: "chapter", n: 4, title: "Should we?", sub: "Responsible AI, argued seriously", icon: "Scale", phase: "Why" },
     {
       kind: "cards",
-      title: "Responsible AI: ask three questions",
+      title: "Ask three questions",
       cards: [
         { icon: "Users", title: "Who benefits?" },
         { icon: "ShieldCheck", title: "Who could be harmed?" },
@@ -113,9 +250,12 @@ export const aiDeck: Deck = {
       minutes: 13,
       notes: "Teams draw a motion and a side; two arguments plus one piece of evidence. Rounds: 90 seconds each, 30 seconds rebuttal. Close: “What rule would you add to your school's AI policy?”",
     },
+
+    /* ── Chapter 5: pitch ──────────────────────────────────── */
+    { kind: "chapter", n: 5, title: "Pitch an AI for good", sub: "3 minutes. A real problem, an honest plan.", icon: "Rocket", phase: "Show" },
     {
       kind: "steps",
-      title: "Mini-hackathon: pitch an AI for good",
+      title: "Mini-hackathon: your pitch",
       steps: [
         { title: "Problem", detail: "A school or city problem", icon: "Target" },
         { title: "Data", detail: "What would it learn from?", icon: "Layers" },

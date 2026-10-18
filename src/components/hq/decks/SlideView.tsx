@@ -2,6 +2,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { isIllustration, type Deck, type Phase, type Slide } from "@/lib/decks/types";
 import { DECK_ICONS } from "./icons";
+import { PartPicture, WiringView } from "./Wiring";
 
 export const W = 1600;
 export const H = 900;
@@ -78,14 +79,14 @@ function Halo({ color }: { color: string }) {
   );
 }
 
-/** One slide, drawn at 1600×900. `reveal` shows a quiz answer. */
-export function SlideView({ deck, slide, index, total, reveal = false }: { deck: Deck; slide: Slide; index: number; total: number; reveal?: boolean }) {
+/** One slide, drawn at 1600×900. `reveal` shows a quiz answer; `live` (the presenter) runs the current along the wires. */
+export function SlideView({ deck, slide, index, total, reveal = false, live = false }: { deck: Deck; slide: Slide; index: number; total: number; reveal?: boolean; live?: boolean }) {
   const t = TYPE[deck.theme.level];
   const { accent, tint } = deck.theme;
   const pal = deck.theme.palette.length ? deck.theme.palette : [accent];
   const colourOf = (i: number) => pal[i % pal.length];
   const young = deck.theme.level <= 2;
-  const centred = ["statement", "big-number", "closing"].includes(slide.kind);
+  const centred = ["statement", "big-number", "closing", "chapter"].includes(slide.kind);
 
   const body = (() => {
     switch (slide.kind) {
@@ -222,12 +223,13 @@ export function SlideView({ deck, slide, index, total, reveal = false }: { deck:
       case "code": {
         const lines = slide.code.split("\n");
         const longest = Math.max(...lines.map((l) => l.length));
-        const size = longest > 58 ? 22 : longest > 48 ? 25 : 28;
+        // long lines or many lines: smaller type, so the whole sketch stays on the slide
+        const size = Math.min(longest > 58 ? 22 : longest > 48 ? 25 : 28, lines.length > 11 ? 23 : 99);
         return (
           <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
             <Title size={t.title} accent={accent}>{slide.title}</Title>
             <Fill style={{ display: "grid", gridTemplateColumns: slide.bullets?.length ? "1fr 330px" : "1fr", gap: 30, alignItems: "center" }}>
-              <pre style={{ margin: 0, background: "#1b1d23", color: "#e8e6e1", borderRadius: 20, padding: "26px 0", font: `500 ${size}px/1.58 ${MONO}`, overflow: "hidden", boxShadow: "0 30px 60px -36px rgba(0,0,0,.6)" }}>
+              <pre style={{ margin: 0, background: "#1b1d23", color: "#e8e6e1", borderRadius: 20, padding: "26px 0", font: `500 ${size}px/${lines.length > 11 ? 1.48 : 1.58} ${MONO}`, fontVariantLigatures: "none", overflow: "hidden", boxShadow: "0 30px 60px -36px rgba(0,0,0,.6)" }}>
                 {lines.map((l, i) => (
                   <div key={i} style={{ display: "flex", padding: "0 28px", background: slide.highlight?.includes(i + 1) ? "rgba(255,214,102,.14)" : undefined, borderLeft: slide.highlight?.includes(i + 1) ? "6px solid #ffd666" : "6px solid transparent" }}>
                     <span style={{ width: 42, flex: "none", color: "#5f6170" }}>{i + 1}</span>
@@ -366,6 +368,173 @@ export function SlideView({ deck, slide, index, total, reveal = false }: { deck:
             )}
           </div>
         );
+      case "chapter":
+        return (
+          <div style={{ position: "relative", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
+            <Halo color={accent} />
+            {slide.icon && (
+              <span style={{ position: "relative", display: "grid", placeItems: "center", width: 190, height: 190, borderRadius: "50%", background: "#fff", border: `6px solid ${accent}`, boxShadow: `0 24px 50px -24px ${alpha(accent, 0.7)}` }}>
+                <Icon name={slide.icon} size={100} color={accent} />
+              </span>
+            )}
+            <p style={{ position: "relative", margin: "40px 0 0", font: `800 ${t.kicker + 4}px/1 ${MONO}`, letterSpacing: ".2em", textTransform: "uppercase", color: "#fff", background: accent, padding: "14px 24px", borderRadius: 10 }}>Chapter {slide.n}</p>
+            <p style={{ position: "relative", margin: "30px 0 0", font: `800 ${slide.title.length > 30 ? Math.round(t.big * 0.8) : t.big}px/1.04 ${MONT}`, letterSpacing: "-0.035em", color: ink, maxWidth: 1300 }}>{slide.title}</p>
+            {slide.sub && <p style={{ position: "relative", margin: "26px 0 0", font: `500 ${t.body}px/1.35 ${MONT}`, color: soft, maxWidth: 1150 }}>{slide.sub}</p>}
+          </div>
+        );
+      case "parts": {
+        const n = slide.parts.length;
+        const cols = n <= 4 ? n : n <= 6 ? 3 : n <= 8 ? 4 : 5;
+        const rows = Math.ceil(n / cols);
+        // one or two rows: picture above the words; three rows: picture beside them
+        const stack = rows <= 2;
+        const pic = rows === 1 ? 210 : rows === 2 ? 140 : 92;
+        const nameSize = Math.round(t.card * (rows === 1 ? 0.9 : rows === 2 ? (young ? 0.62 : 0.72) : 0.6));
+        return (
+          <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+            <Title size={Math.round(t.title * 0.9)} accent={accent}>{slide.title}</Title>
+            <Fill style={{ marginTop: 30, display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gridAutoRows: "1fr", gap: rows > 2 ? 14 : 20 }}>
+              {slide.parts.map((pt, i) => {
+                const col = colourOf(i);
+                return (
+                  <div key={pt.name} style={{ position: "relative", display: "grid", gridTemplateColumns: stack ? "1fr" : `${pic}px 1fr`, gridTemplateRows: stack ? `${pic}px auto` : undefined, alignContent: "center", alignItems: "center", justifyItems: stack ? "center" : "start", textAlign: stack ? "center" : "left", gap: stack ? 8 : 18, background: "#fff", borderRadius: 20, padding: rows > 2 ? "10px 18px" : "14px 16px", boxShadow: "0 18px 36px -28px rgba(0,0,0,.45)", borderLeft: stack ? undefined : `8px solid ${col}`, borderTop: stack ? `8px solid ${col}` : undefined }}>
+                    <span style={{ display: "grid", placeItems: "center", width: pic, height: pic, borderRadius: 16, background: alpha(col, 0.08) }}>
+                      {pt.draw ? <PartPicture spec={{ id: `p${i}`, x: 0, y: 0, ...pt.draw }} size={pic - 8} /> : <Icon name={pt.icon ?? "Package"} size={Math.round(pic * 0.5)} color={col} />}
+                    </span>
+                    <span style={{ display: "block" }}>
+                      <span style={{ display: "block", font: `800 ${nameSize}px/1.15 ${MONT}`, color: ink, letterSpacing: "-0.01em" }}>
+                        {pt.name}
+                        {pt.qty && <span style={{ marginLeft: 10, font: `700 ${Math.round(nameSize * 0.7)}px/1 ${MONO}`, color: col, whiteSpace: "nowrap" }}>× {pt.qty}</span>}
+                      </span>
+                      <span style={{ display: "block", marginTop: 6, font: `500 ${Math.round(nameSize * 0.78)}px/1.3 ${MONT}`, color: soft }}>{pt.job}</span>
+                    </span>
+                  </div>
+                );
+              })}
+            </Fill>
+          </div>
+        );
+      }
+      case "circuit":
+        return (
+          <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+            <Title size={Math.round(t.title * 0.85)} accent={accent}>{slide.title}</Title>
+            <Fill style={{ marginTop: 28, display: "grid", gridTemplateColumns: slide.points?.length ? "1fr 400px" : "1fr", gap: 28, minHeight: 0 }}>
+              <div style={{ minHeight: 0, background: "#fff", borderRadius: 24, padding: 18, boxShadow: "0 30px 60px -40px rgba(0,0,0,.5)", border: "2px solid rgba(31,31,31,.06)" }}>
+                <WiringView diagram={slide.diagram} flow={live && slide.diagram.flow} />
+              </div>
+              {slide.points?.length ? (
+                <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 16 }}>
+                  {slide.points.map((pt, i) => (
+                    <li key={pt} style={{ display: "flex", gap: 14, alignItems: "flex-start", background: "#fff", borderRadius: 14, padding: "16px 18px", borderLeft: `8px solid ${colourOf(i)}`, font: `600 ${young ? t.small + 3 : t.small}px/1.3 ${MONT}`, color: ink, boxShadow: "0 16px 30px -24px rgba(0,0,0,.4)" }}>
+                      {pt}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </Fill>
+            {slide.caption && <p style={{ margin: "18px 0 0", flex: "none", font: `600 ${t.small}px/1.35 ${MONT}`, color: soft }}>{slide.caption}</p>}
+          </div>
+        );
+      case "build": {
+        const fs = young ? t.small + 5 : t.small + 2;
+        const visual = slide.diagram ? (
+          <div style={{ height: "100%", minHeight: 0, background: "#fff", borderRadius: 24, padding: 16, boxShadow: "0 30px 60px -40px rgba(0,0,0,.5)", border: "2px solid rgba(31,31,31,.06)" }}>
+            <WiringView diagram={slide.diagram} flow={live && slide.diagram.flow} />
+          </div>
+        ) : slide.art ? (
+          <Art src={slide.art} style={{ height: "100%" }} />
+        ) : (
+          <div style={{ height: "100%", display: "grid", placeItems: "center", borderRadius: 24, background: alpha(accent, 0.07), border: `3px dashed ${alpha(accent, 0.3)}` }}>
+            <span style={{ display: "grid", placeItems: "center", width: 300, height: 300, borderRadius: "50%", background: "#fff", boxShadow: `0 30px 60px -36px ${alpha(accent, 0.8)}` }}>
+              <Icon name={slide.icon ?? "Wrench"} size={150} color={accent} stroke={1.5} />
+            </span>
+          </div>
+        );
+        return (
+          <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 24, flex: "none" }}>
+              <span style={{ flex: "none", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, width: 108, height: 108, borderRadius: 26, background: accent, color: "#fff", boxShadow: `0 18px 36px -18px ${alpha(accent, 0.8)}` }}>
+                <span style={{ font: `700 15px/1 ${MONO}`, letterSpacing: ".14em", opacity: 0.85 }}>STEP</span>
+                <span style={{ font: `800 50px/1 ${MONT}` }}>{slide.step}</span>
+              </span>
+              <div>
+                <p style={{ margin: 0, font: `700 ${t.kicker - 2}px/1 ${MONO}`, letterSpacing: ".16em", textTransform: "uppercase", color: accent }}>
+                  Step {slide.step} of {slide.of}
+                </p>
+                <h2 style={{ margin: "10px 0 0", font: `800 ${Math.round(t.title * (slide.title.length > 30 ? 0.72 : 0.82))}px/1.05 ${MONT}`, letterSpacing: "-0.03em", color: ink }}>{slide.title}</h2>
+              </div>
+            </div>
+            <div style={{ flex: 1, minHeight: 0, marginTop: 28, display: "grid", gridTemplateColumns: "1fr 600px", gap: 30 }}>
+              {visual}
+              <div style={{ display: "flex", flexDirection: "column", gap: 14, minHeight: 0, justifyContent: "center" }}>
+                {slide.need?.length ? (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                    <span style={{ font: `700 ${Math.round(fs * 0.62)}px/1 ${MONO}`, letterSpacing: ".12em", textTransform: "uppercase", color: soft, marginRight: 4 }}>You need</span>
+                    {slide.need.map((nd) => (
+                      <span key={nd} style={{ background: alpha(accent, 0.12), color: ink, borderRadius: 999, padding: "8px 14px", font: `700 ${Math.round(fs * 0.7)}px/1.1 ${MONT}` }}>{nd}</span>
+                    ))}
+                  </div>
+                ) : null}
+                <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: slide.do.length > 4 ? 10 : 14 }}>
+                  {slide.do.map((d, i) => (
+                    <li key={d} style={{ display: "flex", gap: 14, alignItems: "flex-start", background: "#fff", borderRadius: 14, padding: "13px 16px", font: `600 ${slide.do.length > 4 ? fs - 2 : fs}px/1.3 ${MONT}`, color: ink, boxShadow: "0 14px 28px -24px rgba(0,0,0,.4)" }}>
+                      <span style={{ flex: "none", display: "grid", placeItems: "center", width: fs * 1.35, height: fs * 1.35, borderRadius: "50%", background: colourOf(i), color: "#fff", font: `800 ${Math.round(fs * 0.7)}px/1 ${MONT}` }}>{i + 1}</span>
+                      <span>{d}</span>
+                    </li>
+                  ))}
+                </ol>
+                {slide.check && (
+                  <p style={{ margin: 0, display: "flex", gap: 12, background: "#2f9e44", color: "#fff", borderRadius: 14, padding: "14px 18px", font: `700 ${fs - 2}px/1.3 ${MONT}` }}>
+                    <span style={{ flex: "none" }}>✓</span>
+                    <span>{slide.check}</span>
+                  </p>
+                )}
+                {slide.tip && <p style={{ margin: 0, background: "#fff3bf", color: ink, borderRadius: 14, padding: "12px 18px", font: `600 ${fs - 4}px/1.3 ${MONT}` }}>💡 {slide.tip}</p>}
+                {slide.warn && <p style={{ margin: 0, background: "#ffe3e3", color: "#a61e1e", borderRadius: 14, padding: "12px 18px", font: `700 ${fs - 4}px/1.3 ${MONT}` }}>⚠ {slide.warn}</p>}
+              </div>
+            </div>
+          </div>
+        );
+      }
+      case "flow": {
+        const n = slide.nodes.length;
+        return (
+          <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+            <Title size={t.title} accent={accent}>{slide.title}</Title>
+            <Fill style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
+              <div style={{ display: "flex", alignItems: "stretch" }}>
+                {slide.nodes.map((nd, i) => {
+                  const col = colourOf(i);
+                  return (
+                    <div key={nd.title} style={{ display: "flex", alignItems: "center", flex: 1, minWidth: 0 }}>
+                      <div style={{ flex: 1, alignSelf: "stretch", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", background: "#fff", borderRadius: 24, padding: n > 4 ? "26px 16px" : "34px 24px", boxShadow: "0 24px 50px -34px rgba(0,0,0,.45)", borderBottom: `10px solid ${col}` }}>
+                        <span style={{ display: "grid", placeItems: "center", width: n > 4 ? 96 : 124, height: n > 4 ? 96 : 124, borderRadius: "50%", background: alpha(col, 0.13) }}>
+                          <Icon name={nd.icon} size={n > 4 ? 52 : 66} color={col} />
+                        </span>
+                        <p style={{ margin: "20px 0 0", font: `800 ${Math.round(t.card * (n > 4 ? 0.82 : 0.95))}px/1.12 ${MONT}`, color: ink }}>{nd.title}</p>
+                        {nd.text && <p style={{ margin: "10px 0 0", font: `500 ${Math.round(t.card * (n > 4 ? 0.6 : 0.68))}px/1.3 ${MONT}`, color: soft }}>{nd.text}</p>}
+                      </div>
+                      {i < n - 1 && (
+                        <svg width="56" height="40" viewBox="0 0 56 40" style={{ flex: "none" }} aria-hidden>
+                          <path d="M6 20 H40" stroke={alpha(accent, 0.7)} strokeWidth="7" strokeLinecap="round" />
+                          <path d="M34 8 L50 20 L34 32" fill="none" stroke={alpha(accent, 0.7)} strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {slide.loop && (
+                <div style={{ position: "relative", margin: "18px 60px 0", height: 70, borderLeft: `5px dashed ${alpha(accent, 0.5)}`, borderRight: `5px dashed ${alpha(accent, 0.5)}`, borderBottom: `5px dashed ${alpha(accent, 0.5)}`, borderRadius: "0 0 30px 30px" }}>
+                  <span style={{ position: "absolute", left: "50%", bottom: -26, transform: "translateX(-50%)", background: accent, color: "#fff", borderRadius: 999, padding: "12px 26px", font: `700 ${t.small}px/1 ${MONT}`, whiteSpace: "nowrap" }}>↺ {slide.loop}</span>
+                </div>
+              )}
+            </Fill>
+            {slide.sub && <p style={{ margin: "40px 0 0", flex: "none", font: `700 ${t.small + 2}px/1.35 ${MONT}`, color: accent }}>{slide.sub}</p>}
+          </div>
+        );
+      }
     }
   })();
 

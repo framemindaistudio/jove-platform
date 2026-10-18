@@ -126,7 +126,7 @@ export function Presenter({ id, school, audience, channel }: { id: string; schoo
     return (
       <div className="fixed inset-0 bg-black" onClick={forward}>
         <Scaled className="size-full">
-          <SlideView deck={deck} slide={slide} index={i} total={slides.length} reveal={!!reveal[i]} />
+          <SlideView deck={deck} slide={slide} index={i} total={slides.length} reveal={!!reveal[i]} live />
         </Scaled>
       </div>
     );
@@ -174,7 +174,7 @@ export function Presenter({ id, school, audience, channel }: { id: string; schoo
         <div className={cn("grid min-h-0 flex-1", notes ? "lg:grid-cols-[1fr_380px]" : "grid-cols-1")}>
           <div className="relative min-h-0 cursor-pointer" onClick={forward} data-stage>
             <Scaled className="absolute inset-2">
-              <SlideView deck={deck} slide={slide} index={i} total={slides.length} reveal={!!reveal[i]} />
+              <SlideView deck={deck} slide={slide} index={i} total={slides.length} reveal={!!reveal[i]} live />
             </Scaled>
             <button type="button" onClick={(e) => (e.stopPropagation(), go(i - 1))} aria-label="Previous slide" className="absolute bottom-3 left-3 grid size-11 place-items-center rounded-full bg-white/10 hover:bg-white/20">
               <ChevronLeft className="size-5" aria-hidden />
