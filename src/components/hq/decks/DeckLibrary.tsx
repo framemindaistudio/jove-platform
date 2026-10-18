@@ -12,7 +12,14 @@ import { SlideView } from "./SlideView";
 
 const minutesLabel = (m: number) => (m < 60 ? `${m} min` : m % 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m / 60} h`);
 
-function DeckCard({ deck }: { deck: Deck }) {
+/** A school from the Schools CRM, offered for the meeting deck's cover. */
+export interface CrmSchool {
+  name: string;
+  city?: string;
+  stage: string;
+}
+
+function DeckCard({ deck, schools }: { deck: Deck; schools: CrmSchool[] }) {
   const [school, setSchool] = useState("");
   const slides = deck.slides({ school: school || undefined });
   const q = school.trim() ? `?school=${encodeURIComponent(school.trim())}` : "";
@@ -33,8 +40,29 @@ function DeckCard({ deck }: { deck: Deck }) {
         </p>
         {deck.group === "school" && (
           <div className="mt-3">
+            {schools.length > 0 && (
+              <>
+                <label htmlFor={`crm-${deck.id}`} className="annot text-[10px] text-blueprint">
+                  Pick a school from the CRM
+                </label>
+                <select
+                  id={`crm-${deck.id}`}
+                  value={schools.some((x) => x.name === school) ? school : ""}
+                  onChange={(e) => setSchool(e.target.value)}
+                  className="mt-1 mb-3 h-9 w-full rounded-[var(--radius-sm)] border border-graphite/20 bg-paper px-2 text-sm text-graphite"
+                >
+                  <option value="">— Choose a school —</option>
+                  {schools.map((x) => (
+                    <option key={x.name + x.city} value={x.name}>
+                      {x.name}
+                      {x.city ? ` · ${x.city}` : ""} ({x.stage})
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
             <label htmlFor={`school-${deck.id}`} className="annot text-[10px] text-blueprint">
-              School&apos;s name on the cover (optional)
+              {schools.length > 0 ? "Or type the name" : "School’s name on the cover (optional)"}
             </label>
             <Input id={`school-${deck.id}`} value={school} onChange={(e) => setSchool(e.target.value)} maxLength={80} placeholder="e.g. Sri Vidya Public School" className="mt-1 h-9" />
           </div>
@@ -46,7 +74,7 @@ function DeckCard({ deck }: { deck: Deck }) {
           <a href={`/hq/print/deck/${deck.id}${q}`} target="_blank" rel="noopener noreferrer" className="inline-flex h-9 items-center gap-1.5 rounded-[var(--radius-sm)] border border-graphite/25 px-3 text-sm font-semibold text-graphite hover:border-graphite">
             <Printer className="size-4" aria-hidden /> PDF
           </a>
-          <a href={`/hq/print/deck/${deck.id}${q}${amp}notes=1`} target="_blank" rel="noopener noreferrer" className="inline-flex h-9 items-center gap-1.5 rounded-[var(--radius-sm)] border border-graphite/25 px-3 text-sm font-semibold text-graphite hover:border-graphite" title="One slide per page with the trainer's words under it">
+          <a href={`/hq/print/deck/${deck.id}${q}${amp}notes=1`} target="_blank" rel="noopener noreferrer" className="inline-flex h-9 items-center gap-1.5 rounded-[var(--radius-sm)] border border-graphite/25 px-3 text-sm font-semibold text-graphite hover:border-graphite" title="Two slides per A4 page with the trainer's words under each">
             <FileText className="size-4" aria-hidden /> PDF with notes
           </a>
         </div>
@@ -56,7 +84,7 @@ function DeckCard({ deck }: { deck: Deck }) {
 }
 
 /** HQ → Presentations: the decks, grouped, and what to send or print for a JOVE Day. */
-export function DeckLibrary() {
+export function DeckLibrary({ schools = [] }: { schools?: CrmSchool[] }) {
   const groups: DeckGroup[] = ["school", "classroom", "trainer"];
   return (
     <div>
@@ -75,7 +103,7 @@ export function DeckLibrary() {
             <p className="mt-0.5 text-sm text-charcoal">{GROUP_LABEL[g].blurb}</p>
             <div className="mt-4 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
               {DECKS.filter((d) => d.group === g).map((d) => (
-                <DeckCard key={d.id} deck={d} />
+                <DeckCard key={d.id} deck={d} schools={schools} />
               ))}
             </div>
           </section>
