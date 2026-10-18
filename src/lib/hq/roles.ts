@@ -35,12 +35,26 @@ export const DELIVERY_SIDE: Role[] = ["founder", "admin", "ops", "trainer", "vie
  */
 export const EDITORS: Role[] = ["founder", "admin"];
 
+/** The roles a founder may give from Settings → Logins. Founder logins stay in HQ_USERS. */
+export const MANAGED_ROLES: Role[] = ["viewer", "trainer", "media", "ops", "admin"];
+
+/** One line on each role a founder may give, for the Logins panel. */
+export const ROLE_HELP: Partial<Record<Role, string>> = {
+  viewer: "For interns. Workshops (no amounts), media, certificates, curriculum, presentations and printables. View and print only.",
+  trainer: "For trainers. Workshops, travel, kits and stock, the team list (no pay), curriculum, presentations and certificates. View and print only.",
+  media: "For the media team. Leads, schools and proposals, Media and Social Studio, feedback, curriculum. View and print only.",
+  ops: "For operations staff. Everything except pay details, the Activity Log, Documents to Sign and Settings; Finance and prices included. View and print only.",
+  admin: "Can open and change everything a founder can, except logins. Only for someone you trust with money and people data.",
+};
+
 export const VIEW_ONLY_MESSAGE = "Your account can view and print, but not change anything. Ask a founder to make this change.";
 
 export interface SessionUser {
   username: string;
   name: string;
   role: Role;
+  /** signed in with a one-time password from a founder: must choose their own before using HQ */
+  mustChange?: boolean;
 }
 
 export function can(user: Pick<SessionUser, "role"> | null | undefined, roles: Role[]) {

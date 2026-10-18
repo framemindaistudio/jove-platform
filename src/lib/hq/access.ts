@@ -86,6 +86,8 @@ export function canReadPath(role: Role, path: string): boolean {
  * uploaded file, so only leadership gets it; everyone else may see the history of one document they can open.
  */
 export function canReadHistory(role: Role, path: string | undefined): boolean {
+  // the logins file holds password hashes: nobody reads it or its old versions through HQ
+  if (path && (segments(path)[0] ?? "").toLowerCase() === "secure") return false;
   if (LEADERSHIP.includes(role)) return true;
   if (!path) return false;
   const parts = segments(path);

@@ -5,9 +5,10 @@ import { redirect } from "next/navigation";
 import { NextResponse } from "next/server";
 import { SESSION_COOKIE, verifySession } from "./session";
 import { EDITORS, VIEW_ONLY_MESSAGE, type Role, type SessionUser } from "./roles";
-import { configuredUsers, liveUser } from "./users";
+import { verifyScrypt } from "./accounts";
+import { allUsers, configuredUsers, liveUser } from "./users";
 
-export { configuredUsers };
+export { allUsers, configuredUsers };
 
 function safeEqual(a: string, b: string) {
   const ab = Buffer.from(a);
@@ -20,6 +21,7 @@ function safeEqual(a: string, b: string) {
 }
 
 export function checkPassword(stored: string, given: string) {
+  if (stored.startsWith("scrypt:")) return verifyScrypt(stored, given);
   if (stored.startsWith("sha256:")) {
     const hash = crypto.createHash("sha256").update(given).digest("hex");
     return safeEqual(stored.slice(7).toLowerCase(), hash);
@@ -27,14 +29,15 @@ export function checkPassword(stored: string, given: string) {
   return safeEqual(stored, given);
 }
 
-export function authenticate(username: string, password: string): SessionUser | null {
-  const user = configuredUsers().find((u) => u.username === username.trim().toLowerCase());
+/** The login and its stored password when the password is right, or null. */
+export async function authenticate(username: string, password: string): Promise<(SessionUser & { stored: string }) | null> {
+  const user = (await allUsers()).find((u) => u.username === username.trim().toLowerCase());
   if (!user) {
-    checkPassword("sha256:" + "0".repeat(64), password); // even out timing
+    checkPassword("scrypt:" + "0".repeat(32) + ":" + "0".repeat(64), password); // even out timing
     return null;
   }
   if (!checkPassword(user.password, password)) return null;
-  return { username: user.username, name: user.name, role: user.role };
+  return { username: user.username, name: user.name, role: user.role, ...(user.mustChange ? { mustChange: true } : {}), stored: user.password };
 }
 
 export async function getSession(): Promise<SessionUser | null> {

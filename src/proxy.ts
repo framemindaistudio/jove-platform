@@ -12,6 +12,10 @@ import { liveUser } from "@/lib/hq/users";
  * (Pages and APIs re-check both server-side as well.)
  */
 const PUBLIC_HQ_PATHS = ["/hq/login", "/api/hq/auth/login", "/api/hq/auth/logout"];
+/** Everyone may change their own password, view-only accounts included. */
+const OWN_PASSWORD_API = "/api/hq/account/password";
+/** All a login with a one-time password may reach until it chooses its own. */
+const FIRST_SIGN_IN_PATHS = ["/hq/account", OWN_PASSWORD_API, "/api/hq/me"];
 
 export async function proxy(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
@@ -31,7 +35,14 @@ export async function proxy(req: NextRequest) {
 
   const user = await liveUser(await verifySession(req.cookies.get(SESSION_COOKIE)?.value));
   if (user) {
-    if (isHqApi && !["GET", "HEAD", "OPTIONS"].includes(req.method) && !EDITORS.includes(user.role)) {
+    if (user.mustChange && !FIRST_SIGN_IN_PATHS.includes(pathname)) {
+      if (isHqApi) return NextResponse.json({ error: "Choose your own password first (My account).", mustChange: true }, { status: 403 });
+      const url = req.nextUrl.clone();
+      url.pathname = "/hq/account";
+      url.search = "?first=1";
+      return NextResponse.redirect(url);
+    }
+    if (isHqApi && !["GET", "HEAD", "OPTIONS"].includes(req.method) && !EDITORS.includes(user.role) && pathname !== OWN_PASSWORD_API) {
       return NextResponse.json({ error: VIEW_ONLY_MESSAGE, viewOnly: true }, { status: 403 });
     }
     const res = NextResponse.next();

@@ -51,6 +51,8 @@ next-env.d.ts
 # It lives in the private data repo that HQ reads and writes through GITHUB_REPO.
 /data/
 /vault/
+# HQ logins (password hashes), written by lib/hq/accounts.ts: the private data repo only
+/secure/
 /OPERATIONS/
 # local safety copies (for example the repository's history before it was rewritten)
 /.backups/

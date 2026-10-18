@@ -18,7 +18,7 @@ import crypto from "node:crypto";
  *  • readonly — deployed without a token: nothing to read, writes are rejected
  *               with a clear message.
  *
- *  Only these roots are reachable: data/, OPERATIONS/, vault/
+ *  Only these roots are reachable: data/, OPERATIONS/, vault/, secure/ (logins; never served to a screen)
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -73,7 +73,8 @@ export class StorePathError extends Error {
   }
 }
 
-const ALLOWED_ROOTS = ["data", "OPERATIONS", "vault"];
+// secure/ holds the HQ logins (password hashes): written by lib/hq/accounts.ts, never served by any HQ view
+const ALLOWED_ROOTS = ["data", "OPERATIONS", "vault", "secure"];
 
 export function safePath(p: string): string {
   const clean = p.replace(/\\/g, "/").replace(/^\/+/, "").replace(/\/+$/, "");
@@ -281,7 +282,7 @@ async function ghReadAt(p: string, ref: string): Promise<string | null> {
 /* ───────────────────────────── Local backend ────────────────────────────── */
 
 /**
- * Resolve a store path on disk (only the three allowed roots).
+ * Resolve a store path on disk (only the allowed roots).
  * The fs calls below carry `turbopackIgnore` so the bundler does not trace the whole project into the
  * server output; the folders that must ship are listed in next.config.ts → outputFileTracingIncludes.
  */
@@ -290,6 +291,7 @@ function abs(p: string) {
   if (root === "data") return path.join(process.cwd(), "data", ...rest);
   if (root === "OPERATIONS") return path.join(process.cwd(), "OPERATIONS", ...rest);
   if (root === "vault") return path.join(process.cwd(), "vault", ...rest);
+  if (root === "secure") return path.join(process.cwd(), "secure", ...rest);
   throw new StorePathError();
 }
 const sha1 = (buf: Buffer | string) => crypto.createHash("sha1").update(buf).digest("hex");

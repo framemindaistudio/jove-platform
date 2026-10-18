@@ -119,10 +119,10 @@ function ShellInner({ children }: { children: React.ReactNode }) {
               .slice(0, 2)
               .join("")}
           </span>
-          <div className={cn("min-w-0 flex-1", collapsed && "lg:hidden")}>
+          <Link href="/hq/account" title="My account: your login and password" className={cn("min-w-0 flex-1 rounded hover:bg-paper/5", collapsed && "lg:hidden")}>
             <p className="truncate text-xs font-semibold text-paper">{user.name}</p>
-            <p className="annot text-[9px] text-paper/45">{roleLabels[user.role]}</p>
-          </div>
+            <p className="annot text-[9px] text-paper/45">{roleLabels[user.role]} · My account</p>
+          </Link>
           <button onClick={logout} className={cn("rounded p-1.5 text-paper/50 hover:bg-paper/10 hover:text-paper", collapsed && "lg:hidden")} title="Sign out">
             <LogOut className="size-4" />
           </button>

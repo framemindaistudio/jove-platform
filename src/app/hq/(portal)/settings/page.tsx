@@ -30,5 +30,5 @@ export default async function Page() {
     );
   }
 
-  return <SettingsPage />;
+  return <SettingsPage isFounder={user.role === "founder"} />;
 }

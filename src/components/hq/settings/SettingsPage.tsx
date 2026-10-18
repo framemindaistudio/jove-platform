@@ -17,7 +17,7 @@ const SECTIONS = [
   { id: "targets", label: "Targets", n: "04" },
   { id: "operations", label: "Operations", n: "05" },
   { id: "system", label: "System status", n: "06" },
-  { id: "team", label: "Team accounts", n: "07" },
+  { id: "team", label: "Logins", n: "07" },
   { id: "data", label: "Data export", n: "08" },
   { id: "deploy", label: "Deployment", n: "09" },
 ] as const;
@@ -41,7 +41,7 @@ function useActiveSection() {
   return active;
 }
 
-export function SettingsPage() {
+export function SettingsPage({ isFounder = false }: { isFounder?: boolean }) {
   const sys = useSystemInfo();
   const active = useActiveSection();
 
@@ -78,7 +78,7 @@ export function SettingsPage() {
         <div className="min-w-0 space-y-10">
           <SettingsForm>
             <SystemStatus sys={sys} />
-            <TeamAccounts sys={sys} />
+            <TeamAccounts sys={sys} isFounder={isFounder} />
             <DataExport />
             <DeployChecklist sys={sys} />
           </SettingsForm>
