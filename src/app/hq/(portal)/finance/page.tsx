@@ -5,11 +5,11 @@ import { FinanceApp, type FinanceTab } from "@/components/hq/finance/FinanceApp"
 
 export const metadata: Metadata = { title: "Finance" };
 
-const TABS: FinanceTab[] = ["overview", "invoices", "expenses", "income", "reports"];
+const TABS: FinanceTab[] = ["overview", "invoices", "expenses", "income", "reports", "ca"];
 type Params = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-/** /hq/finance?tab=overview|invoices|expenses|income|reports  ·  ?id=<invoice>  ·  ?new=1&workshop=<id> */
+/** /hq/finance?tab=overview|invoices|expenses|income|reports|ca  ·  ?id=<invoice>  ·  ?new=1&workshop=<id> */
 export default async function FinancePage({ searchParams }: { searchParams: Promise<Params> }) {
   await requireUser(OPS);
   const sp = await searchParams;

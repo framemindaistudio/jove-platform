@@ -6,6 +6,9 @@ import { Info, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Tabs } from "@/components/ui/Tabs";
 import { Loading, PageHeader } from "@/components/hq/ui";
+import { useHq } from "@/components/hq/data";
+import { can, LEADERSHIP } from "@/lib/hq/roles";
+import { CaPackTab } from "./CaPackTab";
 import { fyLabel, fyStartYear } from "./finance";
 import { useFinanceData, useToday, writeParams } from "./hooks";
 import { ExpensesTab } from "./ExpensesTab";
@@ -14,7 +17,7 @@ import { InvoicesTab, type InvoiceIntent } from "./InvoicesTab";
 import { OverviewTab } from "./OverviewTab";
 import { ReportsTab } from "./ReportsTab";
 
-export type FinanceTab = "overview" | "invoices" | "expenses" | "income" | "reports";
+export type FinanceTab = "overview" | "invoices" | "expenses" | "income" | "reports" | "ca";
 
 export interface FinanceAppProps {
   initialTab: FinanceTab;
@@ -26,7 +29,12 @@ export interface FinanceAppProps {
 export function FinanceApp({ initialTab, initialInvoiceId = null, initialNew = false, initialWorkshopId = null }: FinanceAppProps) {
   const today = useToday();
   const data = useFinanceData();
+  // the CA pack includes payroll: founders and admins only (operations can open Finance, not payroll)
+  const { user } = useHq();
+  const forCa = can(user, LEADERSHIP);
   const [tab, setTab] = useState<FinanceTab>(initialTab);
+  // a ?tab=ca link opened by a role without the tab lands on the overview
+  const shown: FinanceTab = tab === "ca" && !forCa ? "overview" : tab;
   // what the invoices tab should do the moment it mounts (open a record / the workshop wizard)
   const [intent, setIntent] = useState<InvoiceIntent>({ id: initialInvoiceId, wizard: initialNew || !!initialWorkshopId, workshop: initialWorkshopId });
 
@@ -68,7 +76,7 @@ export function FinanceApp({ initialTab, initialInvoiceId = null, initialNew = f
       )}
 
       <Tabs<FinanceTab>
-        value={tab}
+        value={shown}
         onChange={(t) => go(t)}
         tabs={[
           { value: "overview", label: "Overview" },
@@ -76,21 +84,23 @@ export function FinanceApp({ initialTab, initialInvoiceId = null, initialNew = f
           { value: "expenses", label: "Expenses", count: data.expenses.length || undefined },
           { value: "income", label: "Other income", count: data.income.length || undefined },
           { value: "reports", label: "Reports" },
+          ...(forCa ? [{ value: "ca" as const, label: "For the CA" }] : []),
         ]}
         className="mb-6"
       />
 
-      <div role="tabpanel" aria-label={tab}>
+      <div role="tabpanel" aria-label={shown}>
         {!today || data.loading ? (
           <Loading label="Loading finance data…" />
         ) : (
           <>
             {data.error && <p className="mb-4 rounded border border-bad/30 bg-bad/10 px-3 py-2 text-sm text-bad">{data.error}</p>}
-            {tab === "overview" && <OverviewTab ledger={data.ledger} settings={settings} today={today} onNavigate={go} empty={empty} />}
+            {shown === "overview" && <OverviewTab ledger={data.ledger} settings={settings} today={today} onNavigate={go} empty={empty} />}
             {tab === "invoices" && <InvoicesTab ledger={data.ledger} settings={settings} today={today} intent={intent} />}
             {tab === "expenses" && <ExpensesTab ledger={data.ledger} today={today} />}
             {tab === "income" && <IncomeTab ledger={data.ledger} today={today} />}
             {tab === "reports" && <ReportsTab ledger={data.ledger} settings={settings} today={today} />}
+            {tab === "ca" && forCa && <CaPackTab ledger={data.ledger} invoices={data.invoices} expenses={data.expenses} income={data.income} settings={settings} today={today} />}
           </>
         )}
       </div>
