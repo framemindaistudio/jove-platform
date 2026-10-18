@@ -5,6 +5,7 @@ import { getCollection } from "@/lib/hq/collections";
 import { deleteRecord, listRecords, upsertMany, upsertRecord } from "@/lib/hq/records";
 import { can, LEADERSHIP, OPS, STAFF } from "@/lib/hq/roles";
 import { storeInfo } from "@/lib/store";
+import { deleteWorkshop, WorkshopHasInvoices } from "@/lib/hq/workshop-delete";
 
 type Ctx = { params: Promise<{ name: string }> };
 
@@ -60,9 +61,15 @@ export async function DELETE(req: Request, ctx: Ctx) {
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
   try {
+    // a workshop takes its certificates, media jobs, trips, feedback and student list with it (lib/hq/workshop-delete.ts)
+    if (name === "workshops") {
+      const { removed } = await deleteWorkshop(id, user.name);
+      return NextResponse.json({ ok: true, removed });
+    }
     await deleteRecord(name, id, user.name);
     return NextResponse.json({ ok: true });
   } catch (e) {
+    if (e instanceof WorkshopHasInvoices) return NextResponse.json({ error: e.message, invoices: e.invoices }, { status: 409 });
     return apiError(e);
   }
 }

@@ -8,7 +8,7 @@ import { joveDayRules } from "@/lib/content/business";
 import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/ui/Overlay";
 import { formatDateTime, formatINR, formatNumber } from "@/lib/utils";
-import { useCollection, useHq, useLookup } from "@/components/hq/data";
+import { api, invalidate, useCollection, useHq, useLookup } from "@/components/hq/data";
 import { RecordForm } from "@/components/hq/fields";
 import { fillFromSchool, num, optionLabel, PACKAGE_OPTIONS, str, workshopValue, type Rec } from "./logic";
 import { Notice } from "./bits";
@@ -69,10 +69,31 @@ export function WorkshopFormDrawer({
 
   async function del() {
     if (!value?.id) return;
-    if (!window.confirm("Delete this workshop? Linked trips and media deliverables stay. The change is recorded in the history.")) return;
     setBusy(true);
+    setError("");
     try {
+      // say exactly what goes with it (lib/hq/workshop-delete.ts); invoices block it
+      const links = await api<{ deleted: { label: string; one: string; count: number }[]; students: number; unlinked: { label: string; one: string; count: number }[]; proposals: number; invoices: { number: string; status: string }[] }>(`/api/hq/workshops/${encodeURIComponent(String(value.id))}/links`);
+      if (links.invoices.length) {
+        setError(`This workshop has ${links.invoices.length === 1 ? "an invoice" : `${links.invoices.length} invoices`} (${links.invoices.map((i) => `${i.number || "draft"}, ${i.status}`).join("; ")}). Delete the draft or cancel the invoice in Finance first: a tax invoice is never removed with a workshop.`);
+        return;
+      }
+      const gone = [...links.deleted.filter((d) => d.count).map((d) => `${d.count} ${d.count === 1 ? d.one : d.label}`), ...(links.students ? [`the student list (${links.students} names)`] : [])];
+      const kept = [...links.unlinked.filter((d) => d.count).map((d) => `${d.count} ${d.count === 1 ? d.one : d.label}`), ...(links.proposals ? ["its proposal's booking"] : [])];
+      const NL = "\n";
+      const msg = [
+        `Delete “${str(value.title)}”?`,
+        gone.length ? `${NL}These are deleted with it:${NL}• ${gone.join(`${NL}• `)}` : `${NL}Nothing else is linked to it.`,
+        kept.length ? `${NL}Kept, but no longer linked to it:${NL}• ${kept.join(`${NL}• `)}` : "",
+        links.deleted.some((d) => d.label === "certificates" && d.count) ? `${NL}Deleted certificates stop verifying: their QR codes will say “not found”.` : "",
+        `${NL}The change is recorded in the history.`,
+      ]
+        .filter(Boolean)
+        .join(NL);
+      if (!window.confirm(msg)) return;
       await remove(String(value.id));
+      // the screens that showed those records drop them now, not at the next reload
+      for (const c of ["certificates", "mediaJobs", "trips", "feedback", "testimonials", "expenses", "kitBatches", "proposals"]) void invalidate(c).catch(() => {});
       onDeleted?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not delete");
