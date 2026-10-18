@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, KeyRound, ShieldCheck } from "lucide-react";
+import { BookOpen, Eye, EyeOff, KeyRound, ShieldCheck } from "lucide-react";
 import { Field, Input } from "@/components/ui/form";
 import { Button } from "@/components/ui/Button";
 import { PageHeader } from "@/components/hq/ui";
@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/hq/ui";
  * My account: who you are signed in as, what you can open, and changing your own password. With `first`, the login
  * has a one-time password from a founder and must choose its own before anything else in HQ opens.
  */
-export function MyAccount({ name, username, roleLabel, modules, first, builtIn }: { name: string; username: string; roleLabel: string; modules: string[]; first: boolean; builtIn: boolean }) {
+export function MyAccount({ name, username, roleLabel, modules, guides, first, builtIn }: { name: string; username: string; roleLabel: string; modules: string[]; guides: { label: string; href: string }[]; first: boolean; builtIn: boolean }) {
   const router = useRouter();
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
@@ -79,6 +79,20 @@ export function MyAccount({ name, username, roleLabel, modules, first, builtIn }
           </dl>
           <h3 className="annot mt-5 text-[10px] text-blueprint">What you can open</h3>
           <p className="mt-1.5 text-xs leading-relaxed text-charcoal">{modules.join(" · ")}</p>
+          {guides.length > 0 && (
+            <>
+              <h3 className="annot mt-5 text-[10px] text-blueprint">How to use HQ</h3>
+              <ul className="mt-1.5 space-y-1">
+                {guides.map((g) => (
+                  <li key={g.href}>
+                    <a href={g.href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm font-semibold text-graphite underline underline-offset-2">
+                      <BookOpen className="size-4" aria-hidden /> {g.label} (PDF)
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
           <p className="mt-4 text-xs text-blueprint">Need more access, or a different name? Ask a founder: they manage logins in Settings → Logins.</p>
         </section>
 
