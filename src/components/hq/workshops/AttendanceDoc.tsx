@@ -1,9 +1,11 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import Image from "next/image";
 import { A4Page, PrintFooter, PrintShell } from "@/components/print/PrintShell";
-import { can, OPS_MEDIA } from "@/lib/hq/roles";
+import { can, OPS, OPS_MEDIA } from "@/lib/hq/roles";
+import { byClass, type Student } from "@/lib/hq/roster";
+import { api } from "@/components/hq/data";
 import { Select } from "@/components/ui/form";
 import { useCollection, useHq } from "@/components/hq/data";
 import { EmptyState, Loading } from "@/components/hq/ui";
@@ -18,6 +20,8 @@ interface Sheet {
   session: number;
   sessions: number;
   rows: number;
+  /** the names printed in the first rows (from the workshop's student list); the rest are left blank */
+  names?: { name: string; walkIn?: boolean }[];
 }
 
 function SheetPage({ w, school, sheet, page, pages, start, count }: { w: Rec; school: string; sheet: Sheet; page: number; pages: number; start: number; count: number }) {
@@ -74,8 +78,8 @@ function SheetPage({ w, school, sheet, page, pages, start, count }: { w: Rec; sc
           {Array.from({ length: count }, (_, i) => (
             <tr key={i} className="h-[6.3mm]">
               <td className="tabular border border-graphite/50 text-center font-mono text-[9px] text-charcoal">{start + i + 1}</td>
-              <td className="border border-graphite/50" />
-              <td className="border border-graphite/50" />
+              <td className="border border-graphite/50 px-2 text-[10px] font-medium">{sheet.names?.[start + i]?.name ?? ""}</td>
+              <td className="border border-graphite/50 px-2 text-[9px] text-charcoal">{sheet.names?.[start + i] ? sheet.grades : ""}</td>
               <td className="border border-graphite/50" />
             </tr>
           ))}
@@ -102,6 +106,19 @@ export function AttendanceDoc({ id }: { id: string }) {
   const spareId = useId();
   const [spare, setSpare] = useState(0);
   const wq = useCollection("workshops");
+  // the student list, for the roles that may see it: one sheet per class, names printed
+  const { user: me } = useHq();
+  const [students, setStudents] = useState<Student[]>([]);
+  useEffect(() => {
+    if (!can(me, OPS)) return;
+    let alive = true;
+    api<{ students: Student[] }>(`/api/hq/workshops/${id}/students`)
+      .then((j) => alive && setStudents(j.students))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [id, me]);
   const sq = useCollection(can(user, OPS_MEDIA) ? "schools" : "__none");
 
   const w: Rec | undefined = wq.records.find((r) => r.id === id);
@@ -109,6 +126,18 @@ export function AttendanceDoc({ id }: { id: string }) {
 
   const sheets = useMemo<Sheet[]>(() => {
     if (!w) return [];
+    if (students.length) {
+      // one sheet per class, in class order: the names first, then blank rows for walk-ins
+      return byClass(students).map((c) => ({
+        key: c.label,
+        title: c.label,
+        grades: c.label,
+        session: 1,
+        sessions: 1,
+        rows: c.students.length + (spare || 5),
+        names: c.students.map((x) => ({ name: x.name, walkIn: x.walkIn })),
+      }));
+    }
     const plan = kitPlan(w);
     if (!plan.rows.length) return [{ key: "generic", title: "All grades", grades: "", session: 1, sessions: 1, rows: ROWS_PER_PAGE + spare }];
     return plan.rows.flatMap((p) =>
@@ -121,7 +150,7 @@ export function AttendanceDoc({ id }: { id: string }) {
         rows: p.perSession + spare,
       })),
     );
-  }, [w, spare]);
+  }, [w, spare, students]);
 
   if (wq.loading) return <Loading label="Preparing attendance sheets…" className="min-h-dvh" />;
   if (!w) {

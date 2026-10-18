@@ -23,14 +23,18 @@ import { KitsTab } from "./KitsTab";
 import { TravelTab } from "./TravelTab";
 import { MediaTab } from "./MediaTab";
 import { WrapUpTab } from "./WrapUpTab";
+import { StudentsTab } from "./StudentsTab";
 
-const TAB_IDS = ["overview", "runsheet", "checklist", "kits", "travel", "media", "wrapup"] as const;
+const TAB_IDS = ["overview", "runsheet", "checklist", "kits", "students", "travel", "media", "wrapup"] as const;
+/** The student list holds children's names: founders, admins and operations only (the API checks it too). */
+const NAMES_TABS: readonly string[] = ["students"];
 type TabId = (typeof TAB_IDS)[number];
 const TAB_LABELS: Record<TabId, string> = {
   overview: "Overview",
   runsheet: "Run sheet",
   checklist: "Checklist",
   kits: "Kits & materials",
+  students: "Students",
   travel: "Travel",
   media: "Media",
   wrapup: "Wrap-up",
@@ -167,13 +171,14 @@ export function WorkshopDetail({ id, initialTab }: { id: string; initialTab?: st
         <Notice className="mb-4">{store.writable || store.viewOnly ? "You have view-only access to workshops." : "HQ is in read-only mode — changes cannot be saved."}</Notice>
       )}
 
-      <Tabs className="mb-6" value={tab} onChange={changeTab} tabs={TAB_IDS.map((t) => ({ value: t, label: TAB_LABELS[t] }))} />
+      <Tabs className="mb-6" value={tab} onChange={changeTab} tabs={TAB_IDS.filter((t) => can(user, OPS) || !NAMES_TABS.includes(t)).map((t) => ({ value: t, label: TAB_LABELS[t] }))} />
 
       <div role="tabpanel" aria-label={TAB_LABELS[tab]}>
         {tab === "overview" && <OverviewTab w={w} patch={patch} canWrite={canWrite} school={school} canSchools={canSchools} showMoney={can(user, OPS)} />}
         {tab === "runsheet" && <RunSheetTab w={w} patch={patch} canWrite={canWrite} />}
         {tab === "checklist" && <ChecklistTab w={w} patch={patch} canWrite={canWrite} today={today} />}
         {tab === "kits" && <KitsTab w={w} showMoney={can(user, OPS)} />}
+        {tab === "students" && can(user, OPS) && <StudentsTab w={w} patch={patch} canWrite={canWrite} schoolName={schoolName} today={today} />}
         {tab === "travel" && <TravelTab w={w} schoolName={schoolName} />}
         {tab === "media" && <MediaTab w={w} schoolName={schoolName} today={today} />}
         {tab === "wrapup" && <WrapUpTab w={w} patch={patch} canWrite={canWrite} />}
