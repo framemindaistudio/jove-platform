@@ -1,0 +1,115 @@
+/**
+ * Young Makers (Grades 3–5), "Circuits & Smart Machines": the classroom deck for the JOVE Day session (105 minutes).
+ * Follows OPERATIONS/02_CURRICULUM/G03-05_Young_Makers/01_JOVE_Day_Session_Plan.md.
+ * Short sentences, a picture or an analogy for every idea, a prediction before every reveal.
+ */
+import type { Deck } from "./types";
+
+export const youngDeck: Deck = {
+  id: "young-makers",
+  group: "classroom",
+  title: "Circuits & Smart Machines",
+  audience: "Grades 3–5 · Young Makers · 1 h 45 min",
+  blurb: "Sense–think–act on a real robot, the breadboard circuit missions, the light-seeking car and torch race, Code the Rover and the AI-around-us quiz.",
+  minutes: 105,
+  theme: { accent: "#1f8a7a", tint: "#dff1ee", level: 2, palette: ["#1f8a7a", "#e08a1e", "#7048e8", "#2d5fb3", "#d6336c", "#2b8a3e"] },
+  sources: ["02_CURRICULUM/G03-05_Young_Makers/01_JOVE_Day_Session_Plan.md", "05_STUDENT_MATERIAL/G03-05_Young_Makers"],
+  slides: () => [
+    { kind: "cover", kicker: "Young Makers · Grades 3–5", title: "Circuits & Smart Machines", sub: "Today you build a robot car that chases light", art: "/images/age/age-2.webp", phase: "Wow" },
+    { kind: "statement", big: "Watch this car.", sub: "Nobody is touching it. What is happening?", icon: "Car", phase: "Wow", minutes: 3, notes: "The demo car chases the torch around the room. Take three guesses. Media moment M1: the car chasing the torch with children alongside." },
+    { kind: "statement", big: "How does it know where the light is?", sub: "Every robot has eyes, a brain and muscles.", icon: "Flashlight", phase: "Why", minutes: 4, notes: "“Every robot has eyes, a brain and muscles. Where are this car's eyes?”" },
+    {
+      kind: "cards",
+      title: "Inside the mystery box",
+      cards: [
+        { icon: "Eye", title: "Light sensor = eyes", text: "Bright light: small resistance. Dark: large." },
+        { icon: "Cpu", title: "Transistor = brain", text: "A switch that the light controls" },
+        { icon: "Gauge", title: "Motor = muscles", text: "Spins the wheels" },
+      ],
+      phase: "Why",
+      minutes: 5,
+      notes: "“This tiny part is a light sensor. Bright light, small resistance; dark, large. The brain listens to the sensor and tells the muscles to spin.” Ask: What if I cover one eye? What if there are two lights?",
+    },
+    { kind: "quiz", question: "A buzzer is…", options: ["SENSE", "THINK", "ACT"], answer: 2, explain: "It makes a sound: it acts.", phase: "Why", notes: "Team card sort: LDR, motor, transistor, buzzer, switch, camera. “Which team can sort fastest, and also explain why?”" },
+    { kind: "quiz", question: "A camera is…", options: ["SENSE", "THINK", "ACT"], answer: 0, explain: "It takes in light: it senses.", phase: "Why", minutes: 3 },
+    { kind: "statement", big: "These 5 holes are secretly joined.", sub: "A metal strip hides under every row of the breadboard.", icon: "Layers", phase: "Why", minutes: 3, notes: "Show the breadboard on the projector with the rows highlighted. Roles at each station rotate every mission: Builder, Reader, Tester, Reporter, Helper." },
+    {
+      kind: "steps",
+      title: "Circuit missions",
+      steps: [
+        { title: "Light one LED", detail: "Long leg to + · the resistor protects it", icon: "Lightbulb" },
+        { title: "Add a switch", detail: "Pull a wire: open! No glow.", icon: "Zap" },
+        { title: "Two LEDs", detail: "In a line, or side by side?", icon: "Sparkles" },
+        { title: "Spin the motor", detail: "Swap the wires: it turns back!", icon: "RotateCw" },
+      ],
+      phase: "Build",
+      minutes: 17,
+      notes: "Mission 1 (5 min), 2 (5), 3 (4), 4 (3). Predict before each. Media moment M2: hands on the breadboard as the LED lights.",
+    },
+    {
+      kind: "compare",
+      title: "Two LEDs: which way is brighter?",
+      left: { title: "In a line (series)", items: ["One path", "The LEDs share the push", "Dimmer"] },
+      right: { title: "Side by side (parallel)", items: ["Two paths", "Each LED gets the full push", "Brighter"] },
+      phase: "Test",
+      notes: "Let them predict first, then try. “In Level 2 we explore this further.”",
+    },
+    { kind: "statement", big: "Electricity is like a bicycle chain.", sub: "The chain keeps moving round. The energy does the work.", icon: "RotateCw", phase: "Why", notes: "Fix the idea that current is “used up”: the chain is not used up, the energy is. And batteries store energy that pushes charges around." },
+    { kind: "image", title: "Build a light-seeking car", src: "/images/kits/kit-explorer.webp", points: ["Two light sensors: the eyes", "Two transistors: the brain", "Two motors: the muscles"], phase: "Build", notes: "One Explorer Kit car per station of 5." },
+    { kind: "statement", big: "The eye on the left tells the right wheel to push.", sub: "So the car turns toward the light.", icon: "Flashlight", phase: "Why", notes: "Trainer level: each light sensor switches the motor on the opposite side (a Braitenberg vehicle). More light on the left makes the right motor spin faster, so the car turns left toward the light." },
+    {
+      kind: "steps",
+      title: "Build it, step by step",
+      steps: [
+        { title: "Chassis", detail: "Motors, wheels, castor", icon: "Wrench" },
+        { title: "Power", detail: "Battery holder and switch", icon: "Battery" },
+        { title: "Brain", detail: "Sensors and transistors on the breadboard", icon: "Cpu" },
+        { title: "Eyes", detail: "Sensors at the front, angled out", icon: "Eye" },
+        { title: "First test", detail: "Dim spot, shine a torch", icon: "Flashlight" },
+        { title: "Torch race!", detail: "3 metres to the line", icon: "Trophy" },
+      ],
+      phase: "Build",
+      minutes: 37,
+      notes: "Checkpoints, call the trainer: wheels spin freely; both motors spin forward; every transistor's flat face the right way (the main cause of faults); sensor wires not touching; car moves toward the torch.",
+    },
+    {
+      kind: "table",
+      title: "Car not working? Try this",
+      head: ["What happens", "Why", "Fix"],
+      rows: [
+        ["Motors spin all the time", "Too bright here", "Shade the sensors · move to a dimmer spot"],
+        ["Car runs away from the torch", "Motors on the wrong sides", "Swap the left and right motor wires"],
+        ["One motor never spins", "Transistor backwards or a loose wire", "Check the flat face · push the wire in"],
+        ["Nothing works", "Switch off or flat cells", "Switch on · ask the trainer for cells"],
+      ],
+      phase: "Test",
+      notes: "Fast teams: “Add an LED that glows when the car turns left.” “Make the car run away from the light.” (Swap the sensors.)",
+    },
+    {
+      kind: "cards",
+      title: "The torch race",
+      cards: [
+        { icon: "Target", title: "Reach the line", text: "Accuracy" },
+        { icon: "Clock", title: "Time", text: "Fast and steady" },
+        { icon: "Users", title: "Teamwork", text: "Everyone helps" },
+      ],
+      phase: "Test",
+      minutes: 8,
+      notes: "Heats of 5 stations on a 3 m course. Count “3, 2, 1, JOVE!” and cheer the slowest car as loudly as the fastest. Media moment M3: the race, low angle; the star pattern of cars chasing torches.",
+    },
+    { kind: "statement", big: "Code the Rover", sub: "Our rover only knows: forward · turn left · turn right.", icon: "Code", phase: "Why", minutes: 3, notes: "Open jove.website/labs/code-the-rover on the projector. “What should we say first?”" },
+    {
+      kind: "points",
+      title: "An algorithm is steps in the right order",
+      points: ["Raise a hand: first block? Next block?", "Same block four times? Use repeat 4", "Draw the path before you run it"],
+      icon: "ListChecks",
+      phase: "Build",
+      minutes: 12,
+      notes: "Whole class solves levels 1–3, calling out blocks. Then a level with a loop. Teams draw a paper mission's path before it runs. Ask: Why does the order matter? What if the loop is in the wrong place?",
+    },
+    { kind: "quiz", question: "Face unlock on a phone uses AI?", options: ["AI", "Not AI"], answer: 0, phase: "Show", notes: "Teams answer with hand signals. Six questions in the plan's quiz bank." },
+    { kind: "quiz", question: "A calculator uses AI?", options: ["AI", "Not AI"], answer: 1, explain: "It follows fixed rules.", phase: "Show" },
+    { kind: "quiz", question: "A map app that finds the fastest route?", options: ["AI", "Not AI"], answer: 0, phase: "Show", minutes: 4 },
+    { kind: "closing", title: "Everyone built a robot today!", sub: "Say “JOVE Makers!”", points: ["Race winners · Best Teamwork · Best Improver", "Try at home: jove.website/labs"], phase: "Show", minutes: 6, notes: "Awards and participation certificates for all; applaud every team. Group photo with the cars in front. Collect cells, screwdrivers and small parts." },
+  ],
+};

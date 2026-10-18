@@ -70,6 +70,7 @@ export const hqNav: HqNavGroup[] = [
     title: "Knowledge",
     items: [
       { label: "Curriculum", href: "/hq/curriculum", icon: "GraduationCap", roles: ALL, description: "Lesson plans by grade — print & download" },
+      { label: "Presentations", href: "/hq/presentations", icon: "Presentation", roles: ALL, description: "School meeting, classroom and trainer slides" },
       { label: "Operations Library", href: "/hq/docs", icon: "FolderOpen", roles: ALL, description: "SOPs, manuals, policies — versioned" },
       { label: "Printables", href: "/hq/printables", icon: "Printer", roles: ALL, description: "Certificates, badges, forms, letterhead" },
       { label: "File Vault", href: "/hq/files", icon: "Archive", roles: STAFF, description: "Receipts, signed forms, assets" },
