@@ -273,6 +273,20 @@ export function FieldInput({ field, value, onChange, disabled }: { field: FieldD
     case "lineItems":
       return <LineItemsEditor value={value} onChange={onChange} disabled={disabled} />;
     default:
+      // with suggestions: pick a common value or type your own
+      if (field.suggestions?.length) {
+        const listId = `sugg-${field.key}`;
+        return (
+          <>
+            <Input value={String(v)} onChange={(e) => onChange(e.target.value)} disabled={disabled} placeholder={field.placeholder} list={listId} autoComplete="off" />
+            <datalist id={listId}>
+              {field.suggestions.map((o) => (
+                <option key={o} value={o} />
+              ))}
+            </datalist>
+          </>
+        );
+      }
       return <Input value={String(v)} onChange={(e) => onChange(e.target.value)} disabled={disabled} placeholder={field.placeholder} />;
   }
 }

@@ -121,7 +121,12 @@ export interface PublicMember {
   photo?: string;
 }
 
-const ROLE_ORDER = ["Lead Trainer", "Trainer", "Freelance Trainer", "Media / Editor", "Operations", "Intern"];
+/** Order on the About page, by what the (freely typed) role says: lead trainers first, interns last. */
+const ROLE_ORDER = [/lead trainer/i, /freelance/i, /trainer/i, /media|editor|film|video|photo/i, /operation/i, /\bintern\b/i];
+const roleRank = (role: unknown) => {
+  const i = ROLE_ORDER.findIndex((re) => re.test(String(role ?? "")));
+  return i < 0 ? ROLE_ORDER.length - 1 : i;
+};
 const isFounder = (name: unknown) => site.founders.some((f) => f.name.toLowerCase() === String(name ?? "").trim().toLowerCase());
 const photoUrl = (m: BaseRecord) =>
   typeof m.photo === "string" && m.photo ? `/api/public/team-photo/${encodeURIComponent(m.id)}?v=${encodeURIComponent(String(m.photoUpdatedAt ?? "1").replace(/\D/g, "").slice(-12) || "1")}` : undefined;
@@ -135,7 +140,7 @@ export async function getPublicTeam(): Promise<PublicMember[]> {
     const rows = await listRecords("team", { revalidate: REVALIDATE });
     return rows
       .filter((m) => m.showOnWebsite === true && String(m.status ?? "active") === "active" && !isFounder(m.name) && String(m.name ?? "").trim())
-      .sort((a, b) => (ROLE_ORDER.indexOf(String(a.role)) + 99) % 99 - ((ROLE_ORDER.indexOf(String(b.role)) + 99) % 99) || String(a.joinDate ?? "").localeCompare(String(b.joinDate ?? "")) || String(a.name).localeCompare(String(b.name)))
+      .sort((a, b) => roleRank(a.role) - roleRank(b.role) || String(a.joinDate ?? "").localeCompare(String(b.joinDate ?? "")) || String(a.name).localeCompare(String(b.name)))
       .map((m) => ({ id: m.id, name: String(m.name).trim(), role: String(m.role ?? "Team"), line: typeof m.webLine === "string" && m.webLine.trim() ? m.webLine.trim().slice(0, 110) : undefined, photo: photoUrl(m) }));
   } catch {
     return [];

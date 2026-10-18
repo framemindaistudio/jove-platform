@@ -47,6 +47,8 @@ export interface FieldDef {
   ref?: string;
   required?: boolean;
   placeholder?: string;
+  /** text fields: common values offered as you type; anything else may still be typed */
+  suggestions?: string[];
   help?: string;
   /** form layout width on md+ screens */
   width?: "full" | "half" | "third";
@@ -523,7 +525,7 @@ export const collections: CollectionDef[] = [
     write: LEADERSHIP,
     fields: [
       { key: "name", label: "Full name", type: "text", required: true, table: true, width: "half" },
-      { key: "role", label: "Role", type: "select", options: opts("Founder & CEO", "Co-Founder & CCO", "Lead Trainer", "Trainer", "Freelance Trainer", "Media / Editor", "Operations", "Intern"), table: true, width: "half" },
+      { key: "role", label: "Role", type: "text", suggestions: ["Founder & CEO", "Co-Founder & CCO", "Lead Trainer", "Trainer", "Freelance Trainer", "Media / Editor", "Operations", "Intern"], placeholder: "e.g. Robotics Software & Simulation Intern", help: "Type the exact role: it is printed on offer letters, ID cards and the website.", table: true, width: "half" },
       { key: "type", label: "Engagement", type: "select", options: opts("Full-time", "Part-time", "Freelance", "Intern"), table: true, width: "third" },
       { key: "status", label: "Status", type: "select", options: opts("onboarding", "active", "inactive"), default: "active", table: true, width: "third" },
       { key: "joinDate", label: "Joined", type: "date", width: "third" },

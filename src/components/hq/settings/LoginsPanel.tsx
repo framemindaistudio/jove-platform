@@ -56,9 +56,11 @@ function suggestUsername(name: string, taken: Set<string>) {
 
 /** The role that fits a Team & Payroll member. */
 function suggestRole(m: Member): Role {
-  if (m.type === "Intern" || m.role === "Intern") return "viewer";
-  if (m.role === "Media / Editor") return "media";
-  if (m.role === "Operations") return "ops";
+  // roles are typed freely ("UI/UX Design Intern"), so match on words
+  const role = String(m.role ?? "");
+  if (m.type === "Intern" || /\bintern\b/i.test(role)) return "viewer";
+  if (/media|editor|film|video|photo/i.test(role)) return "media";
+  if (/operation/i.test(role)) return "ops";
   return "trainer";
 }
 
@@ -83,7 +85,7 @@ export function LoginsPanel() {
       .then((j) => alive && setState({ status: "ready", builtIn: j.builtIn, managed: j.managed }))
       .catch((e) => alive && setState({ status: "error", message: e instanceof Error ? e.message : "Could not load the logins." }));
     api<{ records: Member[] }>("/api/hq/collections/team")
-      .then((j) => setTeam(j.records.filter((m) => m.status !== "inactive" && m.role !== "Founder & CEO" && m.role !== "Co-Founder & CCO")))
+      .then((j) => setTeam(j.records.filter((m) => m.status !== "inactive" && !/founder/i.test(String(m.role ?? "")))))
       .catch(() => setTeam([]));
     return () => {
       alive = false;
