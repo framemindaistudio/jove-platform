@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { Lock, MonitorPlay, Presentation, ShieldCheck, Smartphone, Users } from "lucide-react";
 import { labs, proLabs } from "@/lib/content/labs";
 import { AnnotationStack, CornerMarks, SectionLabel } from "@/components/brand/Blueprint";
@@ -104,6 +105,14 @@ export default function LabsPage() {
             </Reveal>
           </div>
           <LabsExplorer />
+          <Link href="/labs/bench" className="group mt-10 flex flex-col gap-4 rounded-[var(--radius-lg)] border border-graphite/15 bg-paper-50 p-6 transition hover:border-graphite sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="annot text-blueprint">New · 3D Bench</p>
+              <p className="mt-1 text-xl font-bold tracking-[-0.01em] text-graphite">Wire real circuits on a 3D workbench</p>
+              <p className="mt-1 max-w-2xl text-sm leading-relaxed text-charcoal">The same batteries, LEDs, motors and Arduino as our school kits. Click pin to pin, switch on, and watch it work.</p>
+            </div>
+            <span className="inline-flex h-10 shrink-0 items-center rounded-[var(--radius-sm)] bg-graphite px-4 text-sm font-semibold text-paper group-hover:bg-ink">Open the bench →</span>
+          </Link>
         </div>
       </section>
 
