@@ -42,6 +42,10 @@ const nextConfig: NextConfig = {
     formats: ["image/avif", "image/webp"],
     qualities: [60, 75, 85, 90],
   },
+  // the old Virtual Labs (and the bench's first address) now live on /labs
+  async redirects() {
+    return [{ source: "/labs/:slug", destination: "/labs", permanent: true }];
+  },
   async headers() {
     return [
       {
@@ -61,6 +65,7 @@ const nextConfig: NextConfig = {
         ],
       },
       // Pages analytics never measures (src/lib/analytics.ts) also keep their address out of the Referer they send on.
+      { source: "/labs", headers: [{ key: "Referrer-Policy", value: "strict-origin" }] },
       { source: "/labs/:slug", headers: [{ key: "Referrer-Policy", value: "strict-origin" }] },
       { source: "/verify/:code", headers: [{ key: "Referrer-Policy", value: "strict-origin" }] },
       {

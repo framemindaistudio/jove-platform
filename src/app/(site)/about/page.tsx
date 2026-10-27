@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { BatteryCharging, Camera, GraduationCap, ShieldCheck } from "lucide-react";
 import { site } from "@/lib/site";
 import { gradeBands, joveDayRules, kits, packages, targets } from "@/lib/content/business";
-import { labStages, labs, proLabs } from "@/lib/content/labs";
+import { labStages, labs } from "@/lib/content/labs";
 import { formatINR } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { ConstructionCircle, CornerMarks, Crosshair, DimensionLine, GridBackdrop, SectionLabel, SketchDivider, SpecIndex } from "@/components/brand/Blueprint";
@@ -150,7 +150,6 @@ const roadmap: RoadmapStep[] = [
     title: "JOVE Robo League & Pro online courses",
     goals: [
       "JOVE Robo League — an inter-school robotics competition",
-      `Pro Virtual Labs — paid deep-dives like “${proLabs[0]?.title ?? "Neural Networks Deep Dive"}”`,
       `Target: ${targets.yearOneSchools} partner schools in our first year`,
       "Summer & winter robotics camps",
     ],
@@ -481,7 +480,7 @@ export default async function AboutPage() {
               {[
                 { k: "Offline", t: "JOVE Days in schools", d: "Full-day, grade-wise sessions for Grades 1–10 — and JOVE Quarter, Year & Club programmes for schools that want more." },
                 { k: "Studio", t: "Every day becomes a film", d: `${site.studio.name} turns each JOVE Day into reels, a highlight film and drone shots for the school.` },
-                { k: "Online", t: "Virtual Labs & kit store", d: `${labs.length} free Virtual Labs (${labStages.map((s) => s.label.toLowerCase()).join(" → ")}) and take-home kits to keep building.` },
+                { k: "Online", t: "Virtual Labs & kit store", d: `A free 3D bench with the same parts as our kits (${labs.length} builds: ${labStages.map((s) => s.label.toLowerCase()).join(" → ")}) and take-home kits to keep building.` },
               ].map((r, i) => (
                 <Reveal as="li" key={r.k} delay={0.1 + i * 0.08} className="grid grid-cols-[84px_1fr] gap-4 border-t border-paper/15 pt-5">
                   <span className="annot pt-1 text-paper/50">{r.k}</span>
@@ -502,7 +501,7 @@ export default async function AboutPage() {
             <CornerMarks className="text-paper/40" />
             {[
               { k: "Grade bands", v: `${gradeBands.length}`, s: gradeBands.map((g) => g.name).join(" · ") },
-              { k: "Free Virtual Labs", v: `${labs.length}`, s: "Theory to challenge, in the browser" },
+              { k: "Free 3D bench builds", v: `${labs.length}`, s: "Same parts as our kits, in the browser" },
               { k: "JOVE kits", v: `${kits.length}`, s: `${formatINR(Math.min(...mrps))} – ${formatINR(Math.max(...mrps))} MRP` },
               { k: "Team at every JOVE Day", v: `${teamOnSite}`, s: "2 founders · 2 trainers · 1 media lead" },
             ].map((s) => (

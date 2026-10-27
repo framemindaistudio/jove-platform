@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -7,15 +6,16 @@ import { Reveal } from "@/components/site/Reveal";
 import { labStages, labs } from "@/lib/content/labs";
 import { SectionHeading } from "./SectionHeading";
 import { RAIL, RAIL_HINT, RAIL_ITEM } from "./rail";
+import { LabArt } from "@/components/site/LabArt";
 
-/** The 4-stage journey drawn as a blueprint flow diagram. */
+/** How a build on the 3D bench goes, drawn as a blueprint flow diagram. */
 function JourneyDiagram() {
   return (
     <div className="relative mt-14 rounded-[var(--radius-md)] border border-graphite/15 bg-paper-50/80 p-6 shadow-[var(--shadow-paper)] sm:p-8 lg:mt-16">
       <CornerMarks />
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="annot text-blueprint">Fig. 05 — Every lab is a four-stage journey</p>
-        <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-charcoal">≥ 60% in the challenge → printable certificate</p>
+        <p className="annot text-blueprint">Fig. 05 — Every build on the 3D bench</p>
+        <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-charcoal">Same parts as our kits · free · no sign-up</p>
       </div>
       <ol className="mt-8 grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-4 lg:gap-0">
         {labStages.map((s, i) => (
@@ -40,7 +40,7 @@ function JourneyDiagram() {
   );
 }
 
-/** Virtual Labs teaser — journey diagram + six free lab cards. */
+/** Virtual Labs teaser: the 3D bench steps and the free builds. */
 export function LabsTeaser() {
   return (
     <section aria-labelledby="labs-title" className="relative overflow-hidden bg-paper py-24 sm:py-32">
@@ -51,10 +51,10 @@ export function LabsTeaser() {
           index="05"
           eyebrow="Virtual Labs · free"
           title={["Try the workshop", "before we arrive."]}
-          intro="Six free online labs that mirror our offline sessions — no sign-up, no install. Students can explore at home or on the classroom projector."
+          intro="A free 3D bench with the same parts as our kits: wire a circuit pin by pin, switch on and see it work. No sign-up, no install. At home or on the classroom projector."
           action={
             <Button href="/labs" variant="secondary" arrow>
-              Browse all labs
+              Open the 3D bench
             </Button>
           }
         />
@@ -65,18 +65,11 @@ export function LabsTeaser() {
           {labs.map((lab, i) => (
             <Reveal as="li" key={lab.slug} delay={(i % 3) * 0.08} className={RAIL_ITEM}>
               <Link
-                href={`/labs/${lab.slug}`}
+                href={`/labs#${lab.slug}`}
                 className="group flex h-full flex-col overflow-hidden rounded-[var(--radius-md)] border border-graphite/15 bg-paper-50 shadow-[var(--shadow-paper)] transition-all duration-500 ease-[var(--ease-out-expo)] hover:-translate-y-1 hover:shadow-[var(--shadow-lift)]"
               >
                 <div className="relative aspect-[16/10] overflow-hidden border-b border-graphite/10 bg-paper">
-                  <Image
-                    src={lab.image}
-                    alt=""
-                    fill
-                    sizes="(min-width: 1024px) 30vw, (min-width: 640px) 46vw, 92vw"
-                    quality={75}
-                    className="object-cover mix-blend-multiply transition-transform duration-700 ease-[var(--ease-out-expo)] group-hover:scale-[1.04]"
-                  />
+                  <LabArt lab={lab} sizes="(min-width: 1024px) 30vw, (min-width: 640px) 46vw, 92vw" className="transition-transform duration-700 ease-[var(--ease-out-expo)] group-hover:scale-[1.04]" />
                   <div className="absolute left-3 top-3 flex gap-1.5">
                     <span className="bg-graphite px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-paper">{lab.topic}</span>
                     <span className="border border-graphite/20 bg-paper/90 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-graphite">{lab.level}</span>
@@ -99,7 +92,7 @@ export function LabsTeaser() {
           ))}
         </ul>
         <p aria-hidden className={`${RAIL_HINT} text-blueprint`}>
-          <span className="h-px w-6 bg-graphite/30" /> Swipe · {labs.length} free labs
+          <span className="h-px w-6 bg-graphite/30" /> Swipe · {labs.length} free builds
         </p>
       </div>
     </section>

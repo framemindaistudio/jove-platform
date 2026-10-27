@@ -171,7 +171,7 @@ export const CAPTION_KINDS: CaptionKind[] = [
 /** First lines from the bank, each with the kind of post it opens. */
 export const HOOKS: { line: string; fits: string }[] = [
   { line: "Wait for it.", fits: "A build payoff: the motor spins, the light comes on." },
-  { line: "Can a machine learn to see a pen?", fits: "An AI session, or the Teach the Machine lab." },
+  { line: "Can a machine learn to see a pen?", fits: "An AI session." },
   { line: "7:30 am. Empty hall. 3:20 pm. Whole school cheering.", fits: "A real JOVE Day, start to finish. Use that day's own times." },
   { line: "Robot or not?", fits: "The Grades 1 to 2 game." },
   { line: "They failed six times. Then this.", fits: "A debugging story. Write the real number of attempts." },

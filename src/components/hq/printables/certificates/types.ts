@@ -30,7 +30,6 @@ export const CERT_TYPES: CertTypeMeta[] = [
   { value: "Participation", title: "Certificate of Participation", presentedTo: "This certificate is proudly presented to", citation: "for taking part, with curiosity and teamwork, in", school: true },
   { value: "Merit", title: "Certificate of Merit", presentedTo: "This certificate of merit is awarded to", citation: "in recognition of outstanding effort and performance in", school: true },
   { value: "Winner", title: "Certificate of Achievement", presentedTo: "This certificate of achievement is awarded to", citation: "for winning the challenge round of", school: true },
-  { value: "Lab completion", title: "Certificate of Completion", presentedTo: "This certificate is proudly presented to", citation: "for successfully completing the JOVE Virtual Lab", school: false },
   { value: "Teacher training", title: "Certificate of Training", presentedTo: "This certificate is awarded to", citation: "for completing the JOVE teacher training programme", school: true },
   { value: "Trainer", title: "Certificate of Recognition", presentedTo: "This certificate of recognition is awarded to", citation: "in recognition of qualifying and serving as a JOVE Trainer for", school: false },
 ];

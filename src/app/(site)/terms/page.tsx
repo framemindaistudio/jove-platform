@@ -51,7 +51,7 @@ const sections: LegalSection[] = [
               <strong>{mediaPack.name}:</strong> reels, a full-day film, drone shots and photographs produced by {site.studio.name} and included with every JOVE Day.
             </span>,
             <span key="3">
-              <strong>Virtual Labs:</strong> free, browser-based learning journeys (theory, demo, hands-on simulation and a challenge).
+              <strong>Virtual Labs:</strong> a free, browser-based 3D bench where learners wire and run builds made with the same parts as our kits.
             </span>,
             <span key="4">
               <strong>Online store:</strong> robotics and AI kits sold to parents, students, schools and clubs.

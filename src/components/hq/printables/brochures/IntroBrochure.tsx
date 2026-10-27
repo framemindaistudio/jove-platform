@@ -343,7 +343,7 @@ function BackCover({ info, qrSrc }: { info: BrochureInfo; qrSrc: string }) {
       <div className="absolute" style={at(15, 154.5, 88, 38)} data-fit="back-after">
         <h3 className="text-[12.5pt] font-bold leading-[1.1] tracking-[-0.02em]">Students can keep building.</h3>
         <p className="mt-[1.4mm] text-[8.8pt] leading-[1.38]">
-          Our {FREE_LABS} Virtual Labs are free at {info.web}/labs. They follow the same journeys as the workshop, so you can try them with your students before you book.
+          Our Virtual Lab is free at {info.web}/labs: a 3D bench with the same parts as our kits, so you can try {FREE_LABS} of our builds with your students before you book.
         </p>
         <p className="mt-[1.4mm] text-[8.8pt] leading-[1.38]">
           Workshop kits stay with JOVE, which keeps the price low. The same {kits.length} kits can be bought to take home, from {formatINR(KIT_FROM)} (MRP, GST included).

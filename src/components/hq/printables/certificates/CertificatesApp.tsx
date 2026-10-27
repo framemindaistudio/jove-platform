@@ -12,7 +12,6 @@ import { certificateCodes, useCollection, useHq, useLookup } from "@/components/
 import { EmptyState, PageHeader, Panel } from "@/components/hq/ui";
 import { can, OPS_TRAINER } from "@/lib/hq/roles";
 import { gradeBands, packages } from "@/lib/content/business";
-import { labs } from "@/lib/content/labs";
 import { uid } from "@/lib/utils";
 import { isIso, parseNameLines, qs, shortDate } from "../util";
 import { useToday } from "../hooks";
@@ -30,8 +29,7 @@ interface Wk {
   [k: string]: unknown;
 }
 
-function suggestProgram(type: string, workshop: Wk | undefined, bandId: string, labSlug: string) {
-  if (type === "Lab completion") return labs.find((l) => l.slug === labSlug)?.title ?? "JOVE Virtual Lab";
+function suggestProgram(type: string, workshop: Wk | undefined, bandId: string) {
   if (type === "Teacher training") return "JOVE Teacher Training: Robotics & AI in the Classroom";
   if (type === "Trainer") return "JOVE Day workshops (Robotics, AI & ML)";
   const pkg = packages.find((p) => p.id === workshop?.package)?.name ?? "JOVE Day";
@@ -49,7 +47,6 @@ function IssueFlow({ initialWorkshop }: { initialWorkshop?: string }) {
   const [workshopId, setWorkshopId] = useState(initialWorkshop ?? "");
   const [type, setType] = useState("Participation");
   const [bandInput, setBandInput] = useState<string | null>(null);
-  const [labSlug, setLabSlug] = useState(labs[0]?.slug ?? "");
   const [programInput, setProgramInput] = useState<string | null>(null);
   const today = useToday();
   const [dateInput, setDateInput] = useState<string | null>(null);
@@ -70,7 +67,7 @@ function IssueFlow({ initialWorkshop }: { initialWorkshop?: string }) {
     ? ([["g1-2", workshop.studentsG12], ["g3-5", workshop.studentsG35], ["g6-8", workshop.studentsG68], ["g9-10", workshop.studentsG910]] as const).filter(([, n]) => Number(n) > 0)
     : [];
   const bandId = bandInput ?? (activeBands.length === 1 ? activeBands[0][0] : "");
-  const program = programInput ?? suggestProgram(type, workshop, bandId, labSlug);
+  const program = programInput ?? suggestProgram(type, workshop, bandId);
   const programTouched = programInput !== null;
   const school = schoolInput ?? String(schools.get(String(workshop?.schoolId ?? ""))?.name ?? "");
   const issueDate = dateInput ?? (workshop && isIso(workshop.date) ? workshop.date.slice(0, 10) : today);
@@ -194,28 +191,16 @@ function IssueFlow({ initialWorkshop }: { initialWorkshop?: string }) {
             </Select>
           </Field>
 
-          {type === "Lab completion" ? (
-            <Field label="Virtual Lab" htmlFor="c-lab">
-              <Select id="c-lab" value={labSlug} onChange={(e) => setLabSlug(e.target.value)}>
-                {labs.map((l) => (
-                  <option key={l.slug} value={l.slug}>
-                    {l.title}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-          ) : (
-            <Field label="Grade band" htmlFor="c-band" help="Used to word the programme.">
-              <Select id="c-band" value={bandId} onChange={(e) => setBandInput(e.target.value)} disabled={type === "Trainer" || type === "Teacher training"}>
-                <option value="">All grade bands</option>
-                {gradeBands.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.grades}: {b.name}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-          )}
+          <Field label="Grade band" htmlFor="c-band" help="Used to word the programme.">
+            <Select id="c-band" value={bandId} onChange={(e) => setBandInput(e.target.value)} disabled={type === "Trainer" || type === "Teacher training"}>
+              <option value="">All grade bands</option>
+              {gradeBands.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.grades}: {b.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
 
           <Field label="Programme text" htmlFor="c-program" className="sm:col-span-2" help={programTouched ? undefined : "Suggested from your choices. Edit freely."}>
             <Input

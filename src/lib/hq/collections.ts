@@ -849,7 +849,7 @@ export const collections: CollectionDef[] = [
       { key: "schoolName", label: "School", type: "text", table: true, width: "half" },
       { key: "workshopId", label: "Workshop", type: "ref", ref: "workshops", width: "half" },
       { key: "program", label: "Program", type: "text", placeholder: "e.g. Robo Engineers — Sense · Think · Act", table: true, width: "half" },
-      { key: "type", label: "Type", type: "select", options: opts("Participation", "Merit", "Winner", "Lab completion", "Teacher training", "Trainer"), default: "Participation", table: true, width: "half" },
+      { key: "type", label: "Type", type: "select", options: opts("Participation", "Merit", "Winner", "Teacher training", "Trainer"), default: "Participation", table: true, width: "half" },
       { key: "issueDate", label: "Issued on", type: "date", table: true, width: "third" },
       { key: "status", label: "Status", type: "select", options: opts("valid", "revoked"), default: "valid", width: "third" },
     ],

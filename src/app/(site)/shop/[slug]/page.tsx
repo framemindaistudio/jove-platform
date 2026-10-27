@@ -19,6 +19,7 @@ import { getPublicProducts } from "@/lib/public-data";
 import { FREE_SHIPPING_ABOVE, SHIPPING_FLAT, dispatchWindow, isMadeToOrder } from "@/lib/shop";
 import { site } from "@/lib/site";
 import { formatINR } from "@/lib/utils";
+import { LabArt } from "@/components/site/LabArt";
 
 export const revalidate = 300;
 
@@ -373,7 +374,7 @@ export default async function ProductPage({ params }: Params) {
               </div>
               <Reveal delay={0.12} className="lg:col-span-5">
                 <p className="leading-relaxed text-charcoal">
-                  {pairedLabs.length > 1 ? "These JOVE Virtual Labs are" : "This JOVE Virtual Lab is"} free and run in the browser — theory, a demo, a hands-on simulation and a challenge. Do the lab first; open the box after.
+                  {pairedLabs.length > 1 ? "These JOVE Virtual Labs are" : "This JOVE Virtual Lab is"} free on our 3D bench, with the same parts as this kit: wire it pin by pin and switch on. Build it there first; open the box after.
                 </p>
               </Reveal>
             </div>
@@ -382,11 +383,11 @@ export default async function ProductPage({ params }: Params) {
               {pairedLabs.map((lab, i) => (
                 <Reveal as="li" key={lab.slug} delay={i * 0.08}>
                   <Link
-                    href={`/labs/${lab.slug}`}
+                    href={`/labs#${lab.slug}`}
                     className="group relative flex h-full flex-col overflow-hidden rounded-[var(--radius-lg)] border border-graphite/15 bg-paper-50 shadow-[var(--shadow-paper)] transition-[transform,box-shadow] duration-500 ease-[var(--ease-out-expo)] hover:-translate-y-1 hover:shadow-[var(--shadow-lift)] sm:flex-row"
                   >
                     <span className="relative aspect-[4/3] shrink-0 overflow-hidden bg-paper sm:aspect-auto sm:w-[44%]">
-                      <Image src={lab.image} alt="" fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 45vw, 22vw" quality={75} className="object-cover mix-blend-multiply transition-transform duration-[1.2s] ease-[var(--ease-out-expo)] group-hover:scale-105" />
+                      <LabArt lab={lab} sizes="(max-width: 640px) 100vw, (max-width: 1024px) 45vw, 22vw" className="transition-transform duration-[1.2s] ease-[var(--ease-out-expo)] group-hover:scale-105" />
                     </span>
                     <span className="flex flex-1 flex-col p-5 sm:p-6">
                       <span className="annot text-blueprint">

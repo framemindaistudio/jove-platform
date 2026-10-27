@@ -29,7 +29,7 @@ const PROGRAM_SECTIONS = [
   { folder: "00_Framework", title: "Curriculum framework", blurb: "How JOVE sessions are designed — outcomes, pedagogy and assessment." },
   { folder: "Club_Program", title: "Club Program", blurb: "Material for the recurring in-school JOVE Club." },
   { folder: "Teacher_Training", title: "Teacher training", blurb: "Resources for training school teachers to continue the learning." },
-  { folder: "Virtual_Labs", title: "Virtual Labs", blurb: "Lesson design behind the free online Virtual Labs." },
+  { folder: "Virtual_Labs", title: "Virtual Labs", blurb: "The 3D bench: the free builds at /labs and the HQ Practice Lab." },
 ];
 
 function DocRows({ nodes, base }: { nodes: TreeNode[]; base: string }) {

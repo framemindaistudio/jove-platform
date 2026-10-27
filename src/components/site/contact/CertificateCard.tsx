@@ -104,7 +104,6 @@ export function CertificateNotFound({ code, malformed }: { code: string; malform
             "Re-type the ID exactly as printed. The letter O and the number 0, and the letter I and the number 1, are easy to mix up.",
             "IDs look like JOVE-26-7KQ2M: the word JOVE, a two-digit year and a short code, joined by hyphens.",
             "Certificates are added to the registry after the workshop, so a very recent certificate may not be listed yet.",
-            "Certificates you print yourself at the end of a free Virtual Lab are self-service and are not entered in the registry, so they cannot be verified here.",
           ].map((t) => (
             <li key={t} className="relative pl-5">
               <span aria-hidden className="absolute left-0 top-[0.62em] size-[5px] rotate-45 border border-graphite/70" />

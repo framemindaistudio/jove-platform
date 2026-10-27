@@ -197,7 +197,7 @@ const WHY_JOVE = [
   { t: "A media pack your admissions team can use", d: "Reels, a full-day film and drone shots made by our own studio, with usage rights for the school's marketing." },
   { t: "Founder-led, on site", d: `A team of ${joveDayRules.teamSize.founders + joveDayRules.teamSize.trainers + joveDayRules.teamSize.media} runs every JOVE Day — ${joveDayRules.teamSize.founders} founders, ${joveDayRules.teamSize.trainers} trainers and ${joveDayRules.teamSize.media} media specialist.` },
   { t: "Certificates and a report", d: "Every participating student receives a certificate, and management gets a post-workshop report." },
-  { t: "Learning that continues online", d: "Free JOVE Virtual Labs let students revisit every idea — theory, demo, simulation and challenge — from home." },
+  { t: "Learning that continues online", d: "The free JOVE Virtual Lab, a 3D bench with the same parts as our kits, lets students build again from home." },
 ];
 
 function About({ c, page }: { c: Ctx; page: string }) {

@@ -16,7 +16,7 @@ export const aiDeck: Deck = {
   group: "classroom",
   title: "Build an AI that Sees",
   audience: "Grades 9–10 · AI Innovators · 3 hours",
-  blurb: "How machines learn, the robot arm commander, then the AI vision pan-tilt robot built step by step (wiring, camera, data, training, the code that joins model and servos), a responsible-AI debate and the pitch.",
+  blurb: "How machines learn, the servo commander on the 3D bench, then the AI vision pan-tilt robot built step by step (wiring, camera, data, training, the code that joins model and servos), a responsible-AI debate and the pitch.",
   minutes: 180,
   theme: { accent: "#6b46c1", tint: "#ece6f8", level: 3, palette: ["#6b46c1", "#1c7ed6", "#d6336c", "#2b8a3e", "#e8590c", "#1f8a7a"] },
   sources: ["02_CURRICULUM/G09-10_AI_Innovators/01_JOVE_Day_Session_Plan.md", "02_CURRICULUM/G09-10_AI_Innovators/08_Code_Library.md", "06_ROBOTICS_KITS/06_Assembly_Instructions_Innovator.md", "02_CURRICULUM/G09-10_AI_Innovators/09_Mini_Hackathon_Pitch_Guide.md"],
@@ -40,7 +40,7 @@ export const aiDeck: Deck = {
       loop: "repeat until it is good enough",
       phase: "Why",
       minutes: 10,
-      notes: "Live demo: train two classes on your webcam (thumbs up vs open hand) and show the lab's decision boundary at jove.website/labs/teach-the-machine. “Predict what it says for a thumb halfway. Why does confidence drop?”",
+      notes: "Live demo: train two classes on your webcam (thumbs up vs open hand) in Google Teachable Machine and watch the confidence bars. “Predict what it says for a thumb halfway. Why does confidence drop?”",
     },
     {
       kind: "table",
@@ -63,10 +63,21 @@ export const aiDeck: Deck = {
     { kind: "quiz", question: "More confident means more correct.", options: ["True", "False"], answer: 1, explain: "Confidence is the model's guess about itself, not proof.", phase: "Test" },
 
     /* ── Chapter 2: robots that move ───────────────────────── */
-    { kind: "chapter", n: 2, title: "Robots that move", sub: "Joints, angles and the robot arm", icon: "Move", phase: "Build" },
-    { kind: "image", title: "Robot arm commander", src: "/images/labs/lab-arm.webp", points: ["Joints and degrees of freedom", "Pick and place with angle sliders", "Record the angles for each pick"], phase: "Build", minutes: 12, notes: "jove.website/labs/robot-arm on the laptops. “How many numbers describe where the hand is?”" },
-    { kind: "compare", title: "Two questions about an arm", left: { title: "Forward kinematics", items: ["Given the angles", "Where is the hand?", "Easy to compute"] }, right: { title: "Inverse kinematics", items: ["Given a target", "Which angles?", "Harder: try, then the geometry"] }, phase: "Why", minutes: 6 },
-    { kind: "quiz", question: "Joint 1 turns 10°. Does the hand move 10 cm?", options: ["Yes", "No"], answer: 1, explain: "It depends on the length of the arm.", phase: "Test", minutes: 2, notes: "“Your pan-tilt robot has two joints too.” Sets up the build." },
+    { kind: "chapter", n: 2, title: "Servo commander", sub: "Two servos, two joints: aim the camera", icon: "Move", phase: "Build", notes: "Projector: HQ → Practice Lab → AI Vision Pan-Tilt (Projector button). Students call each wire as you make it." },
+    {
+      kind: "steps",
+      title: "Wire it on the 3D bench first",
+      steps: [
+        { title: "Signal", detail: "Orange: pan → GPIO 18, tilt → GPIO 19", icon: "Cable" },
+        { title: "Power", detail: "Red → +5V, brown → GND of the 5 V module", icon: "Zap" },
+        { title: "Common ground", detail: "Leave it out: the servos twitch", icon: "Plug" },
+        { title: "Command", detail: "Sliders and Left / Right: pan 20–160°", icon: "Move" },
+      ],
+      phase: "Build",
+      minutes: 15,
+      notes: "Press Run without the ESP32 GND → module GND wire: the servos jitter. Add it: they answer. “Why not power the servos from the 3.3 V pin?” (the board resets). Left nudges the pan +10°, Right −10°; the code keeps it inside the limits.",
+    },
+    { kind: "quiz", question: "An object is 30 cm left and 40 cm ahead. Which pan angle faces it?", options: ["About 53°", "About 127°", "About 90°"], answer: 1, explain: "atan(30 ÷ 40) ≈ 37° to the left of 90°: about 127°.", phase: "Test", minutes: 3, notes: "Pan-Tilt Angles worksheet, question 2. “Your model will press these buttons for you.” Sets up the build." },
 
     /* ── Chapter 3: build the AI vision robot ──────────────── */
     { kind: "chapter", n: 3, title: "Build an AI vision robot", sub: "A camera head that turns toward what it recognises", icon: "Scan", phase: "Build" },

@@ -24,7 +24,7 @@ export const ANALYTICS_MODE: "ask" | "always" = process.env.NEXT_PUBLIC_ANALYTIC
 const UNMEASURED = [
   /^\/hq(\/|$)/, // internal portal
   /^\/api(\/|$)/,
-  /^\/labs\/[^/]+/, // Virtual Lab journeys — used by children, so never tracked (the /labs catalogue is measured)
+  /^\/labs(\/|$)/, // the Virtual Labs bench — used by children, so never tracked
   /^\/verify\/[^/]+/, // a certificate ID resolves to a student's name
 ];
 

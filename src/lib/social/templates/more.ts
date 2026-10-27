@@ -196,7 +196,7 @@ const virtualLab: TemplateDef = {
   sample: { lab: labs[0].slug, title: "", line: "" },
   stock: (v): Record<string, string> => {
     const lab = labOf(v);
-    return lab ? { picture: lab.image } : {};
+    return lab?.image ? { picture: lab.image } : {};
   },
   draw(p, { values: v, pictures, facts }) {
     const lab = labOf(v);

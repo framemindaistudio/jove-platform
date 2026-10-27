@@ -1,10 +1,10 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Clock } from "lucide-react";
 import { SectionLabel } from "@/components/brand/Blueprint";
 import { Reveal, RevealLines } from "@/components/site/Reveal";
 import { labStages } from "@/lib/content/labs";
 import { labsFor, splitGrades, type ShopProduct } from "./catalog";
+import { LabArt } from "@/components/site/LabArt";
 
 /** Dark band: how each kit pairs with the free Virtual Labs (learn online → build for real). */
 export function LabPairings({ products }: { products: ShopProduct[] }) {
@@ -69,11 +69,11 @@ export function LabPairings({ products }: { products: ShopProduct[] }) {
                   {labsFor(p.kitId).map((lab) => (
                     <Link
                       key={lab.slug}
-                      href={`/labs/${lab.slug}`}
+                      href={`/labs#${lab.slug}`}
                       className="group flex items-center gap-4 rounded-[var(--radius-md)] border border-paper/15 bg-paper/[0.04] p-2.5 pr-5 transition-colors hover:border-paper/40 hover:bg-paper/[0.08] sm:w-[300px]"
                     >
                       <span className="relative aspect-[4/3] w-24 shrink-0 overflow-hidden rounded-[var(--radius-sm)] bg-paper">
-                        <Image src={lab.image} alt="" fill sizes="96px" quality={60} className="object-cover mix-blend-multiply transition-transform duration-700 group-hover:scale-105" />
+                        <LabArt lab={lab} sizes="96px" className="transition-transform duration-700 group-hover:scale-105" />
                       </span>
                       <span className="min-w-0">
                         <span className="annot block text-paper/45">Free lab · {lab.topic}</span>

@@ -16,8 +16,8 @@ const ITEMS = [
   },
   {
     icon: FlaskConical,
-    title: "A free Virtual Lab with every kit",
-    body: "Theory, demo, a hands-on simulation and a challenge in the browser — then the same idea, built for real.",
+    title: "A free 3D bench build with every kit",
+    body: "The same parts on a 3D bench in the browser: wire it and switch it on, then build it for real.",
     href: "/labs",
     cta: "Explore labs",
   },

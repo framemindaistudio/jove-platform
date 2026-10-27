@@ -82,7 +82,7 @@ export default async function ShopPage() {
       <CTASection
         eyebrow="Try before you buy"
         title={["Not sure yet?", "Start with a free lab."]}
-        body="Every JOVE Virtual Lab is free — theory, demo, a hands-on simulation and a challenge. Fifteen minutes in, you'll know exactly which kit to pick."
+        body="The JOVE Virtual Lab is a free 3D bench with the same parts as our kits: wire it, switch on, see it work. Ten minutes in, you'll know exactly which kit to pick."
         primary={{ label: "Explore Virtual Labs", href: "/labs" }}
         secondary={{ label: "Bring JOVE to your school", href: "/contact" }}
       />

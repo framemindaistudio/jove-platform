@@ -36,6 +36,7 @@ import { ProductCard } from "./ProductCard";
 import { ProductImage } from "./ProductImage";
 import { QtyStepper } from "./QtyStepper";
 import { labsFor, splitGrades, type ShopProduct } from "./catalog";
+import { LabArt } from "@/components/site/LabArt";
 
 /* ──────────────────────────────────────────────────────────────────────────
  * Types & validation
@@ -789,9 +790,9 @@ function OrderSuccess({ order }: { order: PlacedOrder }) {
           <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {labsToTry.map((lab) => (
               <li key={lab.slug}>
-                <Link href={`/labs/${lab.slug}`} className="group flex h-full items-center gap-4 rounded-[var(--radius-md)] border border-graphite/15 bg-paper-50 p-3 pr-4 transition-[transform,box-shadow] duration-500 ease-[var(--ease-out-expo)] hover:-translate-y-0.5 hover:shadow-[var(--shadow-lift)]">
+                <Link href={`/labs#${lab.slug}`} className="group flex h-full items-center gap-4 rounded-[var(--radius-md)] border border-graphite/15 bg-paper-50 p-3 pr-4 transition-[transform,box-shadow] duration-500 ease-[var(--ease-out-expo)] hover:-translate-y-0.5 hover:shadow-[var(--shadow-lift)]">
                   <span className="relative aspect-[4/3] w-20 shrink-0 overflow-hidden rounded-[var(--radius-sm)] bg-paper">
-                    <Image src={lab.image} alt="" fill sizes="80px" quality={60} className="object-cover mix-blend-multiply" />
+                    <LabArt lab={lab} sizes="80px" />
                   </span>
                   <span className="min-w-0">
                     <span className="block font-semibold leading-tight text-graphite">{lab.title}</span>

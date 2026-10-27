@@ -57,10 +57,10 @@ export interface CartCatalogItem {
 
 /** Which free Virtual Labs each kit pairs with. */
 export const KIT_LABS: Record<KitId, string[]> = {
-  spark: ["code-the-rover"],
-  explorer: ["logic-gates", "echo-sensor"],
-  builder: ["line-follower", "echo-sensor"],
-  innovator: ["teach-the-machine", "robot-arm"],
+  spark: ["robot-buddy"],
+  explorer: ["first-led"],
+  builder: ["blink"],
+  innovator: ["blink"],
 };
 
 /** Inclusive grade range covered by each band (used to match free-text grades on HQ products). */

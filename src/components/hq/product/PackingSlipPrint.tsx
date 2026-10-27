@@ -160,7 +160,7 @@ function Ready({ order, products, settings }: { order: Rec; products: Rec[]; set
           <div className="min-w-0 flex-1">
             <p className="text-base font-bold tracking-tight">Thank you for building with JOVE.</p>
             <p className="mt-1.5 text-xs leading-relaxed text-charcoal">
-              Your kit pairs with our free Virtual Labs — theory, a live demo, a hands-on simulation and a challenge you can finish before the parts even arrive. Start any time at <span className="font-semibold text-graphite">{labsUrl.replace(/^https?:\/\//, "")}</span>.
+              Your kit pairs with our free 3D bench: the same parts, wired pin by pin in the browser, so you can build it there while the parts are on their way. Start any time at <span className="font-semibold text-graphite">{labsUrl.replace(/^https?:\/\//, "")}</span>.
             </p>
             {contact && <p className="mt-2 text-[10px] text-blueprint">Need a hand? {contact}</p>}
           </div>

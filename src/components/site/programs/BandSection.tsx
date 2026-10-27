@@ -9,6 +9,7 @@ import { SESSIONS, fmtDuration, kitFor, kitSlug, labsFor, runSheet } from "./dat
 import { ParallaxPlate } from "./ParallaxPlate";
 import { KITS_MIN } from "./quote";
 import { SessionTimeline } from "./SessionTimeline";
+import { LabArt } from "@/components/site/LabArt";
 
 /** One grade group, drawn as a full spec sheet: plate, prices, outcomes, run sheet, skills, kit and labs. */
 export function BandSection({ band, n, total }: { band: GradeBand; n: number; total: number }) {
@@ -178,13 +179,13 @@ export function BandSection({ band, n, total }: { band: GradeBand; n: number; to
               <p className="annot flex items-center gap-1.5 text-blueprint">
                 <Laptop className="size-3.5" aria-hidden /> Free Virtual Lab{bandLabs.length > 1 ? "s" : ""} to try first
               </p>
-              <p className="mt-2 text-sm leading-relaxed text-charcoal">The same idea online — theory, demo, simulation and a challenge. Free, right in the browser.</p>
+              <p className="mt-2 text-sm leading-relaxed text-charcoal">The same parts on our 3D bench: wire it, switch on, see it work. Free, right in the browser.</p>
               <ul className="mt-4 space-y-2.5">
                 {bandLabs.map((lab) => (
                   <li key={lab.slug}>
-                    <Link href={`/labs/${lab.slug}`} className="group flex items-center gap-3 rounded-[var(--radius-sm)] border border-graphite/12 bg-paper-50 p-2 transition-colors hover:border-graphite/40">
+                    <Link href={`/labs#${lab.slug}`} className="group flex items-center gap-3 rounded-[var(--radius-sm)] border border-graphite/12 bg-paper-50 p-2 transition-colors hover:border-graphite/40">
                       <span className="relative size-14 shrink-0 overflow-hidden rounded-[3px] border border-graphite/10 bg-paper">
-                        <Image src={lab.image} alt="" fill sizes="56px" className="object-cover mix-blend-multiply" />
+                        <LabArt lab={lab} sizes="56px" />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-semibold text-graphite">{lab.title}</span>
