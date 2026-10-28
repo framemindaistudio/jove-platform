@@ -265,16 +265,77 @@ export type BookParts = ReturnType<typeof bookParts>;
  * In plain words, the parts of this scenario that no longer follow the price book because they were changed
  * in this browser. Empty when the whole scenario still runs on the book's numbers.
  */
-export function ownNumbers(s: Scenario): string[] {
+export type BookPart = "prices" | "lines" | "fixed" | "target" | "capex";
+export const BOOK_PART_LABEL: Record<BookPart, string> = {
+  prices: "prices per student",
+  lines: "the cost lines of a JOVE Day",
+  fixed: "monthly fixed costs",
+  target: "the monthly target",
+  capex: "the launch budget",
+};
+
+export function ownNumbers(s: Scenario): BookPart[] {
   const b = s.base;
   if (!b) return [];
   const now = bookParts(s);
-  const out: string[] = [];
-  if (!same(now.prices, b.prices) || now.minimumBilling !== b.minimumBilling) out.push("prices per student");
-  if (!same(now.lines, b.lines)) out.push("the cost lines of a JOVE Day");
-  if (!same(now.fixed, b.fixed)) out.push("monthly fixed costs");
-  if (now.target !== b.target || now.customRevenue !== b.customRevenue) out.push("the monthly target");
-  if (!same(now.capex, b.capex)) out.push("the launch budget");
+  const out: BookPart[] = [];
+  if (!same(now.prices, b.prices) || now.minimumBilling !== b.minimumBilling) out.push("prices");
+  if (!same(now.lines, b.lines)) out.push("lines");
+  if (!same(now.fixed, b.fixed)) out.push("fixed");
+  if (now.target !== b.target || now.customRevenue !== b.customRevenue) out.push("target");
+  if (!same(now.capex, b.capex)) out.push("capex");
+  return out;
+}
+
+/** Put one part of the scenario back on the price book's numbers (the rest of the what-if stays). */
+export function followBook(s: Scenario, book: PriceBook, part: BookPart): Scenario {
+  const d = defaultScenario(book);
+  if (part === "prices") {
+    s.day.prices = d.day.prices;
+    s.day.minimumBilling = d.day.minimumBilling;
+  }
+  if (part === "lines") s.day.lines = d.day.lines;
+  if (part === "fixed") s.month.fixed = d.month.fixed;
+  if (part === "target") {
+    s.month.target = d.month.target;
+    s.month.customRevenue = d.month.customRevenue;
+  }
+  if (part === "capex") s.capex = d.capex.map((c) => ({ ...c, included: s.capex.find((x) => x.id === c.id)?.included ?? c.included }));
+  return s;
+}
+
+/**
+ * Lines that start as the price book's (fixed costs, the cost lines of a JOVE Day), merged one line at a time:
+ * a line still at the book's numbers takes today's numbers; a field changed here stays as typed; a line new in the
+ * book appears; a line the book dropped goes (unless it was changed here); lines added here stay.
+ * Without a record of where the lines started (a save from an older version) everything is kept as typed.
+ */
+function mergeLines<T extends { id: string }>(saved: unknown, started: T[] | undefined, today: T[], fields: (keyof T)[]): T[] {
+  if (!Array.isArray(saved)) return today;
+  const own = saved.filter((x): x is T => !!x && typeof x === "object" && typeof (x as { id?: unknown }).id === "string");
+  if (!started) return own;
+  const changed = (s: T, b: T) => fields.some((f) => !same(s[f], b[f]));
+  const out: T[] = [];
+  for (const t of today) {
+    const s = own.find((x) => x.id === t.id);
+    const b = started.find((x) => x.id === t.id);
+    if (!s) {
+      if (!b) out.push(t); // new in the book
+      continue; // removed here on purpose
+    }
+    if (!b) {
+      out.push(s);
+      continue;
+    }
+    const line = { ...t };
+    for (const f of fields) if (!same(s[f], b[f])) line[f] = s[f];
+    out.push(line);
+  }
+  for (const s of own) {
+    if (today.some((t) => t.id === s.id)) continue;
+    const b = started.find((x) => x.id === s.id);
+    if (!b || changed(s, b)) out.push(s);
+  }
   return out;
 }
 
@@ -304,7 +365,7 @@ export function reviveScenario(raw: unknown, book: PriceBook): Scenario {
       students: keep(r.day?.students ? { ...d.day.students, ...r.day.students } : undefined, b?.students, d.day.students),
       prices: keep(r.day?.prices ? { ...d.day.prices, ...r.day.prices } : undefined, b?.prices, d.day.prices),
       minimumBilling: keep(number(r.day?.minimumBilling), b?.minimumBilling, d.day.minimumBilling),
-      lines: keep(Array.isArray(r.day?.lines) ? r.day.lines : undefined, b?.lines, d.day.lines),
+      lines: mergeLines<CostLine>(r.day?.lines, b?.lines as CostLine[] | undefined, d.day.lines, ["label", "type", "amount"]),
     },
     month: {
       ...d.month,
@@ -312,7 +373,7 @@ export function reviveScenario(raw: unknown, book: PriceBook): Scenario {
       workshops: keep(number(r.month?.workshops), b?.workshops, d.month.workshops),
       customRevenue: keep(number(r.month?.customRevenue), b?.customRevenue, d.month.customRevenue),
       target: keep(number(r.month?.target), b?.target, d.month.target),
-      fixed: keep(Array.isArray(r.month?.fixed) ? r.month.fixed : undefined, b?.fixed, d.month.fixed),
+      fixed: mergeLines<FixedLine>(r.month?.fixed, b?.fixed, d.month.fixed, ["label", "amount"]),
       addons: d.month.addons.map((a) => {
         const saved = Array.isArray(r.month?.addons) ? r.month.addons.find((x) => x?.id === a.id) : undefined;
         const started = Array.isArray(b?.addons) ? b.addons.find((x) => x?.id === a.id) : undefined;

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import type { PriceBook } from "@/lib/pricebook/types";
-import { defaultScenario, reviveScenario, type Scenario } from "./model";
+import { defaultScenario, followBook, reviveScenario, type BookPart, type Scenario } from "./model";
 
 /**
  * Scenario store: one object, persisted in localStorage (this browser only), read through
@@ -88,5 +88,7 @@ export function usePlanner(book: PriceBook) {
   }, [book]);
   const update = useCallback((fn: (draft: Scenario) => Scenario) => write(book, fn(structuredClone(read(book)))), [book]);
   const reset = useCallback(() => write(book, defaultScenario(book)), [book]);
-  return { scenario, update, reset };
+  /** one part back on the numbers in Prices & Costs; the rest of the what-if stays */
+  const follow = useCallback((part: BookPart) => write(book, followBook(structuredClone(read(book)), book, part)), [book]);
+  return { scenario, update, reset, follow };
 }

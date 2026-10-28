@@ -13,7 +13,7 @@ import type { Update } from "./PlannerApp";
 const inr = (v: number) => formatINR(Math.round(v) || 0);
 const signed = (v: number) => (v < 0 ? `−${inr(-v)}` : inr(v));
 
-export function MonthlyPlan({ s, update, book }: { s: Scenario; update: Update; book: PriceBook }) {
+export function MonthlyPlan({ s, update, book, ownFixed, onFollowFixed }: { s: Scenario; update: Update; book: PriceBook; ownFixed?: boolean; onFollowFixed?: () => void }) {
   const m = useMemo(() => monthlyPlan(s), [s]);
   // the company's own targets, as kept in the price book (0 = not set yet)
   const targets = book.planner.targets;
@@ -116,6 +116,14 @@ export function MonthlyPlan({ s, update, book }: { s: Scenario; update: Update; 
               </TextButton>
             }
           >
+            {ownFixed && (
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-sm)] border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-charcoal">
+                <span>Some of these were changed here, so those lines do not follow <PricesLink />. New and unchanged lines still update from there.</span>
+                <TextButton className="shrink-0 whitespace-nowrap" onClick={onFollowFixed}>
+                  Use Prices & Costs
+                </TextButton>
+              </div>
+            )}
             {noFixed && (
               <p className="mb-3 rounded-[var(--radius-sm)] border border-dashed border-graphite/25 px-3 py-2 text-xs text-charcoal">
                 No monthly fixed costs yet, so profit and break-even cannot be worked out. Add them in <PricesLink /> (every HQ screen then uses them), or use Add line to try a number here only.

@@ -15,7 +15,7 @@ import { MonthlyPlan } from "./MonthlyPlan";
 import { Projection } from "./Projection";
 import { Streams } from "./Streams";
 import { UnitEconomics } from "./UnitEconomics";
-import { monthlyPlan, ownNumbers, projection, scenarioCsv, type Scenario } from "./model";
+import { BOOK_PART_LABEL, monthlyPlan, ownNumbers, projection, scenarioCsv, type BookPart, type Scenario } from "./model";
 import { usePlanner } from "./store";
 
 export type Update = (fn: (draft: Scenario) => Scenario) => void;
@@ -49,7 +49,7 @@ export function PlannerApp() {
 }
 
 function Planner({ book }: { book: PriceBook }) {
-  const { scenario, update, reset } = usePlanner(book);
+  const { scenario, update, reset, follow } = usePlanner(book);
   const m = useMemo(() => monthlyPlan(scenario), [scenario]);
   const p = useMemo(() => projection(scenario), [scenario]);
   const own = useMemo(() => ownNumbers(scenario), [scenario]);
@@ -154,9 +154,18 @@ function Planner({ book }: { book: PriceBook }) {
       </div>
 
       {own.length > 0 && (
-        <p className="mt-3 text-xs text-blueprint">
-          Your own what-if numbers in this browser: {listAnd(own)}. They no longer follow <PricesLink /> — press Reset to defaults to go back to the numbers there.
-        </p>
+        <Note tone="warn" className="mt-3">
+          <span className="block">
+            Some numbers here are your own what-ifs and do not follow <PricesLink />: {listAnd(own.map((k) => BOOK_PART_LABEL[k]))}. Everything else updates when Prices & Costs changes.
+          </span>
+          <span className="mt-2 flex flex-wrap gap-2">
+            {own.map((k: BookPart) => (
+              <Button key={k} variant="secondary" size="sm" onClick={() => follow(k)}>
+                <RotateCcw className="size-3.5" aria-hidden /> Use Prices & Costs for {BOOK_PART_LABEL[k]}
+              </Button>
+            ))}
+          </span>
+        </Note>
       )}
 
       <nav aria-label="Planner sections" className="no-print mt-6 flex flex-wrap gap-2 border-b border-graphite/10 pb-4">
@@ -174,7 +183,7 @@ function Planner({ book }: { book: PriceBook }) {
 
       <div className="mt-10 space-y-16">
         <UnitEconomics s={scenario} update={update} book={book} />
-        <MonthlyPlan s={scenario} update={update} book={book} />
+        <MonthlyPlan s={scenario} update={update} book={book} ownFixed={own.includes("fixed")} onFollowFixed={() => follow("fixed")} />
         <Projection s={scenario} update={update} book={book} />
         <Capex s={scenario} update={update} />
         <KitEconomics s={scenario} update={update} book={book} />
