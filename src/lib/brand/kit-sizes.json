@@ -1,0 +1,67 @@
+{
+  "jove-horizontal-dark.png": {
+    "w": 3840,
+    "h": 1136,
+    "bytes": 1584692
+  },
+  "jove-horizontal-for-dark.png": {
+    "w": 3840,
+    "h": 1136,
+    "bytes": 1620278
+  },
+  "jove-horizontal-for-light.png": {
+    "w": 3840,
+    "h": 1136,
+    "bytes": 1515654
+  },
+  "jove-icon-dark.png": {
+    "w": 4096,
+    "h": 4096,
+    "bytes": 5584684
+  },
+  "jove-icon-mono.png": {
+    "w": 4096,
+    "h": 4096,
+    "bytes": 5165539
+  },
+  "jove-icon-transparent.png": {
+    "w": 4096,
+    "h": 4096,
+    "bytes": 5630804
+  },
+  "jove-keyvisual-1200.png": {
+    "w": 1200,
+    "h": 675,
+    "bytes": 261509
+  },
+  "jove-keyvisual.png": {
+    "w": 2560,
+    "h": 1440,
+    "bytes": 632851
+  },
+  "jove-lockup-dark.png": {
+    "w": 3840,
+    "h": 3840,
+    "bytes": 3005852
+  },
+  "jove-lockup-light.png": {
+    "w": 3840,
+    "h": 3840,
+    "bytes": 2768587
+  },
+  "jove-lockup-mono.png": {
+    "w": 3840,
+    "h": 3840,
+    "bytes": 2761363
+  },
+  "jove-lockup-transparent.png": {
+    "w": 3840,
+    "h": 3840,
+    "bytes": 2998017
+  },
+  "jove-profile-picture.png": {
+    "w": 3840,
+    "h": 3840,
+    "bytes": 2816154
+  }
+}

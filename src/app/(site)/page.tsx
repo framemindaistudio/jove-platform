@@ -32,9 +32,9 @@ export const metadata: Metadata = {
     title,
     description,
     locale: "en_IN",
-    images: [{ url: "/brand/og-image.jpg", alt: "JOVE — Building real-world skills through Robotics & AI" }],
+    images: [{ url: "/brand/og-image.jpg?v=2", alt: "JOVE — Building real-world skills through Robotics & AI" }],
   },
-  twitter: { card: "summary_large_image", title, description, images: ["/brand/og-image.jpg"] },
+  twitter: { card: "summary_large_image", title, description, images: ["/brand/og-image.jpg?v=2"] },
 };
 
 export default async function HomePage() {

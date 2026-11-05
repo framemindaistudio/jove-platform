@@ -1,9 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { Check, Download, X } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { AnnotationStack, ConstructionCircle, CornerMarks, Crosshair, DimensionLine, SpecIndex } from "@/components/brand/Blueprint";
-import { buttonClass } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/form";
 import { Panel } from "@/components/hq/ui";
 import { joveDayRules } from "@/lib/content/business";
@@ -11,6 +10,8 @@ import { C } from "@/lib/social/canvas";
 import { FORMATS } from "@/lib/social/types";
 import { rupees } from "@/lib/social/words";
 import { cn } from "@/lib/utils";
+import { KitFiles } from "@/components/hq/brand/KitFiles";
+import { SITE_FILES } from "@/lib/brand/kit";
 import { Bullets } from "./parts/bits";
 import { CopyButton } from "./parts/CopyButton";
 
@@ -32,36 +33,7 @@ const SECTIONS = [
   { id: "kit-check", name: "Before you publish" },
 ];
 
-/* ───────────────────────────── logo files (public/brand) ───────────────────────────── */
-
-interface BrandFile {
-  file: string;
-  name: string;
-  w: number;
-  h: number;
-  kind: string;
-  use: string;
-  /** the white version: shown on graphite */
-  dark?: boolean;
-}
-
-const LOGO_FILES: BrandFile[] = [
-  { file: "jove-wordmark.png", name: "Wordmark", w: 1400, h: 669, kind: "PNG, transparent", use: "Paper and light backgrounds. Bottom-left of a post, documents." },
-  { file: "jove-wordmark-white.png", name: "Wordmark, white", w: 1400, h: 669, kind: "PNG, transparent", use: "Graphite panels and photographs.", dark: true },
-  { file: "jove-mark.png", name: "Symbol", w: 1024, h: 1178, kind: "PNG, transparent", use: "Small spaces: top-left of a post, stickers, watermarks, stamps." },
-  { file: "jove-mark-white.png", name: "Symbol, white", w: 1024, h: 1178, kind: "PNG, transparent", use: "The same small spaces, on graphite and on photographs.", dark: true },
-  { file: "jove-logo-ink.png", name: "Full lockup", w: 2000, h: 1067, kind: "PNG, transparent", use: "With the corner annotations. Covers and title slides on light backgrounds." },
-  { file: "jove-logo-ink-white.png", name: "Full lockup, white", w: 2000, h: 1067, kind: "PNG, transparent", use: "Covers and title slides on graphite.", dark: true },
-  { file: "jove-logo-paper.webp", name: "Full lockup on paper", w: 2400, h: 1280, kind: "WebP, paper background", use: "Ready to place in a document or a presentation." },
-  { file: "icon-512.png", name: "App icon", w: 512, h: 512, kind: "PNG", use: "Profile pictures on every platform." },
-];
-
-const MORE_FILES = [
-  { file: "jove-logo-ink.webp", what: "Full lockup as WebP, a smaller file" },
-  { file: "jove-logo-ink-white.webp", what: "Full lockup, white, as WebP" },
-  { file: "og-image.jpg", what: "Link preview picture, 1200 × 630" },
-  { file: "icon-192.png", what: "Small icon, 192 × 192" },
-];
+/* ───────────────────────────── logo files: the brand kit (public/brand/kit), see src/lib/brand/kit.ts ───────────────────────────── */
 
 const LOGO_DO = [
   "Clear space: the height of the O ring on all four sides. No text, edge or other logo enters it.",
@@ -186,7 +158,7 @@ const SIZES: { format: string; canvas: string; ratio: string; count: string; not
   { format: "Reel cover", canvas: px("story"), ratio: "9:16", count: "1", note: "It must also read as a 4:5 crop on the profile grid: the key area is the centre 1080 × 1350. No face cut by the crop.", create: FORMATS.story.label },
   { format: "Reel, Short, Status", canvas: px("story"), ratio: "9:16", count: "30 to 60 s", note: "H.264 MP4, 30 fps, 10 to 15 Mbps, AAC 48 kHz. Captions burned in: most people watch muted.", create: "Video: made in the edit" },
   { format: "YouTube thumbnail", canvas: px("wide"), ratio: "16:9", count: "1", note: "Two words of text at most.", create: FORMATS.wide.label },
-  { format: "Profile picture", canvas: "512 × 512 or larger", ratio: "1:1", count: "1", note: "The app icon above (512 px) is enough on every platform. The 1024 px master is JOVE_App_Icon_1024.png in 01_BRAND/logo.", create: "The app icon above" },
+  { format: "Profile picture", canvas: "3840 × 3840", ratio: "1:1", count: "1", note: "jove-profile-picture.png above: the whole logo sits inside the round crop of every platform.", create: "The profile picture above" },
 ];
 
 /* ───────────────────────────── pictures, naming, the check ───────────────────────────── */
@@ -278,34 +250,14 @@ export function BrandKit() {
       <div className="space-y-5">
         {/* ── logo files ── */}
         <div id="kit-logo" className="scroll-mt-20">
-          <Panel title="Logo files" subtitle="Never redraw, recolour, stretch or re-type the logo. Use these files.">
-            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {LOGO_FILES.map((f) => (
-                <li key={f.file} className="flex flex-col overflow-hidden rounded-[var(--radius-sm)] border border-graphite/12 bg-paper-50">
-                  <div className={cn("relative aspect-[16/9]", f.dark ? "bg-graphite" : "bg-paper")}>
-                    <Image src={`/brand/${f.file}`} alt="" fill sizes="(min-width: 1024px) 260px, (min-width: 640px) 45vw, 90vw" className="object-contain p-5" />
-                  </div>
-                  <div className="flex flex-1 flex-col border-t border-graphite/10 p-3.5">
-                    <h3 className="text-sm font-semibold text-graphite">{f.name}</h3>
-                    <p className="mt-1 text-xs leading-relaxed text-charcoal">{f.use}</p>
-                    <p className="mb-3 mt-2 font-mono text-[11px] leading-relaxed text-charcoal">
-                      {f.file}
-                      <br />
-                      {f.w} × {f.h} px · {f.kind}
-                    </p>
-                    <a href={`/brand/${f.file}`} download className={buttonClass("secondary", "sm", "mt-auto self-start")}>
-                      <Download className="size-3.5" aria-hidden /> Download<span className="sr-only">: {f.name}</span>
-                    </a>
-                  </div>
-                </li>
-              ))}
-            </ul>
+          <Panel title="Logo files" subtitle="Never redraw, recolour, stretch or re-type the logo. Use these files: full size, built from the 4K masters.">
+            <KitFiles />
 
             <div className="mt-5 grid gap-x-8 gap-y-4 border-t border-graphite/10 pt-4 lg:grid-cols-2">
               <div>
                 <Sub>Also here</Sub>
                 <ul className="space-y-1 text-xs text-charcoal">
-                  {MORE_FILES.map((f) => (
+                  {SITE_FILES.map((f) => (
                     <li key={f.file}>
                       <a href={`/brand/${f.file}`} download className="font-mono font-medium text-graphite underline underline-offset-2">
                         {f.file}
@@ -318,7 +270,7 @@ export function BrandKit() {
               <div>
                 <Sub>For print</Sub>
                 <p className="text-xs leading-relaxed text-charcoal">
-                  Start from the 4K masters, kept in the company&apos;s brand folder (<span className="font-mono">01_BRAND/logo</span>): the full lockup on paper, transparent and reversed, the symbol, and the app icon at 1024 px. They are not edited or renamed.
+                  Use the full-size kit files above (3840 to 4096 px). They are built from the 4K masters in the company&apos;s brand folder (<span className="font-mono">01_BRAND/logo</span>), which are not edited or renamed. Every file is also in HQ → Brand Kit.
                 </p>
               </div>
             </div>

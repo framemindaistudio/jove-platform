@@ -43,7 +43,10 @@ export const hqNav: HqNavGroup[] = [
   },
   {
     title: "Brand & Social",
-    items: [{ label: "Social Studio", href: "/hq/social", icon: "Megaphone", roles: MEDIA_SIDE, description: "Designs to download, content plan, captions" }],
+    items: [
+      { label: "Social Studio", href: "/hq/social", icon: "Megaphone", roles: MEDIA_SIDE, description: "Designs to download, content plan, captions" },
+      { label: "Brand Kit", href: "/hq/brand", icon: "Palette", roles: ALL, description: "Every logo file at full size, colours and type" },
+    ],
   },
   {
     title: "Money",
