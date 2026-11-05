@@ -13,7 +13,7 @@ import { LeadForm } from "@/components/site/LeadForm";
 import { Reveal, RevealLines } from "@/components/site/Reveal";
 import { Monogram } from "@/components/site/about/Monogram";
 
-export const revalidate = 300;
+export const revalidate = 86400;
 
 export const metadata: Metadata = {
   title: "Testimonials — Stories from JOVE Schools",

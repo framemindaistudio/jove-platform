@@ -4,7 +4,7 @@ import { kits } from "@/lib/content/business";
 import type { BaseRecord } from "@/lib/hq/collections";
 import { site } from "@/lib/site";
 
-/** Data the PUBLIC website reads from the repo store (cached for 5 minutes). */
+/** Data the PUBLIC website reads from the repo store (cached for a day; saving the record in HQ expires it at once). */
 
 export interface PublicProduct {
   id: string;
@@ -40,7 +40,7 @@ export interface PublicTestimonial {
   date?: string;
 }
 
-const REVALIDATE = 300;
+const REVALIDATE = 86400;
 
 /** Fallback catalog straight from business.ts so the shop is never empty. */
 function catalogFallback(): PublicProduct[] {

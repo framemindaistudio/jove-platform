@@ -21,7 +21,7 @@ import { site } from "@/lib/site";
 import { formatINR } from "@/lib/utils";
 import { LabArt } from "@/components/site/LabArt";
 
-export const revalidate = 300;
+export const revalidate = 86400;
 
 type Params = { params: Promise<{ slug: string }> };
 

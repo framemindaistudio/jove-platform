@@ -10,7 +10,7 @@ import { FOUNDERS } from "@/lib/sign/context";
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   try {
-    const member = (await listRecords("team", { revalidate: 300 })).find((m) => m.id === id);
+    const member = (await listRecords("team", { revalidate: 86400 })).find((m) => m.id === id);
     const founder = member && FOUNDERS.some((f) => f.name.toLowerCase() === String(member.name ?? "").trim().toLowerCase());
     const shown = member && (founder || (member.showOnWebsite === true && String(member.status ?? "active") === "active"));
     const path = shown && typeof member.photo === "string" && member.photo.startsWith("vault/team-photos/") ? member.photo : "";

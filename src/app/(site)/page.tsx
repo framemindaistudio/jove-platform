@@ -15,7 +15,7 @@ import { Testimonials } from "@/components/site/home/Testimonials";
 import { Faq } from "@/components/site/home/Faq";
 import { Booking } from "@/components/site/home/Booking";
 
-export const revalidate = 300;
+export const revalidate = 86400;
 
 const title = `${site.name} — Robotics, AI & ML Workshops for Schools, with a Film Studio`;
 const description =

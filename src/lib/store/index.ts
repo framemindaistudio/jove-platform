@@ -2,6 +2,7 @@ import "server-only";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import { revalidateTag } from "next/cache";
 
 /**
  * ─────────────────────────────────────────────────────────────────────────────
@@ -135,12 +136,12 @@ function encodePath(p: string) {
   return p.split("/").map(encodeURIComponent).join("/");
 }
 
-async function gh(pathname: string, init: RequestInit & { revalidate?: number } = {}) {
-  const { revalidate, ...rest } = init;
+async function gh(pathname: string, init: RequestInit & { revalidate?: number; tags?: string[] } = {}) {
+  const { revalidate, tags, ...rest } = init;
   const res = await fetch(`${GH}/repos/${process.env.GITHUB_REPO}${pathname}`, {
     ...rest,
     headers: ghHeaders((rest.headers as Record<string, string>) || {}),
-    ...(revalidate ? { next: { revalidate } } : { cache: "no-store" }),
+    ...(revalidate ? { next: { revalidate, tags } } : { cache: "no-store" }),
   });
   return res;
 }
@@ -162,8 +163,20 @@ async function assertPrivateDataRepo() {
   if (!(await dataRepoIsPrivate())) throw new StorePublicRepoError();
 }
 
+/** Cache tag for one data file. Cached (public website) reads carry it; writing the file expires it. */
+const fileTag = (p: string) => `store:${p}`;
+
+/** Expire the public website's cached copy of a file once HQ changes it, so pages can cache for a long time. */
+function expireFile(p: string) {
+  try {
+    revalidateTag(fileTag(p), { expire: 0 });
+  } catch {
+    // outside a request (scripts): nothing is cached there
+  }
+}
+
 async function ghRead(p: string, opts: { revalidate?: number } = {}): Promise<StoreFile | null> {
-  const res = await gh(`/contents/${encodePath(p)}?ref=${encodeURIComponent(branch())}`, { revalidate: opts.revalidate });
+  const res = await gh(`/contents/${encodePath(p)}?ref=${encodeURIComponent(branch())}`, { revalidate: opts.revalidate, tags: [fileTag(p)] });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`GitHub read failed (${res.status}): ${await res.text()}`);
   const json = await res.json();
@@ -385,7 +398,9 @@ export const store = {
     if (mode === "readonly") throw new StoreReadOnlyError();
     if (mode === "github") {
       await assertPrivateDataRepo();
-      return ghWrite(sp, content, message, opts.sha, opts.author);
+      const out = await ghWrite(sp, content, message, opts.sha, opts.author);
+      expireFile(sp);
+      return out;
     }
     return fsWrite(sp, content, message, opts.sha);
   },
@@ -396,7 +411,9 @@ export const store = {
     if (mode === "readonly") throw new StoreReadOnlyError();
     if (mode === "github") {
       await assertPrivateDataRepo();
-      return ghRemove(sp, message, opts.sha, opts.author);
+      const out = await ghRemove(sp, message, opts.sha, opts.author);
+      expireFile(sp);
+      return out;
     }
     return fsRemove(sp);
   },

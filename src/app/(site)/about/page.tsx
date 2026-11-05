@@ -169,7 +169,7 @@ const roadmap: RoadmapStep[] = [
 ];
 
 /** The team comes from HQ (Team & Payroll), read again at most every five minutes. */
-export const revalidate = 300;
+export const revalidate = 86400;
 
 export default async function AboutPage() {
   const [team, founderPhotos] = await Promise.all([getPublicTeam(), getFounderPhotos()]);

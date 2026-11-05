@@ -16,7 +16,7 @@ import { FREE_SHIPPING_ABOVE } from "@/lib/shop";
 import { site } from "@/lib/site";
 import { formatINR } from "@/lib/utils";
 
-export const revalidate = 300;
+export const revalidate = 86400;
 
 export const metadata: Metadata = {
   title: "Robotics & AI Kits — Shop",

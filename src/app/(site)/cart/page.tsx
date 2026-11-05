@@ -3,7 +3,7 @@ import { CartView } from "@/components/site/shop/CartView";
 import { toShopProduct } from "@/components/site/shop/catalog";
 import { getPublicProducts } from "@/lib/public-data";
 
-export const revalidate = 300;
+export const revalidate = 86400;
 
 export const metadata: Metadata = {
   title: "Your cart & checkout",
